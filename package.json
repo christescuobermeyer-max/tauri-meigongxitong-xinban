@@ -1,0 +1,42 @@
+{
+  "name": "csgh-image-studio",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "呈尚策划 · 美工生图系统 — 基于 GPT-Image-2 的外卖店招/头像生成桌面应用",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "tauri": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./run-dev.ps1 cli",
+    "tauri:doctor": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./run-dev.ps1 doctor",
+    "tauri:dev": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./run-dev.ps1 dev",
+    "tauri:build": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./run-dev.ps1 build"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.1",
+    "@tauri-apps/api": "^2.1.1",
+    "@tauri-apps/plugin-dialog": "^2.0.1",
+    "@tauri-apps/plugin-fs": "^2.0.3",
+    "@tauri-apps/plugin-shell": "^2.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.1.0",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.3"
+  },
+  "main": "vite.config.js",
+  "directories": {
+    "test": "tests"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "types": "./vite.config.d.ts"
+}

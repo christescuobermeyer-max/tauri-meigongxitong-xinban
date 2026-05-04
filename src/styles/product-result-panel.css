@@ -1,0 +1,172 @@
+.product-copy-card {
+  width: 100%;
+  margin-top: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-subtle) 72%, var(--bg-elevated)) 0%, var(--bg-elevated) 100%);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  transition:
+    transform var(--duration-fast) var(--easing),
+    border-color var(--duration-fast) var(--easing),
+    box-shadow var(--duration-fast) var(--easing),
+    background-color var(--duration-fast) var(--easing);
+}
+
+.product-copy-card:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  box-shadow: var(--shadow-md);
+}
+
+.product-copy-card:focus-visible {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--border-focus) 14%, transparent);
+}
+
+.product-copy-card[data-copy-state="success"] {
+  border-color: color-mix(in srgb, var(--success) 30%, var(--border));
+}
+
+.product-copy-card[data-copy-state="error"] {
+  border-color: color-mix(in srgb, var(--danger) 30%, var(--border));
+}
+
+.product-copy-card__eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.product-copy-card__title {
+  font-size: 13px;
+  color: var(--fg);
+}
+
+.product-copy-card__body {
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--fg-muted);
+  white-space: normal;
+}
+
+.product-copy-card__foot {
+  font-size: 11px;
+  color: var(--fg-subtle);
+}
+
+.product-name-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 34px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+}
+
+.product-name-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-elevated));
+  color: var(--fg);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.product-batch-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.product-batch-grid .result[data-layout="compact"] .result__head {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 12px 12px 10px;
+  gap: 12px;
+}
+
+.product-batch-grid .result[data-layout="compact"] .result__head > * {
+  min-width: 0;
+}
+
+.product-batch-grid .result[data-layout="compact"] .result__title {
+  width: 100%;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.product-batch-grid .result[data-layout="compact"] .result__title-text {
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.45;
+}
+
+.product-batch-grid .result[data-layout="compact"] .result__sub {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-batch-grid .result[data-layout="compact"] .result__actions {
+  width: 100%;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.product-batch-grid .result[data-layout="compact"] .result__actions .badge {
+  margin-right: auto;
+}
+
+.product-batch-grid .result[data-layout="compact"] .result__actions .btn {
+  padding-inline: 8px;
+}
+
+.product-batch-grid .result[data-layout="compact"] .result__body {
+  padding: 10px;
+}
+
+.product-batch-grid .result[data-layout="compact"] .result__preview {
+  min-height: 108px;
+}
+
+.product-batch-grid .result[data-layout="compact"] .result__preview img {
+  width: 100%;
+  max-height: 180px;
+  object-fit: contain;
+}
+
+.product-batch-grid .result[data-layout="compact"] .result__placeholder {
+  padding: 20px 12px;
+  max-width: 100%;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+@media (max-width: 900px) {
+  .product-batch-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

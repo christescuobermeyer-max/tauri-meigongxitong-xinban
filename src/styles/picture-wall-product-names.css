@@ -1,0 +1,35 @@
+.picture-wall-product-names {
+  margin-top: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg-elevated));
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.picture-wall-product-names__title {
+  color: var(--fg-subtle);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.picture-wall-product-names__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.picture-wall-product-chip {
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
