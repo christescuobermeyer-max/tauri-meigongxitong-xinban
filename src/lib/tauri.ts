@@ -15,7 +15,7 @@ export interface GenerateImageRequest {
   size: string;
   /** 参考图列表：支持不含 data: 前缀的 base64，也支持可访问 URL；可为空 */
   product_images: string[];
-  /** 线路1为 yunwu，线路2为 pockgo */
+  /** 线路1为 yunwu，线路2为 pockgo，线路3为 vectorengine */
   api_line?: GenerationLine;
 }
 

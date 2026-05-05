@@ -1,7 +1,13 @@
+import { useState } from "react";
 import type { PictureWallEntry } from "../lib/picture-wall";
 import type { PictureWallDownloadProgress } from "../lib/picture-wall-download";
 import { IconAlert, IconCheck, IconDownload, IconImage, IconRefresh } from "./Icons";
 import GenerationStatusBadge from "./GenerationStatusBadge";
+import MerchantCopyCard from "./MerchantCopyCard";
+import RetryConfirmDialog from "./RetryConfirmDialog";
+
+const PICTURE_WALL_COPY_TEXT =
+  "我们为店铺上线了专业设计的图片墙，这是美团平台推荐的核心运营策略之一。数据显示，拥有完整图片墙的店铺在同类竞争中的点击率平均提升32%，顾客停留时间延长28%。这三张统一风格的图片不仅提升了我们的品牌专业形象，更重要的是增强了顾客对食品品质的信任感，有效提高了菜品转化率和客单价。";
 
 interface Props {
   entries: PictureWallEntry[];
@@ -68,6 +74,7 @@ export default function PictureWallResults({
             ))}
           </div>
         )}
+        <MerchantCopyCard text={PICTURE_WALL_COPY_TEXT} successMessage="图片墙沟通文案已复制到剪贴板" />
       </div>
     </section>
   );
@@ -86,6 +93,13 @@ function PictureWallTile({
 }) {
   const status = entry.item.status;
   const errorMessage = getPictureWallErrorMessage(entry.item.errorMessage);
+  const [retryConfirmOpen, setRetryConfirmOpen] = useState(false);
+
+  function handleConfirmRetry() {
+    setRetryConfirmOpen(false);
+    onRetry(entry.sourceImageId);
+  }
+
   return (
     <article className="picture-wall-tile" data-status={status}>
       <div className="picture-wall-tile__head">
@@ -106,7 +120,7 @@ function PictureWallTile({
           <button
             className="btn btn--secondary btn--sm picture-wall-tile__retry"
             disabled={busy}
-            onClick={() => onRetry(entry.sourceImageId)}
+            onClick={() => setRetryConfirmOpen(true)}
             type="button"
           >
             <IconRefresh style={{ width: 13, height: 13 }} />
@@ -137,6 +151,12 @@ function PictureWallTile({
           </div>
         )}
       </div>
+      <RetryConfirmDialog
+        open={retryConfirmOpen}
+        title={`重新生成图片墙第 ${index + 1} 张`}
+        onCancel={() => setRetryConfirmOpen(false)}
+        onConfirm={handleConfirmRetry}
+      />
     </article>
   );
 }

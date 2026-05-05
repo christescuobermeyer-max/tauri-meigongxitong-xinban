@@ -126,7 +126,16 @@ function LogList({ logs }: { logs: GenerationLogRow[] }) {
             <div className="admin__log-head">
               <span className="badge" data-tone="info">{ASSET_LABEL[log.asset_kind] ?? log.asset_kind}</span>
               <span className="badge">{log.platform === "meituan" ? "美团" : "淘宝闪购"}</span>
-              <span className="badge" data-tone={log.generation_line === "line2" ? "warning" : "success"}>
+              <span
+                className="badge"
+                data-tone={
+                  log.generation_line === "line2"
+                    ? "warning"
+                    : log.generation_line === "line3"
+                      ? "info"
+                      : "success"
+                }
+              >
                 {getGenerationLineLabel(log.asset_kind, log.generation_line)}
               </span>
               <span className="admin__log-time">{formatDate(log.created_at)}</span>
@@ -148,6 +157,7 @@ function getGenerationLineLabel(
 ) {
   if (line === "line1") return "线路1";
   if (line === "line2") return "线路2";
+  if (line === "line3") return "线路3";
   return kind === "picture_wall" ? "专用接口" : "线路1";
 }
 

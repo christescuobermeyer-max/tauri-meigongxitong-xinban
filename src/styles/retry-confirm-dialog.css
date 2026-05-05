@@ -1,0 +1,67 @@
+.retry-confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--bg) 42%, transparent);
+  backdrop-filter: blur(8px);
+  animation: retry-confirm-fade 140ms var(--easing);
+}
+
+.retry-confirm__dialog {
+  width: min(420px, 100%);
+  border: 1px solid color-mix(in srgb, var(--danger) 26%, var(--border));
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--danger) 9%, transparent), transparent 42%),
+    var(--bg-elevated);
+  box-shadow: var(--shadow-lg);
+  padding: 20px;
+  display: grid;
+  gap: 12px;
+  animation: retry-confirm-pop 180ms var(--easing-spring);
+}
+
+.retry-confirm__eyebrow {
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--danger) 26%, var(--border));
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, var(--bg-elevated));
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.retry-confirm__title {
+  margin: 0;
+  color: var(--fg);
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+.retry-confirm__message {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.retry-confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+@keyframes retry-confirm-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes retry-confirm-pop {
+  from { transform: translateY(8px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}

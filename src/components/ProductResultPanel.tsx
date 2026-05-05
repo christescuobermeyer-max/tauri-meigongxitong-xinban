@@ -1,7 +1,6 @@
-import { useState } from "react";
-import { useToast } from "./Toast";
 import type { GenerationItem, PlatformSpec } from "../types";
 import GenerationResultTile from "./GenerationResultTile";
+import MerchantCopyCard from "./MerchantCopyCard";
 import "../styles/product-result-panel.css";
 
 const PRODUCT_COPY_TEXT =
@@ -22,20 +21,6 @@ export default function ProductResultPanel({
   onRetry,
   onDownload,
 }: Props) {
-  const toast = useToast();
-  const [copyState, setCopyState] = useState<"idle" | "success" | "error">("idle");
-
-  async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(PRODUCT_COPY_TEXT);
-      setCopyState("success");
-      toast.show("产品图沟通文案已复制到剪贴板", "success");
-    } catch {
-      setCopyState("error");
-      toast.show("复制失败，请手动选中文案复制", "error");
-    }
-  }
-
   return (
     <div>
       <div className="results__head">
@@ -62,23 +47,7 @@ export default function ProductResultPanel({
           onDownload={onDownload}
         />
       </div>
-      <button
-        className="product-copy-card"
-        data-copy-state={copyState}
-        onClick={handleCopy}
-        type="button"
-      >
-        <span className="product-copy-card__eyebrow">商家沟通文案</span>
-        <strong className="product-copy-card__title">点击整段文案可直接复制到剪贴板</strong>
-        <span className="product-copy-card__body">{PRODUCT_COPY_TEXT}</span>
-        <span className="product-copy-card__foot">
-          {copyState === "success"
-            ? "已复制到剪贴板"
-            : copyState === "error"
-              ? "复制失败，请重试"
-              : "点击文案内容可以直接复制到剪切板"}
-        </span>
-      </button>
+      <MerchantCopyCard text={PRODUCT_COPY_TEXT} successMessage="产品图沟通文案已复制到剪贴板" />
     </div>
   );
 }

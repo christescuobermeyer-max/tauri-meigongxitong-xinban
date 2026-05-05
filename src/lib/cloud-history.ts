@@ -8,7 +8,7 @@ export interface RecordGenerationLogInput {
   assetKind: AssetKind;
   platform: Platform;
   ossUrl: string;
-  generationLine?: "line1" | "line2" | null;
+  generationLine?: "line1" | "line2" | "line3" | null;
 }
 
 /** 写一条生图记录到云端。失败只 console.warn，不阻塞主流程。 */

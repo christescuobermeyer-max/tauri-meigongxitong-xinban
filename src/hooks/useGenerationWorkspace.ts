@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "../components/Toast";
+import useImageEditWorkspace from "./useImageEditWorkspace";
 import usePSignboardWorkspace from "./usePSignboardWorkspace";
 import usePictureWallWorkspace from "./usePictureWallWorkspace";
 import useProductBatchWorkspace from "./useProductBatchWorkspace";
@@ -48,6 +49,7 @@ export type WorkspaceTab =
   | "productBatch"
   | "pictureWall"
   | "pSignboard"
+  | "imageEdit"
   | "history"
   | "admin";
 
@@ -177,6 +179,14 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     onToast: toast.show,
     onRecordPSignboardHistory: (item) => pushHistoryEntry("p_signboard", item),
   });
+  const imageEditWorkspace = useImageEditWorkspace({
+    shopName,
+    platform,
+    currentPlatform,
+    generationLine,
+    onToast: toast.show,
+    onRecordHistory: (kind, item) => pushHistoryEntry(kind, item),
+  });
 
   useEffect(() => {
     if (tab !== "history" || !isSupabaseConfigured) return;
@@ -194,7 +204,8 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     [avatar, storefront, poster, product].some((item) => isBusyStatus(item.status)) ||
     productBatchWorkspace.busy ||
     pictureWallWorkspace.busy ||
-    pSignboardWorkspace.busy;
+    pSignboardWorkspace.busy ||
+    imageEditWorkspace.busy;
   const canBatchDownload = canBatchDownloadAssets([avatar, storefront, poster]);
 
   useEffect(() => {
@@ -381,6 +392,16 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     }
   }
 
+  async function handleDownloadPSignboard() {
+    try {
+      const saved = await saveGeneratedAsset("p_signboard", pSignboardWorkspace.item, shopName, currentPlatform);
+      if (!saved) return;
+      toast.show(`已保存至：${saved}`, "success");
+    } catch (error: unknown) {
+      toast.show(`保存失败：${error instanceof Error ? error.message : String(error)}`, "error");
+    }
+  }
+
   return {
     tab,
     setTab,
@@ -421,6 +442,10 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     setPSignboardNewText: pSignboardWorkspace.setNewText,
     pSignboardItem: pSignboardWorkspace.item,
     pSignboardBusy: pSignboardWorkspace.busy,
+    imageEditEntries: imageEditWorkspace.entries,
+    imageEditBusy: imageEditWorkspace.busy,
+    setImageEditImages: imageEditWorkspace.setImages,
+    setImageEditInstruction: imageEditWorkspace.setInstruction,
     historyEntries,
     elapsed,
     busy,
@@ -434,6 +459,9 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     retryPictureWallItem: pictureWallWorkspace.handleRetry,
     handleDownloadPictureWall: pictureWallWorkspace.handleDownload,
     handleGeneratePSignboard: pSignboardWorkspace.handleGenerate,
+    handleDownloadPSignboard,
+    handleGenerateImageEdit: imageEditWorkspace.generate,
+    handleDownloadImageEdit: imageEditWorkspace.download,
     resetPSignboard: pSignboardWorkspace.reset,
     handleDownload,
     handleDownloadProductBatchItem: productBatchWorkspace.download,
@@ -442,3 +470,5 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     retryProductBatchItem: productBatchWorkspace.retry,
   };
 }
+
+export type GenerationWorkspace = ReturnType<typeof useGenerationWorkspace>;

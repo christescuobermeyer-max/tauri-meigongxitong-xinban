@@ -94,7 +94,7 @@ export default function LoginPage({ onSuccess }: Props) {
           <span className="login-card__logo" aria-hidden="true">
             <img src="/brand-logo.png" alt="" />
           </span>
-          <span className="login-card__title">呈尚策划 · 美工生图系统</span>
+          <span className="login-card__title">呈尚策划 · 美工生图系统PRO</span>
           <span className="login-card__subtitle">登录以进入工作台</span>
         </div>
 

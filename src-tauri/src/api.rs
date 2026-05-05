@@ -27,7 +27,7 @@ pub struct GenerateRequest {
     pub size: String,
     /// 参考图列表：支持不含 data: 前缀的 base64，也支持可访问 URL；可为空
     pub product_images: Vec<String>,
-    /// 生图线路：线路1为 yunwu，线路2为 pockgo
+    /// 生图线路：线路1为 yunwu，线路2为 pockgo，线路3为 vectorengine
     #[serde(default)]
     pub api_line: ImageApiLine,
 }

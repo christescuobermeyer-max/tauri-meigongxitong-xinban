@@ -80,15 +80,18 @@ equal(workspaceSource.includes('"pSignboard"'), true);
 equal(workspaceSource.includes('pushHistoryEntry("p_signboard", item)'), true);
 equal(workspaceSource.includes('tab !== "history"'), true);
 equal(workspaceSource.includes("fetchGenerationLogs(userId)"), true);
+equal(workspaceSource.includes("handleDownloadPSignboard"), true);
 
 const sidebarSource = readFileSync(new URL("../src/components/Sidebar.tsx", import.meta.url), "utf8");
 equal(sidebarSource.includes('key: "pSignboard"'), true);
 equal(sidebarSource.includes('label: "P门头"'), true);
 
-const shellSource = readFileSync(new URL("../src/components/WorkspaceShell.tsx", import.meta.url), "utf8");
+const shellSource = readFileSync(new URL("../src/components/WorkspacePages.tsx", import.meta.url), "utf8");
 equal(shellSource.includes("PSignboardPage"), true);
 equal(shellSource.includes('workspace.tab === "pSignboard"'), true);
 equal(shellSource.includes("PictureWallTabsPage"), false);
+equal(shellSource.includes("onRetry={workspace.handleGeneratePSignboard}"), true);
+equal(shellSource.includes("onDownload={workspace.handleDownloadPSignboard}"), true);
 
 const pageSource = readFileSync(new URL("../src/components/PSignboardPage.tsx", import.meta.url), "utf8");
 equal(pageSource.includes("P门头"), true);
@@ -97,3 +100,16 @@ equal(pageSource.includes("原有文字内容"), true);
 equal(pageSource.includes("新文字内容"), true);
 equal(pageSource.includes("上传门头图片"), true);
 equal(pageSource.includes("上传的门头图会先归档到 OSS，再作为 image-2 参考图生成。"), false);
+equal(pageSource.includes("onReset"), false);
+equal(pageSource.includes("RetryConfirmDialog"), true);
+equal(pageSource.includes("确认重新生成 P门头"), true);
+equal(pageSource.includes("IconDownload"), true);
+equal(pageSource.includes("下载"), true);
+equal(pageSource.includes("重试"), true);
+
+const generatedAssetSource = readFileSync(
+  new URL("../src/lib/generated-asset-files.ts", import.meta.url),
+  "utf8"
+);
+equal(generatedAssetSource.includes('kind === "p_signboard"'), true);
+equal(generatedAssetSource.includes("p_signboard_1536x1024.png"), true);

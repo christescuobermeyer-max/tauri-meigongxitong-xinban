@@ -1,6 +1,10 @@
 import type { GenerationItem, PlatformSpec } from "../types";
 import { IconDownload } from "./Icons";
 import GenerationResultTile from "./GenerationResultTile";
+import MerchantCopyCard from "./MerchantCopyCard";
+
+const THREE_PIECE_COPY_TEXT =
+  "老板您好，您的大店招、海报和头像设计已经完成。这套设计经过多家店铺测试，点击率和转化率都有显著提升，目的是提高您店铺的曝光度和入店转化率。我现在给您上线，您可以看看效果。";
 
 interface Props {
   platform: PlatformSpec;
@@ -80,6 +84,7 @@ export default function ResultPanel({
           onDownload={() => onDownload("poster")}
         />
       </div>
+      <MerchantCopyCard text={THREE_PIECE_COPY_TEXT} successMessage="三件套设计沟通文案已复制到剪贴板" />
     </div>
   );
 }

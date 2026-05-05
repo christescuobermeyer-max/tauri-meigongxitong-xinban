@@ -15,7 +15,7 @@ equal(
   true
 );
 equal(
-  source.includes('<div className="sidebar__footer">\n          <code>v0.1.0</code>\n          <span>呈尚策划运营部</span>\n        </div>\n      </div>'),
+  source.includes('<div className="sidebar__footer">\n          <code>v2.0.0</code>\n          <span>呈尚策划运营部</span>\n        </div>\n      </div>'),
   true
 );
 equal(workspaceSource.includes('? "三件套设计"'), true);

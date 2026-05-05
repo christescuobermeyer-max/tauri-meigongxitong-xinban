@@ -8,7 +8,7 @@ export interface HistoryEntry {
   title: string;
   shopName: string;
   remoteUrl: string;
-  generationLine?: "line1" | "line2" | null;
+  generationLine?: "line1" | "line2" | "line3" | null;
   previewUrl?: string;
   createdAt: string;
 }
@@ -103,7 +103,7 @@ function isHistoryEntry(value: unknown): value is HistoryEntry {
     typeof entry.title === "string" &&
     typeof entry.shopName === "string" &&
     typeof entry.remoteUrl === "string" &&
-    (entry.generationLine === "line1" || entry.generationLine === "line2" || entry.generationLine === null || typeof entry.generationLine === "undefined") &&
+    (entry.generationLine === "line1" || entry.generationLine === "line2" || entry.generationLine === "line3" || entry.generationLine === null || typeof entry.generationLine === "undefined") &&
     (typeof entry.previewUrl === "string" || typeof entry.previewUrl === "undefined") &&
     typeof entry.createdAt === "string"
   );
@@ -123,9 +123,9 @@ function normalizeHistoryEntries(entries: HistoryEntry[]): HistoryEntry[] {
 
 function normalizeGenerationLine(
   kind: AssetKind,
-  line?: "line1" | "line2" | null
-): "line1" | "line2" | null {
-  if (line === "line1" || line === "line2") return line;
+  line?: "line1" | "line2" | "line3" | null
+): "line1" | "line2" | "line3" | null {
+  if (line === "line1" || line === "line2" || line === "line3") return line;
   return kind === "picture_wall" ? null : "line1";
 }
 

@@ -1,9 +1,11 @@
+import { useState } from "react";
 import type { GenerationItem, GenerationLine, UploadedImage } from "../types";
 import { canGeneratePSignboard } from "../lib/p-signboard-form";
 import ImageUpload from "./ImageUpload";
 import GenerationStatusBadge from "./GenerationStatusBadge";
 import GenerationLineCard from "./GenerationLineCard";
-import { IconAlert, IconCheck, IconImage, IconRefresh, IconSparkles, IconStore } from "./Icons";
+import RetryConfirmDialog from "./RetryConfirmDialog";
+import { IconAlert, IconCheck, IconDownload, IconImage, IconRefresh, IconSparkles, IconStore } from "./Icons";
 
 interface Props {
   shopName: string;
@@ -18,7 +20,8 @@ interface Props {
   item: GenerationItem;
   busy: boolean;
   onGenerate: () => void;
-  onReset: () => void;
+  onRetry: () => void;
+  onDownload: () => void;
 }
 
 export default function PSignboardPage({
@@ -33,14 +36,21 @@ export default function PSignboardPage({
   item,
   busy,
   onGenerate,
-  onReset,
+  onRetry,
+  onDownload,
 }: Props) {
+  const [retryConfirmOpen, setRetryConfirmOpen] = useState(false);
   const canGenerate = canGeneratePSignboard({
     imageCount: images.length,
     originalText,
     newText,
     busy,
   });
+
+  function handleConfirmRetry() {
+    setRetryConfirmOpen(false);
+    onRetry();
+  }
 
   return (
     <div className="picture-wall-split">
@@ -84,14 +94,10 @@ export default function PSignboardPage({
                 maxLength={40}
               />
             </div>
-            <div className="picture-wall-actions picture-wall-actions--two">
+            <div className="picture-wall-actions">
               <button className="btn btn--primary btn--lg" disabled={!canGenerate} onClick={onGenerate}>
                 <IconSparkles style={{ width: 14, height: 14 }} />
                 {busy ? "替换中…" : "开始替换文字"}
-              </button>
-              <button className="btn btn--secondary btn--lg" disabled={busy} onClick={onReset}>
-                <IconRefresh style={{ width: 14, height: 14 }} />
-                重置
               </button>
             </div>
           </div>
@@ -101,7 +107,29 @@ export default function PSignboardPage({
       <section className="card">
         <div className="card__header">
           <div className="card__title">生成结果</div>
-          <GenerationStatusBadge status={item.status} elapsedMs={item.elapsedMs} />
+          <div className="result__actions">
+            <GenerationStatusBadge status={item.status} elapsedMs={item.elapsedMs} />
+            <button
+              className="btn btn--ghost btn--sm"
+              disabled={busy}
+              onClick={() => setRetryConfirmOpen(true)}
+              title="重新生成"
+              type="button"
+            >
+              <IconRefresh style={{ width: 13, height: 13 }} />
+              重试
+            </button>
+            <button
+              className="btn btn--secondary btn--sm"
+              disabled={item.status !== "succeeded"}
+              onClick={onDownload}
+              title="下载 P门头图片"
+              type="button"
+            >
+              <IconDownload style={{ width: 13, height: 13 }} />
+              下载
+            </button>
+          </div>
         </div>
         <div className="card__body">
           <div className="p-signboard-result" data-status={item.status}>
@@ -134,6 +162,12 @@ export default function PSignboardPage({
             </div>
           ) : null}
         </div>
+        <RetryConfirmDialog
+          open={retryConfirmOpen}
+          title="确认重新生成 P门头"
+          onCancel={() => setRetryConfirmOpen(false)}
+          onConfirm={handleConfirmRetry}
+        />
       </section>
     </div>
   );

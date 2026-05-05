@@ -29,4 +29,4 @@ equal(
   productResultSource.includes("老板，您看下这是为店铺设计的产品图风格"),
   true
 );
-equal(productResultSource.includes("navigator.clipboard.writeText"), true);
+equal(productResultSource.includes("MerchantCopyCard"), true);

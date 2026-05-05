@@ -1,8 +1,9 @@
 import type { GenerationLine } from "../types";
 
-const LINES: Array<{ id: GenerationLine; label: string; hint: string }> = [
-  { id: "line1", label: "线路1", hint: "yunwu" },
-  { id: "line2", label: "线路2", hint: "pockgo" },
+const LINES: Array<{ id: GenerationLine; label: string }> = [
+  { id: "line1", label: "线路1" },
+  { id: "line2", label: "线路2" },
+  { id: "line3", label: "线路3" },
 ];
 
 interface Props {
@@ -23,7 +24,6 @@ export default function GenerationLineSelect({ value, onChange }: Props) {
           type="button"
         >
           {line.label}
-          <span className="segmented__meta">{line.hint}</span>
         </button>
       ))}
     </div>

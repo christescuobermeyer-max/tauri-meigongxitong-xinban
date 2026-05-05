@@ -49,6 +49,14 @@ export function getGeneratedAssetExportSpec(
     };
   }
 
+  if (kind === "p_signboard") {
+    return {
+      fileName: `${stem}_p_signboard_1536x1024.png`,
+      targetWidth: 1536,
+      targetHeight: 1024,
+    };
+  }
+
   const target = kind === "avatar" ? currentPlatform.avatar : currentPlatform.storefront;
   return {
     fileName: `${stem}_${currentPlatform.id}_${kind}_${target.w}x${target.h}.png`,

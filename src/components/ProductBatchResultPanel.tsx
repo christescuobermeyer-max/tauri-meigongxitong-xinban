@@ -2,7 +2,11 @@ import type { PlatformSpec } from "../types";
 import type { ProductBatchEntry } from "../lib/product-batch";
 import GenerationResultTile from "./GenerationResultTile";
 import { IconImage } from "./Icons";
+import MerchantCopyCard from "./MerchantCopyCard";
 import "../styles/product-result-panel.css";
+
+const FULL_STORE_COPY_TEXT =
+  "老板,您店铺的10张全店图我们已经做好，您看下没问题的话就按照这种来制作了。这批图片我们是按照多家店铺测试过的高转化模板来设计的,从数据上看,用这种风格的图片点击率能提升30%以上,进店转化也会明显更好。图片已经全部替换上去了,您可以打开店铺看看效果。";
 
 interface Props {
   platform: PlatformSpec;
@@ -66,6 +70,7 @@ export default function ProductBatchResultPanel({
           ))}
         </div>
       )}
+      <MerchantCopyCard text={FULL_STORE_COPY_TEXT} successMessage="全店图沟通文案已复制到剪贴板" />
     </div>
   );
 }

@@ -11,9 +11,10 @@ export const ASSET_LABEL: Record<string, string> = {
   picture_wall: "图片墙",
 };
 
-export const GENERATION_LINE_LABEL: Record<"line1" | "line2", string> = {
+export const GENERATION_LINE_LABEL: Record<"line1" | "line2" | "line3", string> = {
   line1: "线路1",
   line2: "线路2",
+  line3: "线路3",
 };
 
 export interface GenerationLogFilter {

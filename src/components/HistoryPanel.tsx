@@ -78,9 +78,10 @@ export default function HistoryPanel({ entries }: Props) {
   );
 }
 
-function getGenerationLineLabel(kind: AssetKind, line?: "line1" | "line2" | null) {
+function getGenerationLineLabel(kind: AssetKind, line?: "line1" | "line2" | "line3" | null) {
   if (line === "line1") return "线路1";
   if (line === "line2") return "线路2";
+  if (line === "line3") return "线路3";
   return kind === "picture_wall" ? "专用接口" : "线路1";
 }
 

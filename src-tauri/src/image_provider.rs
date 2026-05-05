@@ -17,12 +17,22 @@ const LINE2_API_KEY_ENV_KEYS: [&str; 3] = [
     "IMAGE_2_LINE2_API_KEY",
 ];
 
+const LINE3_API_URL: &str = "https://api.vectorengine.ai/v1/images/generations";
+const LINE3_MODEL: &str = "gpt-image-2-all";
+const LINE3_API_KEY_ENV_KEYS: [&str; 3] = [
+    "VECTORENGINE_IMAGE_2_API_KEY",
+    "VECTOR_ENGINE_IMAGE_2_API_KEY",
+    "IMAGE_2_LINE3_API_KEY",
+];
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum ImageApiLine {
     #[serde(rename = "line1")]
     Line1,
     #[serde(rename = "line2")]
     Line2,
+    #[serde(rename = "line3")]
+    Line3,
 }
 
 impl Default for ImageApiLine {
@@ -55,6 +65,13 @@ pub fn resolve_image_provider(line: ImageApiLine) -> ImageProvider {
             user_label: "线路2 pockgo",
             api_key_env_keys: &LINE2_API_KEY_ENV_KEYS,
         },
+        ImageApiLine::Line3 => ImageProvider {
+            api_url: LINE3_API_URL,
+            model: LINE3_MODEL,
+            log_label: "image-2:line3-vectorengine",
+            user_label: "线路3 vectorengine",
+            api_key_env_keys: &LINE3_API_KEY_ENV_KEYS,
+        },
     }
 }
 
@@ -78,5 +95,14 @@ mod tests {
         assert_eq!(provider.api_url, "https://newapi.aicohere.org/v1/chat/completions");
         assert_eq!(provider.model, "gpt-image-2");
         assert_eq!(provider.log_label, "image-2:line2-pockgo");
+    }
+
+    #[test]
+    fn line3_uses_vectorengine_provider() {
+        let provider = resolve_image_provider(ImageApiLine::Line3);
+
+        assert_eq!(provider.api_url, "https://api.vectorengine.ai/v1/images/generations");
+        assert_eq!(provider.model, "gpt-image-2-all");
+        assert_eq!(provider.log_label, "image-2:line3-vectorengine");
     }
 }

@@ -1,6 +1,8 @@
+import { useState } from "react";
 import type { GenerationItem } from "../types";
 import { IconAlert, IconDownload, IconImage, IconRefresh } from "./Icons";
 import GenerationStatusBadge from "./GenerationStatusBadge";
+import RetryConfirmDialog from "./RetryConfirmDialog";
 
 interface Props {
   title: string;
@@ -23,6 +25,7 @@ export default function GenerationResultTile({
   onRetry,
   onDownload,
 }: Props) {
+  const [retryConfirmOpen, setRetryConfirmOpen] = useState(false);
   const busy = item.status === "running" || item.status === "queued";
   const busyTitle = item.status === "queued" ? "等待生成中…" : "正在生成中…";
   const busyHint =
@@ -33,6 +36,11 @@ export default function GenerationResultTile({
       : compact
         ? "通常需要1-5分钟"
         : "系统单次最长可能需要1-5分钟，请耐心等待";
+
+  function handleConfirmRetry() {
+    setRetryConfirmOpen(false);
+    onRetry();
+  }
 
   return (
     <div
@@ -49,9 +57,10 @@ export default function GenerationResultTile({
           <GenerationStatusBadge status={item.status} elapsedMs={item.elapsedMs} />
           <button
             className="btn btn--ghost btn--sm"
-            onClick={onRetry}
+            onClick={() => setRetryConfirmOpen(true)}
             disabled={busy}
             title="重新生成"
+            type="button"
           >
             <IconRefresh style={{ width: 13, height: 13 }} />
             重试
@@ -93,6 +102,12 @@ export default function GenerationResultTile({
           )}
         </div>
       </div>
+      <RetryConfirmDialog
+        open={retryConfirmOpen}
+        title={`重新生成「${title}」`}
+        onCancel={() => setRetryConfirmOpen(false)}
+        onConfirm={handleConfirmRetry}
+      />
     </div>
   );
 }

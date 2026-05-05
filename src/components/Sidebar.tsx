@@ -1,4 +1,4 @@
-import { IconBatchImages, IconDesignSuite, IconHistory, IconImage, IconShield, IconStore } from "./Icons";
+import { IconBatchImages, IconDesignSuite, IconHistory, IconImage, IconSettings, IconShield, IconStore } from "./Icons";
 import type { WorkspaceTab } from "../hooks/useGenerationWorkspace";
 
 interface SidebarProps {
@@ -56,6 +56,12 @@ export default function Sidebar({
       desc: "门头招牌文字替换",
     },
     {
+      key: "imageEdit",
+      label: "修改图片",
+      icon: <IconSettings />,
+      desc: "头像 / 店招 / 海报 / 产品图修改",
+    },
+    {
       key: "history",
       label: "历史记录",
       icon: <IconHistory />,
@@ -80,7 +86,7 @@ export default function Sidebar({
         </div>
         <div className="sidebar__title">
           <span className="sidebar__title-main">呈尚策划</span>
-          <span className="sidebar__title-sub">美工生图系统</span>
+          <span className="sidebar__title-sub">美工生图系统PRO</span>
         </div>
       </div>
 
@@ -117,7 +123,7 @@ export default function Sidebar({
         </div>
 
         <div className="sidebar__footer">
-          <code>v0.1.0</code>
+          <code>v2.0.0</code>
           <span>呈尚策划运营部</span>
         </div>
       </div>

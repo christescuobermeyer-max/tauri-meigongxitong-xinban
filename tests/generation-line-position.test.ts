@@ -30,13 +30,28 @@ const noticeIndex = lineCard.indexOf("generation-line-card__notice");
 
 ok(styles.includes(".panel-stack"), "样式应包含独立板块堆叠容器 .panel-stack");
 ok(styles.includes(".generation-line-card"), "样式应包含独立生图线路板块 .generation-line-card");
-ok(lineCard.includes("线路1为yunwu 接口，线路2为 pockgo 接口"), "生图线路标题下方应提示 yunwu/pockgo 接口");
-ok(lineSelect.includes('hint: "yunwu"'), "线路1选择器副标题应显示 yunwu");
-equal(lineSelect.includes('hint: "默认"'), false, "线路1选择器不应再显示默认");
-ok(lineCard.includes("线路1（王郡江 杨有淇 王涛）使用"), "生图线路下方应提示线路1使用人员");
-ok(lineCard.includes("线路2（王清月 袁丽妮 黄兆微）使用"), "生图线路下方应提示线路2使用人员");
+ok(
+  styles.includes('.generation-line-card__notice-row[data-line="line2"] .generation-line-card__notice-label'),
+  "线路2文案自身应有独立背景框样式"
+);
+ok(
+  styles.includes("background: color-mix(in srgb, var(--warn) 12%, var(--bg-subtle));"),
+  "线路2文案背景框应使用有效的 warn 色值"
+);
+equal(styles.includes("var(--warning)"), false, "线路2不能使用不存在的 --warning 变量");
+equal(lineSelect.includes("segmented__meta"), false, "线路切换按钮不应再显示引擎副标题");
+equal(lineCard.includes("generation-line-card__hint"), false, "生图线路顶部说明应移除");
+ok(lineCard.includes("generation-line-card__notice-engine"), "生图线路底部应显示引擎名标签");
+ok(lineCard.includes("yunwu"), "线路1说明应保留 yunwu");
+ok(lineCard.includes("pockgo"), "线路2说明应保留 pockgo");
+ok(lineCard.includes("vectorengine"), "线路3说明应保留 vectorengine");
+ok(lineCard.includes("generation-line-card__notice-row"), "线路说明应拆成三行独立提示");
 ok(noticeIndex > selectIndex, "人员使用说明应放在选择器下方的独立提示区域");
 ok(styles.includes(".generation-line-card__notice"), "样式应包含生图线路底部提示区域");
+ok(styles.includes(".generation-line-card__notice-row"), "样式应包含线路说明单行排版");
+ok(styles.includes("grid-template-columns: 54px 92px minmax(0, 1fr);"), "线路说明应按线路标签、引擎名、用途三列对齐");
+ok(styles.includes(".generation-line-card__notice-engine"), "样式应包含引擎名标签");
+ok(styles.includes("grid-template-columns: repeat(3, minmax(0, 1fr));"), "线路切换按钮应改为三列网格");
 ok(styles.includes(".generation-line-card::before"), "生图线路板块应有顶部强调条");
 ok(styles.includes(".generation-line-card:hover"), "生图线路板块应有更醒目的悬停状态");
 ok(styles.includes(".generation-line-card .segmented"), "生图线路选择器应在该板块内单独强化展示");

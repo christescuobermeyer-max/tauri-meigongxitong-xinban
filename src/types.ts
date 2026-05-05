@@ -1,6 +1,6 @@
 export type Platform = "meituan" | "taobao";
 export type AvatarReferenceMode = "category" | "image";
-export type GenerationLine = "line1" | "line2";
+export type GenerationLine = "line1" | "line2" | "line3";
 
 export type AssetKind = "avatar" | "storefront" | "poster" | "product" | "p_signboard" | "picture_wall";
 
