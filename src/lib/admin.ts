@@ -20,7 +20,7 @@ export async function listAccountSummaries(): Promise<AccountSummary[]> {
   if (profileRows.length === 0) return [];
 
   const stats = await fetchAggregatedStats();
-  return profileRows.map((profile) => {
+  const summaries: AccountSummary[] = profileRows.map((profile) => {
     const stat = stats.get(profile.id);
     return {
       ...profile,
@@ -28,6 +28,14 @@ export async function listAccountSummaries(): Promise<AccountSummary[]> {
       today_count: stat?.today ?? 0,
     };
   });
+
+  summaries.sort((a, b) => {
+    if (a.role === "admin" && b.role !== "admin") return -1;
+    if (a.role !== "admin" && b.role === "admin") return 1;
+    return 0;
+  });
+
+  return summaries;
 }
 
 interface AggregatedStat {

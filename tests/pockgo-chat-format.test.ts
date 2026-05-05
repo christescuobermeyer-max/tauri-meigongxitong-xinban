@@ -35,6 +35,16 @@ ok(
     formatSource.includes("aspectRatio"),
   "pockgo 比例控制应把 imageConfig JSON 写入 system content"
 );
+ok(
+  formatSource.includes('"1792x1024" => "16:9"') && !formatSource.includes('"1792x1024" => "7:4"'),
+  "线路2店招 1792x1024 应按 16:9 控制，避免 7:4 不受支持后回退成 1:1"
+);
+ok(formatSource.includes('"21:9" => "21:9"'), "线路2海报应继续明确映射为 21:9");
+ok(
+  pockgoSource.includes("build_strict_user_prompt") &&
+    pockgoSource.includes("不要生成 1:1 正方形画布"),
+  "线路2请求应在用户提示词里再次强调非 1:1 比例，降低模型忽略 imageConfig 的概率"
+);
 ok(httpClientSource.includes("http1_only"), "线路2客户端应强制使用 HTTP/1.1，避免代理或服务端提前断流");
 ok(pockgoSource.includes("Version::HTTP_11"), "线路2请求应显式指定 HTTP/1.1");
 ok(pockgoSource.includes("CONNECTION"), "线路2请求应显式发送 Connection: close");

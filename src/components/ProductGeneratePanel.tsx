@@ -1,12 +1,9 @@
-import { useState } from "react";
 import type { GenerationItem, GenerationLine, Platform, UploadedImage } from "../types";
 import { getPlatform } from "../lib/platforms";
-import { buildProductPrompt } from "../lib/prompts";
 import PlatformSelect from "./PlatformSelect";
 import GenerationLineCard from "./GenerationLineCard";
 import ImageUpload from "./ImageUpload";
 import { IconSparkles } from "./Icons";
-import PromptPreview from "./PromptPreview";
 import ProgressSteps from "./ProgressSteps";
 
 interface Props {
@@ -43,7 +40,6 @@ export default function ProductGeneratePanel({
   product,
 }: Props) {
   const platformSpec = getPlatform(platform);
-  const [showPrompt, setShowPrompt] = useState(false);
   const canSubmit = shopName.trim().length > 0 && productName.trim().length > 0 && images.length > 0 && !busy;
   const source = platformSpec.product.source;
   const target = platformSpec.product.export;
@@ -102,25 +98,6 @@ export default function ProductGeneratePanel({
             <span className="field__hint">
               仅支持上传 1 张产品图，会发送更高清的产品图参考版本给生成接口
             </span>
-          </div>
-
-          <div className="field">
-            <label className="field__label">
-              生成提示词
-              <button
-                className="btn btn--link"
-                onClick={() => setShowPrompt((v) => !v)}
-                type="button"
-              >
-                {showPrompt ? "收起" : "查看"}
-              </button>
-            </label>
-            {showPrompt && (
-              <PromptPreview
-                title={`产品图 prompt · ${source.w}×${source.h}`}
-                text={buildProductPrompt(shopName || "{店铺名称}", productName || "{产品名称}", platform)}
-              />
-            )}
           </div>
 
           <div style={{ marginTop: 18 }}>

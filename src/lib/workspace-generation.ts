@@ -70,7 +70,8 @@ export async function generateAsset(options: {
     referenceImages,
     avatarMode,
     avatarCategory,
-    promptOverride
+    promptOverride,
+    generationLine
   );
 
   if (shouldRequireReferenceImages(kind, avatarMode) && (!productImages || productImages.length === 0)) {

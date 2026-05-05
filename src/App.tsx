@@ -1,3 +1,4 @@
+import { useState } from "react";
 import AppErrorBoundary from "./components/AppErrorBoundary";
 import LoginPage from "./components/LoginPage";
 import WorkspaceShell from "./components/WorkspaceShell";
@@ -16,6 +17,11 @@ export default function App() {
 
 function AppRouter() {
   const auth = useAuth();
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  function handleRefresh() {
+    setRefreshKey((k) => k + 1);
+  }
 
   if (auth.loading) {
     return (
@@ -34,9 +40,11 @@ function AppRouter() {
 
   return (
     <WorkspaceShell
+      key={refreshKey}
       profile={auth.profile}
       isAdmin={auth.isAdmin}
       onSignOut={auth.signOut}
+      onRefresh={handleRefresh}
     />
   );
 }

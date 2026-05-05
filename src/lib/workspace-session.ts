@@ -225,7 +225,7 @@ export async function runAvatarStorefrontPosterFlow(
   await runOneGeneration({
     kind: "poster",
     sourceImages,
-    referenceImages: storefrontResult.remoteUrl ? [storefrontResult.remoteUrl] : undefined,
+    referenceImages: avatarResult.remoteUrl ? [avatarResult.remoteUrl] : [avatarResult.rawBase64],
     setters,
     shopName,
     platform,

@@ -29,41 +29,37 @@ export default function ImageEditInputCard({
   const canGenerate = images.length > 0 && instruction.trim().length > 0 && !busy;
 
   return (
-    <section className="card image-edit-card">
-      <div className="card__header">
-        <div className="card__heading">
-          <div className="card__title">{label}</div>
-          <span className="card__hint">{spec.sourceLabel} · 导出 {spec.exportLabel}</span>
-        </div>
+    <div className="image-edit-form">
+      <div className="image-edit-active-meta">
+        <span>{spec.sourceLabel}</span>
+        <span>导出 {spec.exportLabel}</span>
       </div>
-      <div className="card__body image-edit-card__body">
-        <div className="field">
-          <label className="field__label">{spec.uploadTitle}</label>
-          <ImageUpload
-            images={images}
-            onChange={onImagesChange}
-            maxCount={1}
-            dropzoneTitle={`点击、拖拽或 Ctrl+V 粘贴 1 张${label}图片`}
-            compressedLabel={`${label}参考图`}
-            showProductName={kind === "product"}
-          />
-        </div>
-        <div className="field">
-          <label className="field__label">修改要求</label>
-          <textarea
-            className="textarea"
-            value={instruction}
-            onChange={(event) => onInstructionChange(event.target.value)}
-            placeholder={`写清楚要如何调整这张${label}，例如：保持主体不变，增强背景氛围，替换文字为...`}
-            maxLength={300}
-          />
-          <span className="field__hint">会严格参考上传图片，只按这里的文字要求修改</span>
-        </div>
-        <button className="btn btn--primary btn--block" disabled={!canGenerate} onClick={onGenerate}>
-          <IconSparkles style={{ width: 14, height: 14 }} />
-          {busy ? "修改中…" : `开始修改${label}`}
-        </button>
+      <div className="field">
+        <label className="field__label">{spec.uploadTitle}</label>
+        <ImageUpload
+          images={images}
+          onChange={onImagesChange}
+          maxCount={1}
+          dropzoneTitle={`点击、拖拽或 Ctrl+V 粘贴 1 张${label}图片`}
+          compressedLabel={`${label}参考图`}
+          showProductName={kind === "product"}
+        />
       </div>
-    </section>
+      <div className="field">
+        <label className="field__label">修改要求</label>
+        <textarea
+          className="textarea"
+          value={instruction}
+          onChange={(event) => onInstructionChange(event.target.value)}
+          placeholder={`写清楚要如何调整这张${label}，例如：保持主体不变，增强背景氛围，替换文字为...`}
+          maxLength={300}
+        />
+        <span className="field__hint">会严格参考上传图片，只按这里的文字要求修改</span>
+      </div>
+      <button className="btn btn--primary btn--block" disabled={!canGenerate} onClick={onGenerate}>
+        <IconSparkles style={{ width: 14, height: 14 }} />
+        {busy ? "修改中…" : `开始修改${label}`}
+      </button>
+    </div>
   );
 }

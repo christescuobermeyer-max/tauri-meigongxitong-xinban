@@ -1,14 +1,11 @@
-import { useState } from "react";
 import type { AvatarReferenceMode, GenerationItem, GenerationLine, Platform, UploadedImage } from "../types";
-import { buildActiveAvatarPrompt, getAvatarGenerationErrorMessage } from "../lib/avatar-generation";
+import { getAvatarGenerationErrorMessage } from "../lib/avatar-generation";
 import { PLATFORMS } from "../lib/platforms";
-import { buildPosterPrompt, buildStorefrontPrompt } from "../lib/prompts";
 import GenerationLineCard from "./GenerationLineCard";
 import ImageUpload from "./ImageUpload";
 import { IconSparkles } from "./Icons";
 import PlatformSelect from "./PlatformSelect";
 import ProgressSteps from "./ProgressSteps";
-import PromptPreview from "./PromptPreview";
 
 interface Props {
   shopName: string;
@@ -51,7 +48,6 @@ export default function GeneratePanel(props: Props) {
     poster,
   } = props;
   const platformSpec = PLATFORMS.find((p) => p.id === platform)!;
-  const [showPrompt, setShowPrompt] = useState(false);
   const canSubmit =
     getAvatarGenerationErrorMessage({ shopName, mode: avatarMode, category: avatarCategory, images }) === null &&
     !busy;
@@ -108,29 +104,6 @@ export default function GeneratePanel(props: Props) {
             <span className="field__hint">
               必传。头像会优先参考第 1 张产品图，店招继续参考已生成的头像图
             </span>
-          </div>
-
-          <div className="field">
-            <label className="field__label">
-              生成提示词
-              <button className="btn btn--link" onClick={() => setShowPrompt((v) => !v)} type="button">
-                {showPrompt ? "收起" : "查看"}
-              </button>
-            </label>
-            {showPrompt && (
-              <div className="prompt-stack">
-                <PromptPreview
-                  title="头像 prompt · 1024×1024"
-                  text={buildActiveAvatarPrompt({
-                    shopName: shopName || "{店铺名称}",
-                    mode: avatarMode,
-                    category: avatarCategory || "{经营品类}",
-                  })}
-                />
-                <PromptPreview title="店招 prompt · 1536×1024" text={buildStorefrontPrompt(shopName || "{店铺名称}")} />
-                <PromptPreview title="海报 prompt · 21:9" text={buildPosterPrompt(shopName || "{店铺名称}")} />
-              </div>
-            )}
           </div>
 
           <div style={{ marginTop: 18 }}>

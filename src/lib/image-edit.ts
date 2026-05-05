@@ -36,7 +36,7 @@ export function getImageEditSpec(kind: ImageEditKind, platform: PlatformSpec) {
 
   if (kind === "storefront") {
     return {
-      sourceLabel: "原图 1536×1024",
+      sourceLabel: "原图 1792×1024",
       exportLabel: `${platform.storefront.w}×${platform.storefront.h}`,
       uploadTitle: "上传 1 张店招图",
     };

@@ -11,7 +11,7 @@ function ensureTauriInvoke() {
 
 export interface GenerateImageRequest {
   prompt: string;
-  /** 1024x1024 / 1024x1536 / 1536x1024 / 21:9 / 3:4 */
+  /** 线路1/3支持 1024x1024 / 1024x1536 / 1536x1024 / 21:9 / 3:4；线路2额外支持 16:9 / 1792x1024 */
   size: string;
   /** 参考图列表：支持不含 data: 前缀的 base64，也支持可访问 URL；可为空 */
   product_images: string[];

@@ -92,6 +92,7 @@ function PictureWallTile({
   onRetry: (sourceImageId: string) => void;
 }) {
   const status = entry.item.status;
+  const isTileBusy = status === "queued" || status === "running";
   const errorMessage = getPictureWallErrorMessage(entry.item.errorMessage);
   const [retryConfirmOpen, setRetryConfirmOpen] = useState(false);
 
@@ -99,6 +100,13 @@ function PictureWallTile({
     setRetryConfirmOpen(false);
     onRetry(entry.sourceImageId);
   }
+
+  const busyTitle =
+    status === "queued" ? "等待生成中…" : "正在生成第 " + (index + 1) + " 张…";
+  const busyHint =
+    status === "queued"
+      ? "前序图片完成后会自动开始"
+      : "系统单次最长可能需要1-5分钟，请耐心等待";
 
   return (
     <article className="picture-wall-tile" data-status={status}>
@@ -128,7 +136,7 @@ function PictureWallTile({
           </button>
         </div>
       ) : null}
-      <div className="picture-wall-tile__preview" data-busy={busy && status === "running"}>
+      <div className="picture-wall-tile__preview" data-busy={isTileBusy}>
         {entry.item.rawDataUrl ? (
           <img src={entry.item.rawDataUrl} alt={`图片墙结果 ${index + 1}`} />
         ) : status === "failed" ? (
@@ -137,16 +145,16 @@ function PictureWallTile({
             <strong>生成失败</strong>
             <span className="picture-wall-state__message">点击上方重试重新生成</span>
           </div>
-        ) : status === "running" ? (
+        ) : isTileBusy ? (
           <div className="picture-wall-state">
             <div className="spinner spinner--lg" />
-            <strong>正在生成第 {index + 1} 张…</strong>
-            <span>请耐心等待</span>
+            <strong>{busyTitle}</strong>
+            <span>{busyHint}</span>
           </div>
         ) : (
           <div className="picture-wall-state">
             {status === "succeeded" ? <IconCheck /> : <IconImage />}
-            <strong>{status === "queued" ? "等待生成" : "未生成"}</strong>
+            <strong>未生成</strong>
             <span>{entry.sourceName}</span>
           </div>
         )}

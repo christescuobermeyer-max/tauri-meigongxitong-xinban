@@ -51,8 +51,8 @@ export function getGeneratedAssetExportSpec(
 
   if (kind === "p_signboard") {
     return {
-      fileName: `${stem}_p_signboard_1536x1024.png`,
-      targetWidth: 1536,
+      fileName: `${stem}_p_signboard_1792x1024.png`,
+      targetWidth: 1792,
       targetHeight: 1024,
     };
   }

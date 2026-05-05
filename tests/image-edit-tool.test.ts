@@ -26,12 +26,12 @@ const platform = {
   avatar: { w: 800, h: 800 },
   storefront: { w: 692, h: 390 },
   poster: { sourceLabel: "21:9", export: { w: 720, h: 240 } },
-  product: { source: { w: 1536, h: 1024 }, export: { w: 600, h: 450 } },
+  product: { source: { w: 1792, h: 1024 }, export: { w: 600, h: 450 } },
 };
 equal(libModule.getImageEditSpec("avatar", platform).exportLabel, "800×800");
 equal(libModule.getImageEditSpec("storefront", platform).exportLabel, "692×390");
 equal(libModule.getImageEditSpec("poster", platform).sourceLabel, "原图 21:9 横版");
-equal(libModule.getImageEditSpec("product", platform).sourceLabel, "原图 1536×1024");
+equal(libModule.getImageEditSpec("product", platform).sourceLabel, "原图 1792×1024");
 
 const sidebarSource = readFileSync(new URL("../src/components/Sidebar.tsx", import.meta.url), "utf8");
 const pagesSource = readFileSync(new URL("../src/components/WorkspacePages.tsx", import.meta.url), "utf8");
@@ -52,4 +52,42 @@ equal(hookSource.includes("referenceImages: [referenceUrl]"), true);
 equal(hookSource.includes("saveGeneratedAsset(kind"), true);
 equal(pageSource.includes("GenerationLineCard"), true);
 equal(pageSource.includes("PlatformSelect"), true);
-equal(pageSource.includes("IMAGE_EDIT_KINDS.map"), true);
+equal(pageSource.includes("IMAGE_EDIT_KINDS.map"), false);
+equal(pageSource.includes("useState<ImageEditKind>"), true);
+equal(pageSource.includes('useState<ImageEditKind>("avatar")'), true);
+equal(pageSource.includes("const activeEntry = entries[activeKind]"), true);
+equal(pageSource.includes("kind={activeKind}"), true);
+equal(pageSource.includes("images={activeEntry.images}"), true);
+equal(pageSource.includes("instruction={activeEntry.instruction}"), true);
+
+// Task 3: ImageEditResults activeKind assertions
+const resultsSource = readFileSync(
+  new URL("../src/components/ImageEditResults.tsx", import.meta.url),
+  "utf8"
+);
+
+equal(resultsSource.includes("activeKind: ImageEditKind"), true);
+equal(resultsSource.includes("const activeEntry = entries[activeKind]"), true);
+equal(resultsSource.includes("IMAGE_EDIT_KINDS.map"), false);
+equal(resultsSource.includes("item={activeEntry.item}"), true);
+equal(resultsSource.includes("onRetry={() => onRetry(activeKind)}"), true);
+equal(resultsSource.includes("onDownload={() => onDownload(activeKind)}"), true);
+
+// Task 4: CSS style assertions
+const globalCssSource = readFileSync(new URL("../src/styles/global.css", import.meta.url), "utf8");
+
+equal(globalCssSource.includes(".image-edit-card__header"), true);
+equal(globalCssSource.includes(".image-edit-kind-select"), true);
+equal(globalCssSource.includes(".image-edit-active-meta"), true);
+
+// Task 1: ImageEditKindSelect component assertions
+const kindSelectSource = readFileSync(
+  new URL("../src/components/ImageEditKindSelect.tsx", import.meta.url),
+  "utf8"
+);
+
+equal(pageSource.includes("ImageEditKindSelect"), true);
+equal(kindSelectSource.includes('aria-label="修改图片类型"'), true);
+equal(kindSelectSource.includes("IMAGE_EDIT_KINDS.map"), true);
+equal(kindSelectSource.includes("IMAGE_EDIT_LABEL[kind]"), true);
+equal(kindSelectSource.includes('className="segmented image-edit-kind-select"'), true);

@@ -2,7 +2,7 @@ import type { UploadedImage } from "../types";
 
 export default function PictureWallProductNames({ images }: { images: UploadedImage[] }) {
   if (images.length === 0) {
-    return <span className="field__hint">上传产品图后会按文件名自动提取产品名称，并写入对应图片墙 prompt。</span>;
+    return <span className="field__hint">上传产品图后会按文件名自动提取产品名称，并写入对应图片墙生成任务。</span>;
   }
 
   return (

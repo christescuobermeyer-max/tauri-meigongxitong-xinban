@@ -1,13 +1,10 @@
-import { useState } from "react";
 import type { GenerationLine, Platform, UploadedImage } from "../types";
 import type { ProductBatchEntry } from "../lib/product-batch";
 import { getPlatform } from "../lib/platforms";
-import { buildProductBatchPrompt } from "../lib/prompts";
 import PlatformSelect from "./PlatformSelect";
 import GenerationLineCard from "./GenerationLineCard";
 import ImageUpload from "./ImageUpload";
 import { IconSparkles } from "./Icons";
-import PromptPreview from "./PromptPreview";
 import ProgressSteps from "./ProgressSteps";
 
 interface Props {
@@ -44,7 +41,6 @@ export default function ProductBatchGeneratePanel({
   elapsed,
 }: Props) {
   const platformSpec = getPlatform(platform);
-  const [showPrompt, setShowPrompt] = useState(false);
   const batchBusy = entries.some((entry) => entry.item.status === "queued" || entry.item.status === "running");
   const canSubmit = shopName.trim().length > 0 && images.length > 0 && styleImages.length > 0 && !busy;
   const source = platformSpec.product.source;
@@ -52,7 +48,6 @@ export default function ProductBatchGeneratePanel({
   const fileHint = platformSpec.product.maxBytes
     ? ` · JPG 不超过 ${Math.floor(platformSpec.product.maxBytes / 1024)}KB`
     : "";
-  const previewProductName = entries[0]?.productName || images[0]?.productName?.trim() || "{产品名称}";
 
   return (
     <div className="panel-stack">
@@ -121,25 +116,6 @@ export default function ProductBatchGeneratePanel({
             <label className="field__label">产品图（参考素材）</label>
             <ImageUpload images={images} onChange={setImages} maxCount={10} />
             <span className="field__hint">最多一次上传 10 张产品图。每次生成时当前产品图会作为第 2 张传给系统的参考图</span>
-          </div>
-
-          <div className="field">
-            <label className="field__label">
-              生成提示词
-              <button
-                className="btn btn--link"
-                onClick={() => setShowPrompt((value) => !value)}
-                type="button"
-              >
-                {showPrompt ? "收起" : "查看"}
-              </button>
-            </label>
-            {showPrompt && (
-              <PromptPreview
-                title={`全店图 prompt · ${source.w}×${source.h}`}
-                text={buildProductBatchPrompt(shopName || "{店铺名称}", previewProductName, platform)}
-              />
-            )}
           </div>
 
           <div style={{ marginTop: 18 }}>

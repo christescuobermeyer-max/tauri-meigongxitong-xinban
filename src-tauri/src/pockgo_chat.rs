@@ -136,8 +136,10 @@ fn build_payload<'a>(
     size: &str,
     images: &'a [String],
 ) -> ChatPayload<'a> {
+    let aspect_ratio = size_to_aspect_ratio(size);
+    let strict_prompt = build_strict_user_prompt(prompt, aspect_ratio);
     let mut parts = vec![ChatPart::Text {
-        text: prompt.to_string(),
+        text: strict_prompt,
     }];
     parts.extend(images.iter().map(|image| ChatPart::ImageUrl {
         image_url: ImageUrl {
@@ -151,7 +153,7 @@ fn build_payload<'a>(
         messages: vec![
             ChatMessage {
                 role: "system",
-                content: ChatContent::Text(build_system_prompt(size_to_aspect_ratio(size))),
+                content: ChatContent::Text(build_system_prompt(aspect_ratio)),
             },
             ChatMessage {
                 role: "user",
@@ -163,8 +165,18 @@ fn build_payload<'a>(
         stream: false,
         extra_body: ExtraBody {
             image_config: ImageConfig {
-                aspect_ratio: size_to_aspect_ratio(size).to_string(),
+                aspect_ratio: aspect_ratio.to_string(),
             },
         },
     }
+}
+
+fn build_strict_user_prompt(prompt: &str, aspect_ratio: &str) -> String {
+    if aspect_ratio == "1:1" {
+        return format!("最终图片画布比例必须严格为 1:1 正方形，不要改变为其他比例。\n{prompt}");
+    }
+
+    format!(
+        "最终图片画布比例必须严格为 {aspect_ratio}，不要生成 1:1 正方形画布，不要改变为其他比例。\n{prompt}"
+    )
 }

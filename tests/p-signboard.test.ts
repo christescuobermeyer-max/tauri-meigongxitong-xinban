@@ -15,6 +15,10 @@ async function generateImage(req) {
 }
 export function __getCalls() { return calls; }
 `)
+  .replace(
+    'import { resolveStorefrontGenerationSize } from "./generation-size";',
+    'function resolveStorefrontGenerationSize(line = "line1") { return line === "line2" ? "16:9" : "1536x1024"; }'
+  )
   .replace('import { safeFileName } from "./utils";', 'function safeFileName(input) { return input.trim() || "shop"; }')
   .replace('import type { GenerationItem, GenerationLine, UploadedImage } from "../types";', "");
 const libTranspiled = ts.transpileModule(libSource, {
@@ -112,4 +116,4 @@ const generatedAssetSource = readFileSync(
   "utf8"
 );
 equal(generatedAssetSource.includes('kind === "p_signboard"'), true);
-equal(generatedAssetSource.includes("p_signboard_1536x1024.png"), true);
+equal(generatedAssetSource.includes("p_signboard_1792x1024.png"), true);

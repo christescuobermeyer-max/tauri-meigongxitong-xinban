@@ -1,6 +1,10 @@
 import { safeFileName } from "./utils";
 import { uploadImageToOss } from "./tauri";
+import { compressGeneratedImage } from "./tauri-image";
 import type { AssetKind, UploadedImage } from "../types";
+
+const GENERATED_AVATAR_MAX_DIMENSION = 768;
+const GENERATED_AVATAR_JPEG_QUALITY = 82;
 
 export async function ensureUploadedImagesOnOss(
   images: UploadedImage[]
@@ -34,6 +38,21 @@ export async function archiveGeneratedImage(
   shopName: string,
   rawBase64: string
 ): Promise<string> {
+  if (kind === "avatar") {
+    const compressed = await compressGeneratedImage({
+      base64_data: rawBase64,
+      max_dimension: GENERATED_AVATAR_MAX_DIMENSION,
+      quality: GENERATED_AVATAR_JPEG_QUALITY,
+    });
+    const uploaded = await uploadImageToOss({
+      base64_data: compressed.base64_data,
+      mime_type: compressed.mime_type,
+      folder: "generated",
+      file_name: `${safeFileName(shopName)}-${kind}.jpg`,
+    });
+    return uploaded.url;
+  }
+
   const uploaded = await uploadImageToOss({
     base64_data: rawBase64,
     folder: "generated",

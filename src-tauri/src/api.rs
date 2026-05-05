@@ -23,7 +23,7 @@ const MAX_REFERENCE_IMAGES: usize = 5;
 #[derive(Debug, Deserialize)]
 pub struct GenerateRequest {
     pub prompt: String,
-    /// 1024x1024 / 1024x1536 / 1536x1024 / 21:9 / 3:4
+    /// 线路1/3支持 1024x1024 / 1024x1536 / 1536x1024 / 21:9 / 3:4；线路2额外支持 16:9 / 1792x1024
     pub size: String,
     /// 参考图列表：支持不含 data: 前缀的 base64，也支持可访问 URL；可为空
     pub product_images: Vec<String>,
@@ -79,6 +79,32 @@ mod tests {
         };
 
         assert!(validate_generate_request(&req).is_ok());
+    }
+
+    #[test]
+    fn allow_storefront_16_9_ratio_size() {
+        let req = GenerateRequest {
+            prompt: "测试".into(),
+            size: "16:9".into(),
+            product_images: vec!["https://example.com/avatar.png".into()],
+            api_line: ImageApiLine::Line2,
+        };
+
+        assert!(validate_generate_request(&req).is_ok());
+    }
+
+    #[test]
+    fn reject_1792_storefront_size_for_image_generation_lines() {
+        for api_line in [ImageApiLine::Line1, ImageApiLine::Line3] {
+            let req = GenerateRequest {
+                prompt: "测试".into(),
+                size: "1792x1024".into(),
+                product_images: vec!["https://example.com/avatar.png".into()],
+                api_line,
+            };
+
+            assert!(validate_generate_request(&req).is_err());
+        }
     }
 
     #[test]
@@ -222,10 +248,23 @@ fn validate_generate_request(req: &GenerateRequest) -> Result<(), String> {
             "产品图最多支持 {MAX_REFERENCE_IMAGES} 张，请删除多余图片后重试"
         ));
     }
-    if !matches!(req.size.as_str(), "1024x1024" | "1024x1536" | "1536x1024" | "21:9" | "3:4") {
+    if !is_supported_size_for_line(req) {
         return Err(format!("不支持的尺寸：{}", req.size));
     }
     Ok(())
+}
+
+fn is_supported_size_for_line(req: &GenerateRequest) -> bool {
+    match req.api_line {
+        ImageApiLine::Line2 => matches!(
+            req.size.as_str(),
+            "1024x1024" | "1024x1536" | "1536x1024" | "1792x1024" | "16:9" | "21:9" | "3:4"
+        ),
+        ImageApiLine::Line1 | ImageApiLine::Line3 => matches!(
+            req.size.as_str(),
+            "1024x1024" | "1024x1536" | "1536x1024" | "21:9" | "3:4"
+        ),
+    }
 }
 
 fn log_generate_request(req: &GenerateRequest, log_label: &str) {

@@ -9,9 +9,11 @@ import {
   selectProductUploadReferenceImages,
   selectStorefrontReferenceImages,
 } from "./reference-images";
+import { resolveGenerationSize } from "./generation-size";
 import type {
   AssetKind,
   AvatarReferenceMode,
+  GenerationLine,
   GenerationItem,
   Platform,
   PlatformSpec,
@@ -30,7 +32,8 @@ export function buildGenerationPayload(
   override?: string[],
   avatarMode: AvatarReferenceMode = "image",
   avatarCategory = "",
-  promptOverride?: string
+  promptOverride?: string,
+  generationLine: GenerationLine = "line1"
 ) {
   const prompt =
     promptOverride ??
@@ -45,14 +48,7 @@ export function buildGenerationPayload(
         : kind === "poster"
           ? buildPosterPrompt(shopName)
           : buildProductPrompt(shopName, productName, platform));
-  const size =
-    kind === "avatar"
-      ? "1024x1024"
-      : kind === "storefront"
-        ? "1536x1024"
-        : kind === "poster"
-          ? currentPlatform.poster.sourceLabel
-          : `${currentPlatform.product.source.w}x${currentPlatform.product.source.h}`;
+  const size = resolveGenerationSize(kind, currentPlatform, generationLine);
   const productImages = resolveReferenceImages(
     kind,
     sourceImages,

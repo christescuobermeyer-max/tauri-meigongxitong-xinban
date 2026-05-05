@@ -1,4 +1,5 @@
 import { generateImage, uploadImageToOss } from "./tauri";
+import { resolveStorefrontGenerationSize } from "./generation-size";
 import { safeFileName } from "./utils";
 import type { GenerationItem, GenerationLine, UploadedImage } from "../types";
 
@@ -21,6 +22,7 @@ export async function generatePSignboardItem(
   options: PSignboardOptions
 ): Promise<GenerationItem> {
   const stem = safeFileName(options.shopName);
+  const generationLine = options.generationLine ?? "line1";
   const sourceUpload = await uploadImageToOss({
     base64_data: image.productBase64,
     mime_type: image.mime,
@@ -30,9 +32,9 @@ export async function generatePSignboardItem(
   const started = Date.now();
   const rawBase64 = await generateImage({
     prompt: buildPSignboardPrompt(sourceUpload.url, options.originalText, options.newText),
-    size: "1536x1024",
+    size: resolveStorefrontGenerationSize(generationLine),
     product_images: [sourceUpload.url],
-    api_line: options.generationLine ?? "line1",
+    api_line: generationLine,
   });
   const resultUpload = await uploadImageToOss({
     base64_data: rawBase64,
@@ -46,7 +48,7 @@ export async function generatePSignboardItem(
     rawBase64,
     rawDataUrl: `data:image/png;base64,${rawBase64}`,
     remoteUrl: resultUpload.url,
-    generationLine: options.generationLine ?? "line1",
+    generationLine,
     status: "succeeded",
     elapsedMs: Date.now() - started,
   };

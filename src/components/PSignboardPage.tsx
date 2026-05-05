@@ -46,6 +46,12 @@ export default function PSignboardPage({
     newText,
     busy,
   });
+  const isResultBusy = item.status === "queued" || item.status === "running";
+  const busyTitle = item.status === "queued" ? "等待生成中…" : "正在替换门头文字…";
+  const busyHint =
+    item.status === "queued"
+      ? "前序任务完成后会自动开始"
+      : "系统会保持原图风格和透视效果";
 
   function handleConfirmRetry() {
     setRetryConfirmOpen(false);
@@ -132,7 +138,7 @@ export default function PSignboardPage({
           </div>
         </div>
         <div className="card__body">
-          <div className="p-signboard-result" data-status={item.status}>
+          <div className="p-signboard-result" data-status={item.status} data-busy={isResultBusy}>
             {item.rawDataUrl ? (
               <img src={item.rawDataUrl} alt="P门头生成结果" />
             ) : item.status === "failed" ? (
@@ -141,11 +147,11 @@ export default function PSignboardPage({
                 <strong>生成失败</strong>
                 <span>{item.errorMessage || "请重置后重新生成"}</span>
               </div>
-            ) : item.status === "running" ? (
+            ) : isResultBusy ? (
               <div className="picture-wall-state">
                 <div className="spinner spinner--lg" />
-                <strong>正在替换门头文字…</strong>
-                <span>系统会保持原图风格和透视效果</span>
+                <strong>{busyTitle}</strong>
+                <span>{busyHint}</span>
               </div>
             ) : (
               <div className="picture-wall-state">

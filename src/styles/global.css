@@ -535,14 +535,61 @@ input, textarea { outline: none; }
   align-items: start;
 }
 
-.image-edit-settings {
+.image-edit-card__header {
+  gap: 14px;
+  align-items: center;
+}
+
+.image-edit-kind-select {
+  justify-self: end;
+}
+
+.image-edit-meta-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
-  align-items: end;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  align-items: start;
+}
+
+.image-edit-meta-row .field + .field {
+  margin-top: 0;
+}
+
+.image-edit-meta-row .field:first-child {
+  min-width: 0;
+}
+
+.image-edit-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0;
+}
+
+.image-edit-active-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+.image-edit-active-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
 }
 
 .image-edit-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.image-edit-form {
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -553,8 +600,19 @@ input, textarea { outline: none; }
 }
 
 @media (max-width: 720px) {
-  .image-edit-settings {
+  .image-edit-meta-row {
     grid-template-columns: 1fr;
+  }
+
+  .image-edit-card__header {
+    align-items: stretch;
+  }
+
+  .image-edit-kind-select {
+    justify-self: stretch;
+    width: 100%;
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @keyframes page-in {
@@ -1081,6 +1139,9 @@ input, textarea { outline: none; }
 .result__actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
 .result__body {
   padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   background:
     radial-gradient(circle at 12px 12px, var(--border) 1px, transparent 1.6px) 0 0/16px 16px,
     var(--bg-subtle);
@@ -2199,11 +2260,128 @@ body,
   text-decoration: underline;
 }
 
+.admin__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.admin__pagination-info {
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.admin__pagination-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.admin__pagination-actions .btn {
+  font-size: 12px;
+  gap: 4px;
+}
+
 .admin__filters {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.admin__date-filter {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  margin-bottom: 14px;
+}
+
+.admin__date-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--fg-muted);
+  margin-bottom: 6px;
+}
+
+.admin__date-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin__date-input {
+  width: 156px;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--fg);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color var(--duration-fast) var(--easing);
+}
+
+.admin__date-input:focus {
+  border-color: var(--border-focus);
+  background: var(--bg-elevated);
+}
+
+.admin__date-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+}
+
+.admin__date-summary--empty {
+  opacity: 0.6;
+}
+
+.admin__date-summary-day {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.admin__date-summary-count {
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.admin__date-summary-count strong {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.admin__date-summary-breakdown {
+  font-size: 10px;
+  color: var(--fg-subtle);
+  font-family: var(--font-mono);
+}
+
+@media (max-width: 720px) {
+  .admin__date-filter {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .admin__date-summary {
+    padding-left: 0;
+    padding-top: 10px;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
 }
 
 .empty--inline {

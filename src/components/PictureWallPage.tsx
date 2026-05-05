@@ -1,10 +1,5 @@
-import { useState } from "react";
 import type { PictureWallEntry } from "../lib/picture-wall";
-import {
-  buildPictureWallPrompt,
-  PICTURE_WALL_EXPORT_SIZE,
-  PICTURE_WALL_SOURCE_SIZE,
-} from "../lib/picture-wall";
+import { PICTURE_WALL_EXPORT_SIZE, PICTURE_WALL_SOURCE_SIZE } from "../lib/picture-wall";
 import type { PictureWallDownloadProgress } from "../lib/picture-wall-download";
 import type { GenerationLine, UploadedImage } from "../types";
 import GenerationLineCard from "./GenerationLineCard";
@@ -12,7 +7,6 @@ import ImageUpload from "./ImageUpload";
 import { IconSparkles } from "./Icons";
 import PictureWallProductNames from "./PictureWallProductNames";
 import PictureWallResults from "./PictureWallResults";
-import PromptPreview from "./PromptPreview";
 import "../styles/picture-wall.css";
 import "../styles/picture-wall-product-names.css";
 
@@ -47,11 +41,7 @@ export default function PictureWallPage({
   onDownload,
   onRetry,
 }: Props) {
-  const [showPrompt, setShowPrompt] = useState(false);
   const canGenerate = shopName.trim().length > 0 && images.length === 3 && !busy;
-  const previewImage = images[0];
-  const previewProductName = previewImage?.productName?.trim() || "{产品名称}";
-  const previewOssUrl = previewImage?.productOssUrl || "{上传后自动生成的产品图OSS链接}";
 
   return (
     <>
@@ -89,33 +79,6 @@ export default function PictureWallPage({
                 生成原图 {PICTURE_WALL_SOURCE_SIZE.w}×{PICTURE_WALL_SOURCE_SIZE.h}，下载包含高清原图和 {PICTURE_WALL_EXPORT_SIZE.w}×{PICTURE_WALL_EXPORT_SIZE.h}
               </span>
               <PictureWallProductNames images={images} />
-            </div>
-
-            <div className="field">
-              <label className="field__label">
-                生成提示词
-                <button
-                  className="btn btn--link"
-                  onClick={() => setShowPrompt((value) => !value)}
-                  type="button"
-                >
-                  {showPrompt ? "收起" : "查看"}
-                </button>
-              </label>
-              {showPrompt ? (
-                <PromptPreview
-                  title="图片墙 prompt · 3:4"
-                  text={buildPictureWallPrompt(
-                    shopName || "{店铺名称}",
-                    previewProductName,
-                    previewOssUrl
-                  )}
-                />
-              ) : (
-                <span className="field__hint">
-                  prompt 会引用店铺名称、每张图自动提取的产品名称，以及上传到 OSS 后的产品图链接。
-                </span>
-              )}
             </div>
 
             <div className="picture-wall-actions">

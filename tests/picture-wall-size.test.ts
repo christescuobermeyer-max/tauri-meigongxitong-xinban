@@ -46,7 +46,7 @@ equal(apiCalls[1].type, "generate");
 equal(apiCalls[1].req.size, "3:4");
 
 const pageSource = readFileSync(new URL("../src/components/PictureWallPage.tsx", import.meta.url), "utf8");
-ok(pageSource.includes("图片墙 prompt · 3:4"));
+equal(pageSource.includes("图片墙 prompt · 3:4"), false);
 
 const apiSource = readFileSync(new URL("../src-tauri/src/api.rs", import.meta.url), "utf8");
 ok(apiSource.includes('"3:4"'), "Rust image-2 请求校验应允许图片墙 3:4 尺寸标识");

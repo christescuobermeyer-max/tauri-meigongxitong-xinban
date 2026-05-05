@@ -67,7 +67,7 @@ export default function ResultPanel({
         />
         <GenerationResultTile
           title="店招宣传图"
-          sub="原图 1536×1024"
+          sub="原图 1792×1024"
           item={storefront}
           exportSize={`${platform.storefront.w}×${platform.storefront.h}`}
           idleMessage="头像生成完成后，将参考头像图自动生成店招"

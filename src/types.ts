@@ -71,7 +71,7 @@ export type GenerationStatus =
 
 export interface GenerationItem {
   kind: AssetKind;
-  /** API 返回的原图（1024x1024 / 1536x1024）— base64 不含前缀 */
+  /** API 返回的原图或比例图（1024x1024 / 16:9 / 21:9 等）— base64 不含前缀 */
   rawBase64: string | null;
   /** 仅用于 UI 预览 */
   rawDataUrl: string | null;

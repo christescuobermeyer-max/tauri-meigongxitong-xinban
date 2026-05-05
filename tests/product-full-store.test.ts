@@ -44,7 +44,7 @@ equal(batchPanelExists, true);
 const batchPanelSource = batchPanelExists ? readFileSync(batchPanelUrl, "utf8") : "";
 equal(batchPanelSource.includes("参考设计风格图"), true);
 equal(batchPanelSource.includes("maxCount={10}"), true);
-equal(batchPanelSource.includes("buildProductBatchPrompt"), true);
+equal(batchPanelSource.includes("buildProductBatchPrompt"), false);
 equal(batchPanelSource.includes("传给系统的参考图"), true);
 equal(batchPanelSource.includes("传给模型的参考图"), false);
 equal(

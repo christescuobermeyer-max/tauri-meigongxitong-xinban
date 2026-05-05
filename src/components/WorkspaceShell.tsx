@@ -10,9 +10,10 @@ interface Props {
   profile: ProfileRow;
   isAdmin: boolean;
   onSignOut: () => void;
+  onRefresh: () => void;
 }
 
-export default function WorkspaceShell({ profile, isAdmin, onSignOut }: Props) {
+export default function WorkspaceShell({ profile, isAdmin, onSignOut, onRefresh }: Props) {
   const workspace = useGenerationWorkspace({ userId: profile.id });
   const { theme, setTheme } = useTheme();
 
@@ -44,6 +45,7 @@ export default function WorkspaceShell({ profile, isAdmin, onSignOut }: Props) {
       />
       <main className="main">
         <TopBar
+          onRefresh={onRefresh}
           title={title}
           crumbs={["呈尚策划", "图像生成系统"]}
           rightSlot={

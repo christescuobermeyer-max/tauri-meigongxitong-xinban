@@ -14,7 +14,7 @@ export default function SettingsPanel() {
             接口：<strong>https://api3.wlai.vip/v1/images/generations</strong>
           </span>
           <span>
-            原图尺寸：<strong>头像 1024×1024 · 店招 1536×1024</strong>
+            原图尺寸：<strong>头像 1024×1024 · 店招 1792×1024</strong>
           </span>
           <span>
             导出尺寸（美团）：

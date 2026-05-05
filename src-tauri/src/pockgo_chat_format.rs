@@ -1,21 +1,20 @@
 use serde_json::Value;
 
-const DEFAULT_SYSTEM_PROMPT: &str =
-    "你是专业商业图片设计师，请根据用户提示和参考图生成一张可直接用于店铺运营的高质量图片。";
-
 pub fn build_system_prompt(aspect_ratio: &str) -> String {
     format!(
-        "{}\n{{\"imageConfig\": {{\"aspectRatio\": \"{}\"}}}}",
-        DEFAULT_SYSTEM_PROMPT, aspect_ratio
+        "{{\"imageConfig\": {{\"aspectRatio\": \"{}\"}}}}",
+        aspect_ratio
     )
 }
 
 pub fn size_to_aspect_ratio(size: &str) -> &'static str {
     match size {
+        "16:9" => "16:9",
         "21:9" => "21:9",
         "3:4" => "3:4",
         "1024x1536" => "2:3",
         "1536x1024" => "3:2",
+        "1792x1024" => "16:9",
         _ => "1:1",
     }
 }
@@ -126,14 +125,19 @@ mod tests {
 
     #[test]
     fn build_system_prompt_contains_aspect_ratio() {
-        let prompt = build_system_prompt("3:2");
+        let prompt = build_system_prompt("16:9");
 
-        assert!(prompt.contains(DEFAULT_SYSTEM_PROMPT));
-        assert!(prompt.contains("\"aspectRatio\": \"3:2\""));
+        assert_eq!(prompt, "{\"imageConfig\": {\"aspectRatio\": \"16:9\"}}");
     }
 
     #[test]
     fn map_poster_size_to_wide_aspect_ratio() {
         assert_eq!(size_to_aspect_ratio("21:9"), "21:9");
+    }
+
+    #[test]
+    fn map_storefront_size_to_16_9_aspect_ratio() {
+        assert_eq!(size_to_aspect_ratio("1792x1024"), "16:9");
+        assert_eq!(size_to_aspect_ratio("16:9"), "16:9");
     }
 }
