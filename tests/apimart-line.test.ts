@@ -90,11 +90,16 @@ async function uploadImageToOss(req) {
   return { url: "https://oss.example.com/" + req.file_name, key: req.file_name };
 }
 async function generateImage(req) { calls.push({ type: "generate", req }); return "abc"; }
+async function compressAndArchiveGenerated(kind, rawBase64, fileNameStem) {
+  calls.push({ type: "archive", kind, fileNameStem });
+  return "https://oss.example.com/" + fileNameStem + ".jpg";
+}
 export function __getCalls() { return calls; }
 `;
 
 const pictureWallSource = read("src/lib/picture-wall.ts")
   .replace('import { generateImage, uploadImageToOss } from "./tauri";', tauriStubs)
+  .replace('import { compressAndArchiveGenerated } from "./oss-assets";', "")
   .replace(
     'import { runWithAutoRetry } from "./generation-retry";',
     "async function runWithAutoRetry(options) { return { ...(await options.run()), attempt: 1 }; }"

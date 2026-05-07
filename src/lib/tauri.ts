@@ -55,7 +55,7 @@ export interface GenerateImageRequest {
   api_line?: GenerationLine;
 }
 
-/** 调用 Rust 端的 image-2 生图（已设置 600s 超时） */
+/** 调用 Rust 端的 image-2 生图（已设置 300s 超时） */
 export async function generateImage(req: GenerateImageRequest): Promise<string> {
   if (getBackendGatewayUrl()) {
     return await callBackendGateway<string>("/api/generate-image", req);

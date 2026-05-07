@@ -1,4 +1,5 @@
 import { generateImage, uploadImageToOss } from "./tauri";
+import { compressAndArchiveGenerated } from "./oss-assets";
 import { runWithAutoRetry } from "./generation-retry";
 import { safeFileName } from "./utils";
 import type { GenerationItem, GenerationLine, GenerationStatus, UploadedImage } from "../types";
@@ -137,13 +138,11 @@ async function resolveDetailPageProductOssUrl(sourceImage: UploadedImage, shopNa
 
 async function archiveDetailPageResult(rawBase64: string, shopName: string, pageIndex: number) {
   try {
-    const uploaded = await uploadImageToOss({
-      base64_data: rawBase64,
-      mime_type: "image/png",
-      folder: "generated",
-      file_name: `${safeFileName(shopName)}-detail-page-${pageIndex + 1}.png`,
-    });
-    return uploaded.url;
+    return await compressAndArchiveGenerated(
+      "detail_page",
+      rawBase64,
+      `${safeFileName(shopName)}-detail-page-${pageIndex + 1}`
+    );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`详情页生成结果上传 OSS 失败：${message}`);

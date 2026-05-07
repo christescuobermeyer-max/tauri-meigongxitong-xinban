@@ -15,7 +15,7 @@ interface Props {
 
 export default function WorkspaceShell({ profile, isAdmin, onSignOut, onRefresh }: Props) {
   const workspace = useGenerationWorkspace({ userId: profile.id });
-  const { theme, setTheme } = useTheme();
+  const { theme, resolved, setTheme } = useTheme();
 
   const title =
     workspace.tab === "avatarStorefront"
@@ -43,6 +43,7 @@ export default function WorkspaceShell({ profile, isAdmin, onSignOut, onRefresh 
         onChange={workspace.setTab}
         isAdmin={isAdmin}
         displayName={profile.display_name}
+        theme={resolved}
         onSignOut={onSignOut}
       />
       <main className="main">

@@ -1,4 +1,5 @@
 import { generateImage, uploadImageToOss } from "./tauri";
+import { compressAndArchiveGenerated } from "./oss-assets";
 import { runWithAutoRetry } from "./generation-retry";
 import { safeFileName } from "./utils";
 import type { GenerationItem, GenerationLine, GenerationStatus, UploadedImage } from "../types";
@@ -156,13 +157,11 @@ function resolvePictureWallGenerationSize(generationLine: GenerationLine) {
 
 async function archivePictureWallResult(rawBase64: string, shopName: string, sourceImageId: string) {
   try {
-    const uploaded = await uploadImageToOss({
-      base64_data: rawBase64,
-      mime_type: "image/png",
-      folder: "generated",
-      file_name: `${safeFileName(shopName)}-picture-wall-${sourceImageId}.png`,
-    });
-    return uploaded.url;
+    return await compressAndArchiveGenerated(
+      "picture_wall",
+      rawBase64,
+      `${safeFileName(shopName)}-picture-wall-${sourceImageId}`
+    );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`图片墙生成结果上传 OSS 失败：${message}`);

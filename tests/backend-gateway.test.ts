@@ -27,3 +27,4 @@ equal(gatewaySource.includes("/api/generate-image"), true);
 equal(gatewaySource.includes("/api/upload-image-to-oss"), true);
 equal(gatewaySource.includes("/api/admin-create-user"), true);
 equal(gatewaySource.includes("verify_access_token"), true);
+equal(gatewaySource.includes("timeout(Duration::from_secs(300))"), true);

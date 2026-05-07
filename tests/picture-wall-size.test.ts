@@ -9,11 +9,16 @@ async function uploadImageToOss(req) {
   return { url: "https://oss.example.com/" + req.file_name, key: req.file_name };
 }
 async function generateImage(req) { apiCalls.push({ type: "generate", req }); return "abc"; }
+async function compressAndArchiveGenerated(kind, rawBase64, fileNameStem) {
+  apiCalls.push({ type: "archive", kind, fileNameStem });
+  return "https://oss.example.com/" + fileNameStem + ".jpg";
+}
 export function __getApiCalls() { return apiCalls; }
 `;
 
 const libSource = readFileSync(new URL("../src/lib/picture-wall.ts", import.meta.url), "utf8")
   .replace('import { generateImage, uploadImageToOss } from "./tauri";', tauriStubs)
+  .replace('import { compressAndArchiveGenerated } from "./oss-assets";', "")
   .replace(
     'import { runWithAutoRetry } from "./generation-retry";',
     "async function runWithAutoRetry(options) { return { ...(await options.run()), attempt: 1 }; }"

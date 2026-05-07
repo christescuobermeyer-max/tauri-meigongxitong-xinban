@@ -25,7 +25,7 @@ export default function SettingsPanel() {
             <strong>头像 800×800 · 店招 750×423</strong>
           </span>
           <span>
-            超时：<strong>单次生成最多 600s</strong>
+            超时：<strong>单次生成最多 300s</strong>
           </span>
         </div>
         <div

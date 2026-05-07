@@ -16,7 +16,7 @@ export function __getCalls() { return calls; }`
     'import { compressGeneratedImage } from "./tauri-image";',
     `async function compressGeneratedImage(req) {
   calls.push({ type: "compress", req });
-  return { base64_data: "compressed-avatar", mime_type: "image/jpeg", byte_size: 120000 };
+  return { base64_data: "compressed-" + req.max_dimension, mime_type: "image/jpeg", byte_size: 120000 };
 }`
   )
   .replace('import { safeFileName } from "./utils";', 'function safeFileName(input) { return input.trim() || "shop"; }')
@@ -29,13 +29,38 @@ const module = await import(`data:text/javascript;base64,${Buffer.from(transpile
 
 const avatarUrl = await module.archiveGeneratedImage("avatar", "红冠松滋鸡", "raw-avatar");
 const productUrl = await module.archiveGeneratedImage("product", "红冠松滋鸡", "raw-product");
+const detailUrl = await module.archiveGeneratedImage("detail_page", "红冠松滋鸡", "raw-detail");
 const calls = module.__getCalls();
 
+// 全部 kind 都压缩成 JPG 后再上传
 equal(avatarUrl, "https://oss.example.com/红冠松滋鸡-avatar.jpg");
-equal(productUrl, "https://oss.example.com/红冠松滋鸡-product.png");
+equal(productUrl, "https://oss.example.com/红冠松滋鸡-product.jpg");
+equal(detailUrl, "https://oss.example.com/红冠松滋鸡-detail_page.jpg");
+
+// 调用顺序：compress → upload，每次归档共 2 个 calls
+equal(calls.length, 6);
+
+// avatar：768 / q82
 equal(calls[0].type, "compress");
 equal(calls[0].req.base64_data, "raw-avatar");
-equal(calls[1].base64_data, "compressed-avatar");
-equal(calls[1].mime_type, "image/jpeg");
+equal(calls[0].req.max_dimension, 768);
+equal(calls[0].req.quality, 82);
 equal(calls[1].file_name, "红冠松滋鸡-avatar.jpg");
-ok(calls.every((call: { type?: string }) => call.type !== "compress" || call.req.max_dimension === 768));
+equal(calls[1].folder, "generated");
+equal(calls[1].mime_type, "image/jpeg");
+
+// product：1024 / q88
+equal(calls[2].type, "compress");
+equal(calls[2].req.base64_data, "raw-product");
+equal(calls[2].req.max_dimension, 1024);
+equal(calls[2].req.quality, 88);
+equal(calls[3].file_name, "红冠松滋鸡-product.jpg");
+
+// detail_page：2048 / q92
+equal(calls[4].type, "compress");
+equal(calls[4].req.max_dimension, 2048);
+equal(calls[4].req.quality, 92);
+equal(calls[5].file_name, "红冠松滋鸡-detail_page.jpg");
+
+// 没有任何 PNG 直传
+ok(calls.filter((c: { file_name?: string }) => c.file_name?.endsWith(".png")).length === 0);

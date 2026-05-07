@@ -10,13 +10,17 @@ async function pickDirectoryPath() { return "C:\\\\downloads"; }
 async function resizeAndSaveImage(req) { resizeCalls.push(req); return req.output_path; }
 async function uploadImageToOss(req) {
   apiCalls.push({ type: "upload", req });
-  if (req.folder === "generated" && failGeneratedUpload) {
-    failGeneratedUpload = false;
-    throw new Error("OSS generated upload failed");
-  }
   return { url: "https://oss.example.com/" + req.file_name, key: req.file_name };
 }
 async function generateImage(req) { apiCalls.push({ type: "generate", req }); return "abc"; }
+async function compressAndArchiveGenerated(kind, rawBase64, fileNameStem) {
+  apiCalls.push({ type: "archive", kind, fileNameStem });
+  if (failGeneratedUpload) {
+    failGeneratedUpload = false;
+    throw new Error("OSS generated upload failed");
+  }
+  return "https://oss.example.com/" + fileNameStem + ".jpg";
+}
 export function __getResizeCalls() { return resizeCalls; }
 export function __getApiCalls() { return apiCalls; }
 export function __failNextGeneratedUpload() { failGeneratedUpload = true; }
@@ -43,6 +47,7 @@ async function runWithAutoRetry(options) {
 const libSource = readFileSync(new URL("../src/lib/picture-wall.ts", import.meta.url), "utf8")
   .replace('import { generateImage, uploadImageToOss } from "./tauri";', tauriStubs)
   .replace('import { generateImage, pickDirectoryPath, resizeAndSaveImage, uploadImageToOss } from "./tauri";', tauriStubs)
+  .replace('import { compressAndArchiveGenerated } from "./oss-assets";', "")
   .replace('import { runWithAutoRetry } from "./generation-retry";', retryStub)
   .replace('import { safeFileName } from "./utils";', "function safeFileName(input) { return input.trim() || 'shop'; }")
   .replace('import type { GenerationItem, GenerationLine, GenerationStatus, UploadedImage } from "../types";', "")
@@ -146,8 +151,9 @@ equal(apiCalls[1].req.product_images[0].startsWith("https://oss.example.com/"), 
 ok(apiCalls[1].req.prompt.includes("外卖店铺“韩大叔炸鸡拌饭”"));
 ok(apiCalls[1].req.prompt.includes("产品名称：“招牌炸鸡”"));
 ok(apiCalls[1].req.prompt.includes(apiCalls[1].req.product_images[0]));
-equal(apiCalls[2].type, "upload");
-equal(apiCalls[2].req.folder, "generated");
+equal(apiCalls[2].type, "archive");
+equal(apiCalls[2].kind, "picture_wall");
+ok(apiCalls[2].fileNameStem.includes("picture-wall"));
 
 libModule.__failNextGeneratedUpload();
 await rejects(

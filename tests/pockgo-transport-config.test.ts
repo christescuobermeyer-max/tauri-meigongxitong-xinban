@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 const cargoToml = readFileSync(new URL("../src-tauri/Cargo.toml", import.meta.url), "utf8");
 const apiSource = readFileSync(new URL("../src-tauri/src/api.rs", import.meta.url), "utf8");
+const httpClientSource = readFileSync(new URL("../src-tauri/src/http_client.rs", import.meta.url), "utf8");
 const pockgoSource = readFileSync(new URL("../src-tauri/src/pockgo_chat.rs", import.meta.url), "utf8");
 const pockgoTransportUrl = new URL("../src-tauri/src/pockgo_transport.rs", import.meta.url);
 const pockgoTransportSource = existsSync(pockgoTransportUrl)
@@ -32,4 +33,13 @@ ok(
 ok(
   pockgoTransportSource.includes("curl.exe") && pockgoTransportSource.includes("__CSGH_HTTP_STATUS__"),
   "pockgo 兼容传输应使用系统 curl 并显式回传 HTTP 状态码"
+);
+ok(
+  pockgoTransportSource.includes("max-time = 300") &&
+    pockgoTransportSource.includes("timeout(Duration::from_secs(300))"),
+  "线路4单次生成最长超时应为 300 秒"
+);
+ok(
+  httpClientSource.includes("const API_TIMEOUT_SECS: u64 = 300;"),
+  "通用生图 HTTP 客户端单次最长超时应为 300 秒"
 );

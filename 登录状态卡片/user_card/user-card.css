@@ -1,0 +1,322 @@
+/* =========================================================================
+   登录用户卡片 — 1:1 复刻
+   ========================================================================= */
+
+.uc {
+  --uc-radius: 20px;
+  --uc-w: 360px;
+  --uc-cover-h: 152px;
+  --uc-pad-x: 18px;
+  --uc-pad-y: 18px;
+  --uc-avatar-size: 72px;
+
+  position: relative;
+  width: var(--uc-w);
+  border-radius: var(--uc-radius);
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+               "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+}
+
+/* ---------- Light theme -------------------------------------------------- */
+.uc.is-light {
+  background: #ffffff;
+  border: 1px solid #ececec;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.7) inset,
+    0 1px 2px rgba(60, 50, 40, .04),
+    0 12px 32px -16px rgba(60, 50, 40, .12);
+}
+
+/* ---------- Dark theme --------------------------------------------------- */
+.uc.is-dark {
+  background: #161513;
+  border: 1px solid rgba(255,255,255,.06);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.02) inset,
+    0 16px 40px -20px rgba(0,0,0,.65);
+}
+
+/* =========================================================================
+   Cover (顶部封面)
+   ========================================================================= */
+.uc-cover {
+  position: relative;
+  height: var(--uc-cover-h);
+  padding: var(--uc-pad-y) var(--uc-pad-x);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.uc.is-light .uc-cover {
+  background:
+    /* peach circle bottom-right */
+    radial-gradient(120px 120px at 92% 110%, rgba(255, 200, 165, .55), transparent 70%),
+    /* yellow halo right */
+    radial-gradient(160px 130px at 105% 70%, rgba(255, 220, 150, .42), transparent 70%),
+    /* warm cream wash left → right */
+    linear-gradient(110deg, #fef0e6 0%, #fdf3e7 35%, #fdf6ec 60%, #faf3ea 100%);
+}
+
+.uc.is-dark .uc-cover {
+  background:
+    /* warm planet glow */
+    radial-gradient(140px 110px at 96% 105%, rgba(180, 110, 60, .35), transparent 72%),
+    radial-gradient(160px 130px at 110% 75%, rgba(120, 90, 60, .22), transparent 70%),
+    linear-gradient(110deg, #161513 0%, #1a1816 60%, #1f1a16 100%);
+}
+
+/* ---- decorative dot grid (top right) ----------------------------------- */
+.uc-dots {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 56px;
+  height: 28px;
+  background-image: radial-gradient(currentColor 1px, transparent 1.4px);
+  background-size: 8px 8px;
+  background-position: 0 0;
+  opacity: .5;
+  pointer-events: none;
+}
+.uc.is-light .uc-dots { color: #c7c0b6; }
+.uc.is-dark  .uc-dots { color: #4a423a; opacity: .65; }
+
+/* ---- big translucent circle (mid-right) -------------------------------- */
+.uc-orb {
+  position: absolute;
+  right: -54px;
+  top: 38px;
+  width: 168px;
+  height: 168px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.uc.is-light .uc-orb {
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255,210,180,.55), rgba(255,225,180,.35) 55%, rgba(220,200,255,.25) 100%);
+  border: 1px solid rgba(255,200,170,.35);
+  box-shadow: inset 0 0 24px rgba(255,210,180,.25);
+}
+.uc.is-dark .uc-orb {
+  background:
+    radial-gradient(circle at 30% 30%, rgba(160,90,50,.45), rgba(110,70,45,.35) 60%, rgba(40,30,25,.5) 100%);
+  border: 1px solid rgba(180,110,70,.18);
+  box-shadow: inset 0 0 26px rgba(0,0,0,.4);
+}
+
+/* ---- arc / orbit line (light only, soft pink) -------------------------- */
+.uc-arc {
+  position: absolute;
+  right: -10px;
+  top: 28px;
+  width: 200px;
+  height: 200px;
+  pointer-events: none;
+  opacity: .55;
+}
+.uc.is-dark .uc-arc { display: none; }
+
+/* ---- floating shapes (blue dot + green triangle) ----------------------- */
+.uc-blue-dot {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  right: 96px;
+  top: 64px;
+}
+.uc.is-light .uc-blue-dot { background: #7c92e8; box-shadow: 0 4px 10px -2px rgba(124,146,232,.5); }
+.uc.is-dark  .uc-blue-dot { background: #4d63b8; box-shadow: 0 4px 10px -2px rgba(60,80,160,.4); }
+
+.uc-green-tri {
+  position: absolute;
+  right: 80px;
+  top: 90px;
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  filter: drop-shadow(0 3px 6px rgba(80,160,120,.25));
+  transform: rotate(-18deg);
+}
+.uc.is-light .uc-green-tri { border-bottom: 14px solid #9ed8b9; }
+.uc.is-dark  .uc-green-tri { border-bottom: 14px solid #3f7a5d; }
+
+/* ---- yellow sparkle (4-point star next to username) -------------------- */
+.uc-spark {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-left: 10px;
+  vertical-align: 2px;
+  flex-shrink: 0;
+}
+
+/* =========================================================================
+   Avatar
+   ========================================================================= */
+.uc-avatar-wrap {
+  position: relative;
+  width: var(--uc-avatar-size);
+  height: var(--uc-avatar-size);
+  flex-shrink: 0;
+}
+
+.uc-avatar {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44px;
+  line-height: 1;
+}
+
+.uc.is-light .uc-avatar {
+  background: radial-gradient(circle at 50% 45%, #fff8e8 0%, #ffeec8 60%, #ffd9a3 100%);
+  border: 2px solid #ffffff;
+  box-shadow:
+    0 0 0 1.5px rgba(255, 175, 120, .55),
+    0 6px 18px -4px rgba(255, 160, 100, .35),
+    0 0 22px rgba(255, 180, 120, .35);
+}
+
+.uc.is-dark .uc-avatar {
+  background: radial-gradient(circle at 50% 45%, #ffe9b8 0%, #f9c97d 55%, #c98a48 100%);
+  border: 2px solid #d8915a;
+  box-shadow:
+    0 0 0 1.5px rgba(255, 165, 100, .35),
+    0 0 26px rgba(255, 170, 100, .35),
+    0 0 56px rgba(255, 180, 110, .15);
+}
+
+/* glow halo for dark theme */
+.uc.is-dark .uc-avatar::after {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,180,110,.25), transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* =========================================================================
+   Identity (username + badge)
+   ========================================================================= */
+.uc-identity {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 1;
+}
+
+.uc-name-row {
+  display: flex;
+  align-items: center;
+}
+
+.uc-name {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+.uc.is-light .uc-name { color: #1f1b18; }
+.uc.is-dark  .uc-name { color: #f6f2ec; }
+
+/* ---- role badge (管理员) ----------------------------------------------- */
+.uc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 12px 0 8px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  width: fit-content;
+}
+.uc.is-light .uc-badge {
+  background: #fff1d9;
+  color: #f0a020;
+  border: 1px solid #ffe2af;
+}
+.uc.is-dark .uc-badge {
+  background: transparent;
+  color: #f5b548;
+  border: 1px solid #b8862e;
+}
+
+.uc-badge-shield {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* =========================================================================
+   Divider (dashed)
+   ========================================================================= */
+.uc-divider {
+  position: relative;
+  height: 0;
+  margin: 0 var(--uc-pad-x);
+  border: 0;
+  border-top: 1px dashed;
+}
+.uc.is-light .uc-divider { border-color: #e5dfd4; }
+.uc.is-dark  .uc-divider { border-color: #2a2520; }
+
+/* =========================================================================
+   Logout area
+   ========================================================================= */
+.uc-foot {
+  padding: 16px var(--uc-pad-x) 18px;
+}
+
+.uc-logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  height: 56px;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .18s ease;
+  background: transparent;
+}
+
+.uc.is-light .uc-logout {
+  border: 1px solid #ece5d6;
+  color: #5a6a78;
+}
+.uc.is-light .uc-logout:hover {
+  background: #faf6ee;
+  border-color: #e0d6c0;
+}
+
+.uc.is-dark .uc-logout {
+  border: 1px solid #3a342d;
+  color: #b8c4d2;
+  background: rgba(255,255,255,.015);
+}
+.uc.is-dark .uc-logout:hover {
+  background: rgba(255,255,255,.04);
+  border-color: #4a443c;
+}
+
+.uc-logout-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}

@@ -1,4 +1,5 @@
 import { generateImage, uploadImageToOss } from "./tauri";
+import { compressAndArchiveGenerated } from "./oss-assets";
 import { resolvePSignboardGenerationSize } from "./generation-size";
 import { runWithAutoRetry } from "./generation-retry";
 import { safeFileName } from "./utils";
@@ -43,18 +44,17 @@ export async function generatePSignboardItem(
       }),
     }),
   });
-  const resultUpload = await uploadImageToOss({
-    base64_data: generated.rawBase64,
-    mime_type: "image/png",
-    folder: "generated",
-    file_name: `${stem}-p-signboard-${Date.now()}.png`,
-  });
+  const remoteUrl = await compressAndArchiveGenerated(
+    "p_signboard",
+    generated.rawBase64,
+    `${stem}-p-signboard-${Date.now()}`
+  );
 
   return {
     kind: "p_signboard",
     rawBase64: generated.rawBase64,
     rawDataUrl: `data:image/png;base64,${generated.rawBase64}`,
-    remoteUrl: resultUpload.url,
+    remoteUrl,
     generationLine,
     status: "succeeded",
     elapsedMs: Date.now() - started,

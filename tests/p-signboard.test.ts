@@ -15,6 +15,12 @@ async function generateImage(req) {
 }
 export function __getCalls() { return calls; }
 `)
+  .replace('import { compressAndArchiveGenerated } from "./oss-assets";', `
+async function compressAndArchiveGenerated(kind, rawBase64, fileNameStem) {
+  calls.push({ type: "archive", kind, fileNameStem });
+  return "https://oss.example.com/" + fileNameStem + ".jpg";
+}
+`)
   .replace('import { runWithAutoRetry } from "./generation-retry";', `
 async function runWithAutoRetry(options) {
   let lastError;
@@ -81,7 +87,8 @@ ok(item.rawDataUrl.includes("data:image/png;base64,generated-base64"));
 ok(item.remoteUrl.includes("p-signboard"));
 
 const calls = libModule.__getCalls();
-equal(calls.filter((call: { type: string }) => call.type === "upload").length, 2);
+// 来源图仍走 uploadImageToOss（只有 1 次，到 uploads/）
+equal(calls.filter((call: { type: string }) => call.type === "upload").length, 1);
 equal(calls[0].req.folder, "uploads");
 equal(calls[1].type, "generate");
 equal(calls[1].req.size, "1536x1024");
@@ -90,7 +97,10 @@ equal(calls[1].req.product_images[0].startsWith("https://oss.example.com/"), tru
 ok(calls[1].req.prompt.includes(calls[1].req.product_images[0]));
 ok(calls[1].req.prompt.includes("原有文字内容“老王餐厅”"));
 ok(calls[1].req.prompt.includes("新文字内容“呈尚小厨”"));
-equal(calls[2].req.folder, "generated");
+// 生成结果走 compressAndArchiveGenerated（archive 类型，p_signboard kind）
+equal(calls[2].type, "archive");
+equal(calls[2].kind, "p_signboard");
+ok(calls[2].fileNameStem.includes("p-signboard"));
 equal(item.generationLine, "line1");
 
 await libModule.generatePSignboardItem(

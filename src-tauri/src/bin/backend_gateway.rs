@@ -162,7 +162,7 @@ fn build_state() -> Result<AppState, String> {
     let supabase_anon_key =
         env_config::read_required_env(&["SUPABASE_ANON_KEY", "VITE_SUPABASE_ANON_KEY"])?;
     let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(600))
+        .timeout(Duration::from_secs(300))
         .build()
         .map_err(|error| format!("初始化后端网关 HTTP 客户端失败：{error}"))?;
 

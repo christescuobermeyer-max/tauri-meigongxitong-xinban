@@ -1,0 +1,54 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="furMain" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(512 398) rotate(90) scale(445 492)">
+      <stop offset="0" stop-color="#FFD267"/>
+      <stop offset="0.46" stop-color="#FFB540"/>
+      <stop offset="1" stop-color="#F08F19"/>
+    </radialGradient>
+    <radialGradient id="muzzle" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(512 704) rotate(90) scale(210 355)">
+      <stop offset="0" stop-color="#FFF9E9"/>
+      <stop offset="0.64" stop-color="#FFF1D1"/>
+      <stop offset="1" stop-color="#F3D6A8"/>
+    </radialGradient>
+    <radialGradient id="eyeBrown" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(366 548) rotate(90) scale(78)">
+      <stop offset="0" stop-color="#6A3A13"/>
+      <stop offset="0.58" stop-color="#2A1208"/>
+      <stop offset="1" stop-color="#080302"/>
+    </radialGradient>
+    <radialGradient id="tongue" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(512 758) rotate(90) scale(95 82)">
+      <stop offset="0" stop-color="#FF8F84"/>
+      <stop offset="1" stop-color="#EB615B"/>
+    </radialGradient>
+    <filter id="softShadow" x="66" y="116" width="892" height="807" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="22" stdDeviation="24" flood-color="#D78A2B" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  <g filter="url(#softShadow)">
+    <path d="M190 144C270 96 376 230 395 356L260 434C199 341 137 176 190 144Z" fill="#F7A52D"/>
+    <path d="M834 144C754 96 648 230 629 356L764 434C825 341 887 176 834 144Z" fill="#F7A52D"/>
+    <path d="M240 200C292 178 361 271 363 356L276 407C236 333 205 215 240 200Z" fill="#FFF4D9"/>
+    <path d="M784 200C732 178 663 271 661 356L748 407C788 333 819 215 784 200Z" fill="#FFF4D9"/>
+    <path d="M274 232C315 223 346 289 347 342L288 372C264 327 246 238 274 232Z" fill="#F6A096" opacity="0.72"/>
+    <path d="M750 232C709 223 678 289 677 342L736 372C760 327 778 238 750 232Z" fill="#F6A096" opacity="0.72"/>
+    <path d="M112 560C112 350 291 224 512 224C733 224 912 350 912 560C912 771 736 884 512 884C288 884 112 771 112 560Z" fill="url(#furMain)"/>
+    <path d="M198 658C222 584 308 570 382 606C429 629 460 650 512 650C564 650 595 629 642 606C716 570 802 584 826 658C806 795 670 884 512 884C354 884 218 795 198 658Z" fill="url(#muzzle)"/>
+    <ellipse cx="278" cy="666" rx="58" ry="41" fill="#F5A091" opacity="0.58"/>
+    <ellipse cx="746" cy="666" rx="58" ry="41" fill="#F5A091" opacity="0.58"/>
+    <ellipse cx="370" cy="552" rx="72" ry="78" fill="#1D0B03"/>
+    <ellipse cx="654" cy="552" rx="72" ry="78" fill="#1D0B03"/>
+    <ellipse cx="381" cy="564" rx="55" ry="62" fill="url(#eyeBrown)"/>
+    <ellipse cx="665" cy="564" rx="55" ry="62" fill="url(#eyeBrown)"/>
+    <circle cx="348" cy="522" r="22" fill="white"/>
+    <circle cx="632" cy="522" r="22" fill="white"/>
+    <circle cx="408" cy="608" r="8" fill="#E7C397"/>
+    <circle cx="692" cy="608" r="8" fill="#E7C397"/>
+    <ellipse cx="512" cy="624" rx="48" ry="34" fill="#19100B"/>
+    <ellipse cx="512" cy="614" rx="28" ry="10" fill="white" opacity="0.42"/>
+    <path d="M451 684C468 719 493 730 512 730C531 730 556 719 573 684" stroke="#2B1108" stroke-width="16" stroke-linecap="round"/>
+    <path d="M454 681C458 766 494 812 512 812C530 812 566 766 570 681C551 703 531 714 512 714C493 714 473 703 454 681Z" fill="#371306"/>
+    <path d="M476 708C482 786 502 824 512 824C522 824 542 786 548 708C532 720 522 724 512 724C502 724 492 720 476 708Z" fill="url(#tongue)"/>
+    <path d="M512 724V808" stroke="#D85055" stroke-width="5" stroke-linecap="round" opacity="0.45"/>
+    <ellipse cx="386" cy="426" rx="39" ry="29" transform="rotate(-20 386 426)" fill="#FFF7E7"/>
+    <ellipse cx="638" cy="426" rx="39" ry="29" transform="rotate(20 638 426)" fill="#FFF7E7"/>
+  </g>
+</svg>

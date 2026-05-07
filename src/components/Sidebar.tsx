@@ -1,4 +1,5 @@
 import { IconBatchImages, IconDesignSuite, IconHistory, IconImage, IconSettings, IconShield, IconStore } from "./Icons";
+import UserStatusCard from "./UserStatusCard";
 import type { WorkspaceTab } from "../hooks/useGenerationWorkspace";
 
 interface SidebarProps {
@@ -6,7 +7,7 @@ interface SidebarProps {
   onChange: (key: WorkspaceTab) => void;
   isAdmin: boolean;
   displayName: string;
-  email?: string;
+  theme: "light" | "dark";
   onSignOut: () => void;
 }
 
@@ -15,7 +16,7 @@ export default function Sidebar({
   onChange,
   isAdmin,
   displayName,
-  email,
+  theme,
   onSignOut,
 }: SidebarProps) {
   const items: Array<{
@@ -117,16 +118,12 @@ export default function Sidebar({
       </div>
 
       <div className="sidebar__bottom">
-        <div className="sidebar__user">
-          <div className="sidebar__user-info">
-            <strong>{displayName}</strong>
-            {email && <span>{email}</span>}
-            {isAdmin && <span className="badge" data-tone="warn">管理员</span>}
-          </div>
-          <button className="btn btn--ghost btn--sm" onClick={onSignOut}>
-            退出登录
-          </button>
-        </div>
+        <UserStatusCard
+          displayName={displayName}
+          isAdmin={isAdmin}
+          theme={theme}
+          onSignOut={onSignOut}
+        />
 
         <div className="sidebar__footer">
           <code>v2.0.0</code>

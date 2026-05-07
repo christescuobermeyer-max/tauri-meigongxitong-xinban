@@ -1,0 +1,47 @@
+[Unit]
+Description=CSGH Image Studio · Backend Gateway
+Documentation=https://github.com/呈尚策划/csgh-image-studio
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=csgh
+Group=csgh
+WorkingDirectory=/opt/csgh-gateway
+EnvironmentFile=/opt/csgh-gateway/secrets/gateway.env
+ExecStart=/opt/csgh-gateway/bin/backend-gateway
+
+# 资源限制（2 GiB 机器，给业务留 1.2 GiB，超出自动重启）
+MemoryMax=1300M
+MemoryHigh=1100M
+TasksMax=2048
+LimitNOFILE=65535
+
+# 自愈策略
+Restart=always
+RestartSec=5
+StartLimitInterval=120
+StartLimitBurst=5
+
+# 安全加固
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ReadWritePaths=/var/log/csgh-gateway /tmp
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+
+# 日志
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=csgh-gateway
+
+[Install]
+WantedBy=multi-user.target
