@@ -76,12 +76,23 @@ const hookSource = readFileSync(
 );
 equal(hookSource.includes('buildProductBatchEntries(syncedImages, "queued")'), true);
 equal(hookSource.includes("syncProductBatchEntries(images, previous)"), true);
+equal(hookSource.includes("downloadAll"), true);
+equal(hookSource.includes("downloadProductBatchItems"), true);
 
 const panelSource = readFileSync(
   new URL("../src/components/ProductBatchResultPanel.tsx", import.meta.url),
   "utf8"
 );
 equal(panelSource.includes("compact"), true);
+equal(panelSource.includes("onBatchDownload"), true);
+equal(panelSource.includes("批量下载"), true);
+equal(panelSource.includes("disabled={completedCount === 0 || !platform}"), true);
+
+const workspacePagesSource = readFileSync(
+  new URL("../src/components/WorkspacePages.tsx", import.meta.url),
+  "utf8"
+);
+equal(workspacePagesSource.includes("onBatchDownload={workspace.handleDownloadProductBatchAll}"), true);
 
 const panelStyleSource = readFileSync(
   new URL("../src/styles/product-result-panel.css", import.meta.url),

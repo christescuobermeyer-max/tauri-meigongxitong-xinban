@@ -1,6 +1,6 @@
 import type { GenerationLogRow } from "./supabase";
 
-export type AssetKindLabel = "全部" | "头像" | "店招" | "海报" | "产品图" | "P门头" | "图片墙";
+export type AssetKindLabel = "全部" | "头像" | "店招" | "海报" | "产品图" | "P门头" | "图片墙" | "详情页";
 
 export const ASSET_LABEL: Record<string, string> = {
   avatar: "头像",
@@ -9,12 +9,15 @@ export const ASSET_LABEL: Record<string, string> = {
   product: "产品图",
   p_signboard: "P门头",
   picture_wall: "图片墙",
+  detail_page: "详情页",
 };
 
-export const GENERATION_LINE_LABEL: Record<"line1" | "line2" | "line3", string> = {
+export const GENERATION_LINE_LABEL: Record<"line1" | "line2" | "line3" | "line4" | "line5", string> = {
   line1: "线路1",
   line2: "线路2",
   line3: "线路3",
+  line4: "线路4",
+  line5: "线路5",
 };
 
 export interface GenerationLogFilter {

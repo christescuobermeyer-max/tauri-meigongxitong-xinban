@@ -1,9 +1,5 @@
-use aliyun_oss_rust_sdk::{
-    oss::OSS,
-    request::RequestBuilder,
-    url::UrlApi,
-};
 use crate::env_config::read_required_env;
+use aliyun_oss_rust_sdk::{oss::OSS, request::RequestBuilder, url::UrlApi};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use chrono::Local;
 use serde::{Deserialize, Serialize};
@@ -49,8 +45,10 @@ pub async fn upload_image_to_oss(
         .await
         .map_err(|error| format!("上传图片到 OSS 失败：{error}"))?;
 
-    let signed_url =
-        oss.sign_download_url(&key, &RequestBuilder::new().with_expire(DOWNLOAD_URL_EXPIRE_SECONDS));
+    let signed_url = oss.sign_download_url(
+        &key,
+        &RequestBuilder::new().with_expire(DOWNLOAD_URL_EXPIRE_SECONDS),
+    );
     eprintln!(
         "[oss] folder={} key={} bytes={} mime={}",
         req.folder,
@@ -86,12 +84,7 @@ fn build_oss_client() -> Result<OSS, String> {
     let bucket = read_required_env(&["ALI_OSS_BUCKET", "OSS_BUCKET"])?;
     let endpoint = normalize_endpoint(&region);
 
-    Ok(OSS::new(
-        access_key_id,
-        access_key_secret,
-        endpoint,
-        bucket,
-    ))
+    Ok(OSS::new(access_key_id, access_key_secret, endpoint, bucket))
 }
 
 fn normalize_endpoint(region_or_endpoint: &str) -> String {

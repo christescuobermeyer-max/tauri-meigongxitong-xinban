@@ -1,4 +1,4 @@
-import { equal, ok } from "node:assert/strict";
+import { deepStrictEqual, equal, ok } from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
 
@@ -14,6 +14,10 @@ export function __getApiCalls() { return apiCalls; }
 
 const libSource = readFileSync(new URL("../src/lib/picture-wall.ts", import.meta.url), "utf8")
   .replace('import { generateImage, uploadImageToOss } from "./tauri";', tauriStubs)
+  .replace(
+    'import { runWithAutoRetry } from "./generation-retry";',
+    "async function runWithAutoRetry(options) { return { ...(await options.run()), attempt: 1 }; }"
+  )
   .replace('import { safeFileName } from "./utils";', "function safeFileName(input) { return input.trim() || 'shop'; }")
   .replace('import type { GenerationItem, GenerationLine, GenerationStatus, UploadedImage } from "../types";', "");
 const libTranspiled = ts.transpileModule(libSource, {
@@ -29,33 +33,43 @@ const libModule = await import(
 equal(libModule.PICTURE_WALL_SOURCE_SIZE.w, 1086);
 equal(libModule.PICTURE_WALL_SOURCE_SIZE.h, 1448);
 
-await libModule.generatePictureWallItem(
-  {
-    id: "retry-a",
-    name: "招牌饭.jpg",
-    productName: "招牌饭",
-    productBase64: "source-base64",
-    mime: "image/jpeg",
-  },
-  "饭鲜享盖码饭",
-  "line2"
-);
+for (const line of ["line1", "line2", "line3", "line4", "line5"]) {
+  await libModule.generatePictureWallItem(
+    {
+      id: `retry-${line}`,
+      name: "招牌饭.jpg",
+      productName: "招牌饭",
+      productBase64: "source-base64",
+      mime: "image/jpeg",
+    },
+    "饭鲜享盖码饭",
+    line
+  );
+}
 
 const apiCalls = libModule.__getApiCalls();
-equal(apiCalls[1].type, "generate");
-equal(apiCalls[1].req.size, "3:4");
+const generateCalls = apiCalls.filter((call: { type: string }) => call.type === "generate");
+equal(generateCalls.length, 5);
+equal(
+  generateCalls.every((call: { req: { size: string } }) => call.req.size === "1024x1536" || call.req.size === "3:4"),
+  true
+);
+deepStrictEqual(
+  generateCalls.map((call: { req: { size: string } }) => call.req.size),
+  ["1024x1536", "1024x1536", "1024x1536", "1024x1536", "3:4"]
+);
 
 const pageSource = readFileSync(new URL("../src/components/PictureWallPage.tsx", import.meta.url), "utf8");
 equal(pageSource.includes("图片墙 prompt · 3:4"), false);
 
-const apiSource = readFileSync(new URL("../src-tauri/src/api.rs", import.meta.url), "utf8");
-ok(apiSource.includes('"3:4"'), "Rust image-2 请求校验应允许图片墙 3:4 尺寸标识");
+const validationSource = readFileSync(new URL("../src-tauri/src/api_validation.rs", import.meta.url), "utf8");
+ok(validationSource.includes('"1024x1536"'), "Rust image-2 请求校验应允许图片墙 1024x1536 尺寸");
 
 const pockgoFormatSource = readFileSync(
   new URL("../src-tauri/src/pockgo_chat_format.rs", import.meta.url),
   "utf8"
 );
 ok(
-  pockgoFormatSource.includes('"3:4" => "3:4"'),
-  "线路2 pockgo 应把图片墙尺寸明确映射为 3:4，而不是复用 1024x1536 的 2:3"
+  pockgoFormatSource.includes('"1024x1536" => "2:3"'),
+  "线路4 pockgo 图片墙应按 1024x1536 对应的 2:3 比例生成"
 );

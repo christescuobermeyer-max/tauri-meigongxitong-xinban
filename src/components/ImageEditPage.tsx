@@ -16,9 +16,9 @@ interface Entry {
 interface Props {
   shopName: string;
   setShopName: (value: string) => void;
-  platform: Platform;
+  platform: Platform | null;
   setPlatform: (platform: Platform) => void;
-  currentPlatform: PlatformSpec;
+  currentPlatform: PlatformSpec | null;
   generationLine: GenerationLine;
   setGenerationLine: (line: GenerationLine) => void;
   entries: Record<ImageEditKind, Entry>;

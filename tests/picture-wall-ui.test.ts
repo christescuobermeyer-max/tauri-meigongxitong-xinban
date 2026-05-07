@@ -64,8 +64,8 @@ equal(imageUploadSource.includes("thumb__product-name"), true);
 
 const resultsSource = readFileSync(new URL("../src/components/PictureWallResults.tsx", import.meta.url), "utf8");
 const pictureWallCssSource = readFileSync(new URL("../src/styles/picture-wall.css", import.meta.url), "utf8");
-equal(resultsSource.includes("IconDownload"), true);
-equal(resultsSource.includes("下载图片"), true);
+equal(resultsSource.includes("BatchDownloadButton"), true);
+equal(resultsSource.includes("批量下载图片墙"), true);
 equal(resultsSource.includes("onDownload"), true);
 equal(resultsSource.includes("onRetry"), true);
 equal(resultsSource.includes("重试"), true);

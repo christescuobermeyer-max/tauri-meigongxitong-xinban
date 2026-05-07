@@ -17,7 +17,7 @@ interface Props {
   onDateChange: (date: string | null) => void;
 }
 
-const FILTERS: AssetKindLabel[] = ["全部", "头像", "店招", "海报", "产品图", "P门头", "图片墙"];
+const FILTERS: AssetKindLabel[] = ["全部", "头像", "店招", "海报", "产品图", "P门头", "图片墙", "详情页"];
 const PAGE_SIZE = 30;
 
 export default function AdminGenerationDetail({
@@ -115,7 +115,8 @@ export default function AdminGenerationDetail({
                     {selectedDayStat.poster_count}报 ·{" "}
                     {selectedDayStat.product_count}产 ·{" "}
                     {selectedDayStat.p_signboard_count}门 ·{" "}
-                    {selectedDayStat.picture_wall_count}墙
+                    {selectedDayStat.picture_wall_count}墙 ·{" "}
+                    {selectedDayStat.detail_page_count}详
                   </span>
                 </div>
               ) : selectedDate ? (
@@ -173,10 +174,14 @@ function LogList({ logs }: { logs: GenerationLogRow[] }) {
                 className="badge"
                 data-tone={
                   log.generation_line === "line2"
-                    ? "warning"
+                    ? "success"
                     : log.generation_line === "line3"
                       ? "info"
-                      : "success"
+                      : log.generation_line === "line4"
+                        ? "warning"
+                        : log.generation_line === "line5"
+                          ? "info"
+                          : "success"
                 }
               >
                 {getGenerationLineLabel(log.asset_kind, log.generation_line)}
@@ -237,6 +242,8 @@ function getGenerationLineLabel(
   if (line === "line1") return "线路1";
   if (line === "line2") return "线路2";
   if (line === "line3") return "线路3";
+  if (line === "line4") return "线路4";
+  if (line === "line5") return "线路5";
   return kind === "picture_wall" ? "专用接口" : "线路1";
 }
 

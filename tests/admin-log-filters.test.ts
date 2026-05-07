@@ -6,11 +6,11 @@ interface GenerationLogRow {
   id: string;
   user_id: string;
   shop_name: string;
-  asset_kind: "avatar" | "storefront" | "poster" | "product" | "p_signboard" | "picture_wall";
+  asset_kind: "avatar" | "storefront" | "poster" | "product" | "p_signboard" | "picture_wall" | "detail_page";
   platform: "meituan" | "taobao";
   oss_url: string;
   oss_key: string | null;
-  generation_line: "line1" | "line2" | null;
+  generation_line: "line1" | "line2" | "line3" | "line4" | null;
   created_at: string;
 }
 
@@ -92,9 +92,13 @@ deepEqual(
 equal(filterGenerationLogs(logs, { assetLabel: "海报", statDay: "2026-05-03" }).length, 0);
 equal(module.ASSET_LABEL.p_signboard, "P门头");
 equal(module.ASSET_LABEL.picture_wall, "图片墙");
+equal(module.ASSET_LABEL.detail_page, "详情页");
 equal(module.GENERATION_LINE_LABEL.line1, "线路1");
 equal(module.GENERATION_LINE_LABEL.line2, "线路2");
+equal(module.GENERATION_LINE_LABEL.line3, "线路3");
+equal(module.GENERATION_LINE_LABEL.line4, "线路4");
 equal(adminSource.includes('gte("created_at", range.startIso)'), true);
 equal(adminSource.includes('lt("created_at", range.endIso)'), true);
 equal(adminDetailSource.includes("getGenerationLineLabel(log.asset_kind, log.generation_line)"), true);
 equal(adminDetailSource.includes('kind === "picture_wall"'), true);
+equal(adminDetailSource.includes('"详情页"'), true);

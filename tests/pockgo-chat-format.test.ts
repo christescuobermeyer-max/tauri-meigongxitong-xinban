@@ -3,21 +3,38 @@ import { readFileSync } from "node:fs";
 
 const providerSource = readFileSync(new URL("../src-tauri/src/image_provider.rs", import.meta.url), "utf8");
 const apiSource = readFileSync(new URL("../src-tauri/src/api.rs", import.meta.url), "utf8");
-const httpClientSource = readFileSync(new URL("../src-tauri/src/http_client.rs", import.meta.url), "utf8");
 const pockgoSourcePath = new URL("../src-tauri/src/pockgo_chat.rs", import.meta.url);
+const pockgoTransportSource = readFileSync(new URL("../src-tauri/src/pockgo_transport.rs", import.meta.url), "utf8");
 const formatSource = readFileSync(new URL("../src-tauri/src/pockgo_chat_format.rs", import.meta.url), "utf8");
 
 ok(
-  providerSource.includes('const LINE2_API_URL: &str = "https://newapi.aicohere.org/v1/chat/completions"'),
-  "线路2应按新域名调用 chat/completions"
+  providerSource.includes('const LINE2_API_URL: &str = "https://yunwu.ai/v1/images/generations"'),
+  "线路2应使用 yunwu.ai 生图接口地址"
 );
 ok(
   providerSource.includes('const LINE2_MODEL: &str = "gpt-image-2"'),
-  "线路2应使用 pockgo 的 gpt-image-2 图片模型"
+  "线路2应使用 yunwu 的 gpt-image-2 模型"
+);
+ok(
+  providerSource.includes('const LINE2_API_KEY_ENV_KEYS: [&str; 2]') &&
+    providerSource.includes('"IMAGE_2_LINE2_API_KEY"'),
+  "线路2应使用独立 IMAGE_2_LINE2_API_KEY，不应继续复用线路1 key"
+);
+ok(
+  providerSource.includes('const LINE4_API_URL: &str = "https://newapi.aicohere.org/v1/chat/completions"'),
+  "线路4应按新域名调用 pockgo chat/completions"
+);
+ok(
+  providerSource.includes('const LINE4_MODEL: &str = "gpt-image-2"'),
+  "线路4应使用 pockgo 的 gpt-image-2 图片模型"
+);
+ok(
+  !providerSource.match(/const LINE4_API_KEY_ENV_KEYS[\s\S]*?"IMAGE_2_LINE2_API_KEY"[\s\S]*?];/),
+  "线路4不应再读取 IMAGE_2_LINE2_API_KEY，避免误用线路2的新 key"
 );
 ok(
   apiSource.includes("generate_pockgo_chat_image"),
-  "线路2应走独立的 pockgo chat 生图调用"
+  "线路4应走独立的 pockgo chat 生图调用"
 );
 
 const pockgoSource = readFileSync(pockgoSourcePath, "utf8");
@@ -30,6 +47,10 @@ ok(pockgoSource.includes("extra_body"), "pockgo 生图应支持 extra_body.image
 ok(pockgoSource.includes("max_tokens"), "pockgo chat/completions 请求应包含 max_tokens");
 ok(pockgoSource.includes("temperature"), "pockgo chat/completions 请求应包含 temperature");
 ok(
+  pockgoSource.includes("stream: true"),
+  "线路4应使用流式响应，避免超大 base64 JSON 响应体传输中断后无法拿到图片"
+);
+ok(
   pockgoSource.includes("build_system_prompt") &&
     formatSource.includes("imageConfig") &&
     formatSource.includes("aspectRatio"),
@@ -37,21 +58,20 @@ ok(
 );
 ok(
   formatSource.includes('"1792x1024" => "16:9"') && !formatSource.includes('"1792x1024" => "7:4"'),
-  "线路2店招 1792x1024 应按 16:9 控制，避免 7:4 不受支持后回退成 1:1"
+  "线路4店招 1792x1024 应按 16:9 控制，避免 7:4 不受支持后回退成 1:1"
 );
-ok(formatSource.includes('"21:9" => "21:9"'), "线路2海报应继续明确映射为 21:9");
+ok(formatSource.includes('"21:9" => "21:9"'), "线路4海报应继续明确映射为 21:9");
 ok(
   pockgoSource.includes("build_strict_user_prompt") &&
     pockgoSource.includes("不要生成 1:1 正方形画布"),
-  "线路2请求应在用户提示词里再次强调非 1:1 比例，降低模型忽略 imageConfig 的概率"
+  "线路4请求应在用户提示词里再次强调非 1:1 比例，降低模型忽略 imageConfig 的概率"
 );
-ok(httpClientSource.includes("http1_only"), "线路2客户端应强制使用 HTTP/1.1，避免代理或服务端提前断流");
-ok(pockgoSource.includes("Version::HTTP_11"), "线路2请求应显式指定 HTTP/1.1");
-ok(pockgoSource.includes("CONNECTION"), "线路2请求应显式发送 Connection: close");
-ok(pockgoSource.includes("ACCEPT_ENCODING"), "线路2请求应显式关闭压缩响应");
+ok(pockgoTransportSource.includes("http1.1"), "线路4兼容传输应强制使用 HTTP/1.1");
+ok(pockgoTransportSource.includes("user-agent"), "线路4兼容传输应显式发送 curl 风格 User-Agent");
+ok(pockgoTransportSource.includes("data-binary"), "线路4兼容传输应通过固定 body 文件发送请求");
 ok(
   !pockgoSource.includes("to_data_url_if_needed"),
-  "线路2应直接发送参考图 OSS URL，不应先下载并转为 data URL"
+  "线路4应直接发送参考图 OSS URL，不应先下载并转为 data URL"
 );
 ok(
   readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8").includes("mod reference_image;"),

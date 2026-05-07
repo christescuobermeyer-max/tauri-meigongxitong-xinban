@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import { getAssetLabel } from "./generation-flow";
+import { getAutoRetryAttempt, runWithAutoRetry } from "./generation-retry";
 import { ensureUploadedImagesOnOss } from "./oss-assets";
 import { generateAsset } from "./workspace-generation";
 import type {
@@ -15,9 +16,10 @@ import type {
 export interface RunOneResult {
   rawBase64: string;
   rawDataUrl: string;
-  remoteUrl?: string;
+  remoteUrl: string;
   generationLine: GenerationLine;
   elapsedMs: number;
+  attempt?: number;
 }
 
 type GenerationSetter = Dispatch<SetStateAction<GenerationItem>>;
@@ -100,25 +102,28 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
     onToast,
   } = options;
   const setter = getSetterByKind(kind, setters);
-  setter((prev) => ({ ...prev, status: "running", errorMessage: undefined }));
 
   try {
-    const generated = await generateAsset({
-      kind,
-      shopName,
-      productName,
-      platform,
-      currentPlatform,
-      sourceImages,
-      avatar,
-      storefront,
-      referenceImages,
-      promptOverride,
-      avatarMode,
-      avatarCategory,
-      generationLine,
+    const generated = await runWithAutoRetry({
+      onAttempt: (attempt) =>
+        setter((prev) => ({ ...prev, status: "running", errorMessage: undefined, attempt })),
+      run: () =>
+        generateAsset({
+          kind,
+          shopName,
+          productName,
+          platform,
+          currentPlatform,
+          sourceImages,
+          avatar,
+          storefront,
+          referenceImages,
+          promptOverride,
+          avatarMode,
+          avatarCategory,
+          generationLine,
+        }),
     });
-    if (generated.archiveErrorMessage) onToast(generated.archiveErrorMessage, "error");
     setter({
       kind,
       rawBase64: generated.rawBase64,
@@ -127,6 +132,7 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
       generationLine: generated.generationLine,
       status: "succeeded",
       elapsedMs: generated.elapsedMs,
+      attempt: generated.attempt,
     });
     return {
       rawBase64: generated.rawBase64,
@@ -134,13 +140,16 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
       remoteUrl: generated.remoteUrl,
       generationLine: generated.generationLine,
       elapsedMs: generated.elapsedMs,
+      attempt: generated.attempt,
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
+    const attempt = getAutoRetryAttempt(error);
     setter((prev) => ({
       ...prev,
       status: "failed",
       errorMessage: message,
+      attempt: attempt ?? prev.attempt,
     }));
     onToast(`${getAssetLabel(kind)}生成失败：${message}`, "error");
     return null;
@@ -205,7 +214,6 @@ export async function runAvatarStorefrontPosterFlow(
   const storefrontResult = await runOneGeneration({
     kind: "storefront",
     sourceImages,
-    referenceImages: avatarResult.remoteUrl ? [avatarResult.remoteUrl] : [avatarResult.rawBase64],
     setters,
     shopName,
     platform,
@@ -225,7 +233,6 @@ export async function runAvatarStorefrontPosterFlow(
   await runOneGeneration({
     kind: "poster",
     sourceImages,
-    referenceImages: avatarResult.remoteUrl ? [avatarResult.remoteUrl] : [avatarResult.rawBase64],
     setters,
     shopName,
     platform,

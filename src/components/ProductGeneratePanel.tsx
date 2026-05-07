@@ -11,7 +11,7 @@ interface Props {
   setShopName: (v: string) => void;
   productName: string;
   setProductName: (v: string) => void;
-  platform: Platform;
+  platform: Platform | null;
   setPlatform: (p: Platform) => void;
   generationLine: GenerationLine;
   setGenerationLine: (line: GenerationLine) => void;
@@ -39,11 +39,12 @@ export default function ProductGeneratePanel({
   elapsed,
   product,
 }: Props) {
-  const platformSpec = getPlatform(platform);
-  const canSubmit = shopName.trim().length > 0 && productName.trim().length > 0 && images.length > 0 && !busy;
-  const source = platformSpec.product.source;
-  const target = platformSpec.product.export;
-  const fileHint = platformSpec.product.maxBytes
+  const platformSpec = platform ? getPlatform(platform) : null;
+  const canSubmit =
+    Boolean(platform) && shopName.trim().length > 0 && productName.trim().length > 0 && images.length > 0 && !busy;
+  const source = platformSpec?.product.source;
+  const target = platformSpec?.product.export;
+  const fileHint = platformSpec?.product.maxBytes
     ? ` · JPG 不超过 ${Math.floor(platformSpec.product.maxBytes / 1024)}KB`
     : "";
 
@@ -75,8 +76,9 @@ export default function ProductGeneratePanel({
             <label className="field__label">投放平台</label>
             <PlatformSelect value={platform} onChange={setPlatform} />
             <span className="field__hint">
-              原图 {source.w}×{source.h} · 导出 {target.w}×{target.h}
-              {fileHint}
+              {platformSpec ?
+                `原图 ${source?.w}×${source?.h} · 导出 ${target?.w}×${target?.h}${fileHint}` :
+                "请先选择美团或淘宝闪购，系统会按所选平台生成对应尺寸"}
             </span>
           </div>
 

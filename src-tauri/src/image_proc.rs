@@ -6,7 +6,9 @@
 //! - 产品图导出为 JPEG 时，会按质量递减方式压缩到目标大小上限内。
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use image::{codecs::jpeg::JpegEncoder, imageops::FilterType, DynamicImage, ImageFormat, Rgb, RgbImage};
+use image::{
+    codecs::jpeg::JpegEncoder, imageops::FilterType, DynamicImage, ImageFormat, Rgb, RgbImage,
+};
 use serde::Deserialize;
 use serde::Serialize;
 use std::path::Path;
@@ -50,20 +52,14 @@ pub async fn resize_and_save_image(req: ResizeRequest) -> Result<String, String>
         .decode(req.base64_data.as_bytes())
         .map_err(|e| format!("base64 解码失败：{e}"))?;
 
-    let img = image::load_from_memory(&bytes)
-        .map_err(|e| format!("解析图片失败：{e}"))?;
+    let img = image::load_from_memory(&bytes).map_err(|e| format!("解析图片失败：{e}"))?;
 
-    let resized = img.resize_exact(
-        req.target_width,
-        req.target_height,
-        FilterType::Lanczos3,
-    );
+    let resized = img.resize_exact(req.target_width, req.target_height, FilterType::Lanczos3);
 
     let path = Path::new(&req.output_path);
     if let Some(parent) = path.parent() {
         if !parent.as_os_str().is_empty() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| format!("创建目录失败：{e}"))?;
+            std::fs::create_dir_all(parent).map_err(|e| format!("创建目录失败：{e}"))?;
         }
     }
 
@@ -110,13 +106,8 @@ pub async fn compress_generated_image(
     let bytes = STANDARD
         .decode(req.base64_data.as_bytes())
         .map_err(|e| format!("base64 解码失败：{e}"))?;
-    let image = image::load_from_memory(&bytes)
-        .map_err(|e| format!("解析图片失败：{e}"))?;
-    let resized = image.resize(
-        req.max_dimension,
-        req.max_dimension,
-        FilterType::Lanczos3,
-    );
+    let image = image::load_from_memory(&bytes).map_err(|e| format!("解析图片失败：{e}"))?;
+    let resized = image.resize(req.max_dimension, req.max_dimension, FilterType::Lanczos3);
     let rgb = flatten_to_white_rgb(&resized);
     let mut buffer = Vec::new();
     let mut encoder = JpegEncoder::new_with_quality(&mut buffer, req.quality);
@@ -165,7 +156,9 @@ fn save_jpeg_with_limit(
 
 fn jpeg_quality_candidates(max_bytes: Option<u64>) -> &'static [u8] {
     const DEFAULT_QUALITY: &[u8] = &[92];
-    const LIMITED_QUALITIES: &[u8] = &[92, 88, 84, 80, 76, 72, 68, 64, 60, 56, 52, 48, 44, 40, 36, 32, 28, 24];
+    const LIMITED_QUALITIES: &[u8] = &[
+        92, 88, 84, 80, 76, 72, 68, 64, 60, 56, 52, 48, 44, 40, 36, 32, 28, 24,
+    ];
 
     if max_bytes.is_some() {
         LIMITED_QUALITIES
@@ -214,7 +207,10 @@ mod tests {
         ));
         let mut source_bytes = Vec::new();
         source
-            .write_to(&mut std::io::Cursor::new(&mut source_bytes), ImageFormat::Png)
+            .write_to(
+                &mut std::io::Cursor::new(&mut source_bytes),
+                ImageFormat::Png,
+            )
             .unwrap();
 
         let result = compress_generated_image(CompressGeneratedImageRequest {

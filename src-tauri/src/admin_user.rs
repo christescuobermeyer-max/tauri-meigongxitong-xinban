@@ -93,8 +93,12 @@ pub async fn admin_create_user(
         return Err(translate_admin_error(status.as_u16(), &body));
     }
 
-    let parsed: serde_json::Value = serde_json::from_str(&body)
-        .map_err(|e| format!("解析响应 JSON 失败：{e}; 原始响应：{}", truncate(&body, 240)))?;
+    let parsed: serde_json::Value = serde_json::from_str(&body).map_err(|e| {
+        format!(
+            "解析响应 JSON 失败：{e}; 原始响应：{}",
+            truncate(&body, 240)
+        )
+    })?;
     let id = parsed
         .get("id")
         .and_then(|v| v.as_str())

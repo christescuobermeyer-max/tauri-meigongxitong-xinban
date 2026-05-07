@@ -29,6 +29,17 @@ export async function saveGeneratedAsset(
     });
   }
 
+  if (kind === "detail_page") {
+    const selectedPath = await pickSavePath(spec.fileName);
+    if (!selectedPath) return null;
+    return await resizeAndSaveImage({
+      base64_data: item.rawBase64,
+      target_width: spec.targetWidth,
+      target_height: spec.targetHeight,
+      output_path: selectedPath,
+    });
+  }
+
   const selectedPath = await pickSavePath(spec.fileName);
   if (!selectedPath) return null;
 

@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { getShanghaiDateRange } from "./admin-log-filters";
 import { supabase, type DailyStatRow, type GenerationLogRow, type ProfileRow } from "./supabase";
+import { callBackendGateway, getBackendGatewayUrl } from "./tauri";
 
 export interface AccountSummary extends ProfileRow {
   /** 累计生图总数 */
@@ -149,14 +150,19 @@ export async function createUser(displayName: string): Promise<CreatedAccount> {
 
   const password = generateRandomPassword(12);
   const email = generateAutoEmail(name);
+  const req = {
+    access_token: accessToken,
+    display_name: name,
+    email,
+    password,
+  };
+
+  if (getBackendGatewayUrl()) {
+    return await callBackendGateway<CreatedAccount>("/api/admin-create-user", req);
+  }
 
   return await invoke<CreatedAccount>("admin_create_user", {
-    req: {
-      access_token: accessToken,
-      display_name: name,
-      email,
-      password,
-    },
+    req,
   });
 }
 

@@ -4,6 +4,8 @@ const LINES: Array<{ id: GenerationLine; label: string }> = [
   { id: "line1", label: "线路1" },
   { id: "line2", label: "线路2" },
   { id: "line3", label: "线路3" },
+  { id: "line4", label: "线路4" },
+  { id: "line5", label: "线路5" },
 ];
 
 interface Props {
@@ -19,6 +21,7 @@ export default function GenerationLineSelect({ value, onChange }: Props) {
           key={line.id}
           role="tab"
           className="segmented__item"
+          data-line={line.id}
           data-active={value === line.id}
           onClick={() => onChange(line.id)}
           type="button"

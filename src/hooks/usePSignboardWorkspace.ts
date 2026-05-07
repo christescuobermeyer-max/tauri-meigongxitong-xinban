@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getPSignboardShopName } from "../lib/p-signboard-form";
 import { generatePSignboardItem } from "../lib/p-signboard";
+import { getAutoRetryAttempt } from "../lib/generation-retry";
 import { emptyItem, isBusyStatus } from "../lib/workspace-session";
 import type { GenerationItem, GenerationLine, UploadedImage } from "../types";
 
@@ -50,13 +51,26 @@ export default function usePSignboardWorkspace({
         originalText,
         newText,
         generationLine,
+        onAttempt: (attempt) =>
+          setItem((previous) => ({
+            ...previous,
+            status: "running",
+            errorMessage: undefined,
+            attempt,
+          })),
       });
       setItem(result);
       onRecordPSignboardHistory?.(result);
       onToast("P门头已生成并同步到云端记录", "success");
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      setItem((previous) => ({ ...previous, status: "failed", errorMessage: message }));
+      const attempt = getAutoRetryAttempt(error);
+      setItem((previous) => ({
+        ...previous,
+        status: "failed",
+        errorMessage: message,
+        attempt: attempt ?? previous.attempt,
+      }));
       onToast(`P门头生成失败：${message}`, "error");
     }
   }

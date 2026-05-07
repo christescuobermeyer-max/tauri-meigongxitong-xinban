@@ -1,23 +1,49 @@
-import { equal, ok } from "node:assert/strict";
+import { equal, ok, rejects } from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
 
 const tauriStubs = `
 let resizeCalls = [];
 let apiCalls = [];
+let failGeneratedUpload = false;
 async function pickDirectoryPath() { return "C:\\\\downloads"; }
 async function resizeAndSaveImage(req) { resizeCalls.push(req); return req.output_path; }
 async function uploadImageToOss(req) {
   apiCalls.push({ type: "upload", req });
+  if (req.folder === "generated" && failGeneratedUpload) {
+    failGeneratedUpload = false;
+    throw new Error("OSS generated upload failed");
+  }
   return { url: "https://oss.example.com/" + req.file_name, key: req.file_name };
 }
 async function generateImage(req) { apiCalls.push({ type: "generate", req }); return "abc"; }
 export function __getResizeCalls() { return resizeCalls; }
 export function __getApiCalls() { return apiCalls; }
+export function __failNextGeneratedUpload() { failGeneratedUpload = true; }
+`;
+const retryStub = `
+async function runWithAutoRetry(options) {
+  let lastError;
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    options.onAttempt?.(attempt);
+    try {
+      const result = await options.run(attempt);
+      return { ...result, attempt };
+    } catch (error) {
+      lastError = error;
+      if (attempt === 2) {
+        if (error instanceof Error) error.attempt = attempt;
+        throw error;
+      }
+    }
+  }
+  throw lastError;
+}
 `;
 const libSource = readFileSync(new URL("../src/lib/picture-wall.ts", import.meta.url), "utf8")
   .replace('import { generateImage, uploadImageToOss } from "./tauri";', tauriStubs)
   .replace('import { generateImage, pickDirectoryPath, resizeAndSaveImage, uploadImageToOss } from "./tauri";', tauriStubs)
+  .replace('import { runWithAutoRetry } from "./generation-retry";', retryStub)
   .replace('import { safeFileName } from "./utils";', "function safeFileName(input) { return input.trim() || 'shop'; }")
   .replace('import type { GenerationItem, GenerationLine, GenerationStatus, UploadedImage } from "../types";', "")
   .replace('import type { GenerationItem, GenerationStatus, UploadedImage } from "../types";', "");
@@ -104,24 +130,41 @@ const generatedItem = await libModule.generatePictureWallItem(
     mime: "image/jpeg",
   },
   "韩大叔炸鸡拌饭",
-  "line2"
+  "line4"
 );
 equal(generatedItem.status, "succeeded");
 equal(generatedItem.kind, "picture_wall");
 equal(generatedItem.rawBase64, "abc");
-equal(generatedItem.generationLine, "line2");
+equal(generatedItem.generationLine, "line4");
 const apiCalls = libModule.__getApiCalls();
 equal(apiCalls[0].type, "upload");
 equal(apiCalls[0].req.folder, "uploads");
 equal(apiCalls[1].type, "generate");
-equal(apiCalls[1].req.api_line, "line2");
-equal(apiCalls[1].req.size, "3:4");
+equal(apiCalls[1].req.api_line, "line4");
+equal(apiCalls[1].req.size, "1024x1536");
 equal(apiCalls[1].req.product_images[0].startsWith("https://oss.example.com/"), true);
 ok(apiCalls[1].req.prompt.includes("外卖店铺“韩大叔炸鸡拌饭”"));
 ok(apiCalls[1].req.prompt.includes("产品名称：“招牌炸鸡”"));
 ok(apiCalls[1].req.prompt.includes(apiCalls[1].req.product_images[0]));
 equal(apiCalls[2].type, "upload");
 equal(apiCalls[2].req.folder, "generated");
+
+libModule.__failNextGeneratedUpload();
+await rejects(
+  () =>
+    libModule.generatePictureWallItem(
+      {
+        id: "source-b",
+        name: "卤肉饭.jpg",
+        productName: "卤肉饭",
+        productBase64: "source-base64-b",
+        mime: "image/jpeg",
+      },
+      "韩大叔炸鸡拌饭",
+      "line4"
+    ),
+  /图片墙生成结果上传 OSS 失败/
+);
 
 const downloadProgress: Array<{ savedCount: number; totalCount: number; message: string }> = [];
 const savedPaths = await downloadModule.downloadPictureWallEntries(

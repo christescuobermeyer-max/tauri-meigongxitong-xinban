@@ -1,5 +1,6 @@
 import type { PlatformSpec } from "../types";
 import type { ProductBatchEntry } from "../lib/product-batch";
+import BatchDownloadButton from "./BatchDownloadButton";
 import GenerationResultTile from "./GenerationResultTile";
 import { IconImage } from "./Icons";
 import MerchantCopyCard from "./MerchantCopyCard";
@@ -9,12 +10,13 @@ const FULL_STORE_COPY_TEXT =
   "老板,您店铺的10张全店图我们已经做好，您看下没问题的话就按照这种来制作了。这批图片我们是按照多家店铺测试过的高转化模板来设计的,从数据上看,用这种风格的图片点击率能提升30%以上,进店转化也会明显更好。图片已经全部替换上去了,您可以打开店铺看看效果。";
 
 interface Props {
-  platform: PlatformSpec;
+  platform: PlatformSpec | null;
   shopName: string;
   entries: ProductBatchEntry[];
   completedCount: number;
   onRetry: (sourceImageId: string) => void;
   onDownload: (sourceImageId: string) => void;
+  onBatchDownload: () => void;
 }
 
 export default function ProductBatchResultPanel({
@@ -24,8 +26,10 @@ export default function ProductBatchResultPanel({
   completedCount,
   onRetry,
   onDownload,
+  onBatchDownload,
 }: Props) {
-  const exportSize = `${platform.product.export.w}×${platform.product.export.h}`;
+  const exportSize = platform ? `${platform.product.export.w}×${platform.product.export.h}` : "请选择平台";
+  const downloadTotal = entries.length || 0;
 
   return (
     <div>
@@ -41,6 +45,13 @@ export default function ProductBatchResultPanel({
             已完成 <strong>{completedCount}</strong> / {entries.length || 0}
           </span>
         </span>
+        <BatchDownloadButton
+          label="批量下载全店图"
+          meta={`已完成 ${completedCount}/${downloadTotal}`}
+          disabled={completedCount === 0 || !platform}
+          onClick={onBatchDownload}
+          title="批量下载已生成成功的全店图"
+        />
       </div>
 
       {entries.length === 0 ? (

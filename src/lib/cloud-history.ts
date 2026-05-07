@@ -1,4 +1,9 @@
 import { getHistoryRetentionCutoffIso } from "./history-retention.js";
+import {
+  HISTORY_PAGE_SIZE,
+  getHistoryPageCountFromTotal,
+  getHistoryQueryRange,
+} from "./history-pagination.js";
 import { supabase, type GenerationLogRow } from "./supabase";
 import type { AssetKind, Platform } from "../types";
 
@@ -8,13 +13,20 @@ export interface RecordGenerationLogInput {
   assetKind: AssetKind;
   platform: Platform;
   ossUrl: string;
-  generationLine?: "line1" | "line2" | "line3" | null;
+  generationLine?: "line1" | "line2" | "line3" | "line4" | "line5" | null;
+}
+
+export interface GenerationLogsPage {
+  logs: GenerationLogRow[];
+  totalCount: number;
+  page: number;
+  pageCount: number;
 }
 
 /** 写一条生图记录到云端。失败只 console.warn，不阻塞主流程。 */
 export async function recordGenerationLog(
   input: RecordGenerationLogInput
-): Promise<void> {
+): Promise<boolean> {
   const { error } = await supabase.from("generation_logs").insert({
     user_id: input.userId,
     shop_name: input.shopName.trim() || "未命名店铺",
@@ -23,7 +35,45 @@ export async function recordGenerationLog(
     generation_line: input.generationLine ?? null,
     oss_url: input.ossUrl,
   });
-  if (error) console.warn("[cloud-history] insert generation_log failed:", error.message);
+  if (error) {
+    console.warn("[cloud-history] insert generation_log failed:", error.message);
+    return false;
+  }
+  return true;
+}
+
+/** 云端分页读取历史记录，只拉取当前页，避免 7 天记录一次性全量下发。 */
+export async function fetchGenerationLogsPage(
+  userId: string,
+  page = 1,
+  pageSize = HISTORY_PAGE_SIZE
+): Promise<GenerationLogsPage> {
+  const range = getHistoryQueryRange(page, pageSize);
+  const { data, count, error } = await supabase
+    .from("generation_logs")
+    .select("*", { count: "exact" })
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .range(range.from, range.to);
+
+  if (error) {
+    console.warn("[cloud-history] fetchGenerationLogsPage failed:", error.message);
+    return {
+      logs: [],
+      totalCount: 0,
+      page: 1,
+      pageCount: 1,
+    };
+  }
+
+  const totalCount = count ?? 0;
+  const pageCount = getHistoryPageCountFromTotal(totalCount);
+  return {
+    logs: (data as GenerationLogRow[] | null) ?? [],
+    totalCount,
+    page: Math.min(Math.max(1, page), pageCount),
+    pageCount,
+  };
 }
 
 /** 清理 7 天前已过期的云端生图记录。 */

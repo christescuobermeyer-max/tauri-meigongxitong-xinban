@@ -57,6 +57,14 @@ export function getGeneratedAssetExportSpec(
     };
   }
 
+  if (kind === "detail_page") {
+    return {
+      fileName: `${stem}_detail_page_1024x1536.png`,
+      targetWidth: 1024,
+      targetHeight: 1536,
+    };
+  }
+
   const target = kind === "avatar" ? currentPlatform.avatar : currentPlatform.storefront;
   return {
     fileName: `${stem}_${currentPlatform.id}_${kind}_${target.w}x${target.h}.png`,

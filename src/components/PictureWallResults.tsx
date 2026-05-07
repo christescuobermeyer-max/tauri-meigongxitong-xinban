@@ -1,7 +1,9 @@
 import { useState } from "react";
 import type { PictureWallEntry } from "../lib/picture-wall";
 import type { PictureWallDownloadProgress } from "../lib/picture-wall-download";
-import { IconAlert, IconCheck, IconDownload, IconImage, IconRefresh } from "./Icons";
+import { getGenerationPreviewUrl } from "../lib/generation-preview";
+import BatchDownloadButton from "./BatchDownloadButton";
+import { IconAlert, IconCheck, IconImage, IconRefresh } from "./Icons";
 import GenerationStatusBadge from "./GenerationStatusBadge";
 import MerchantCopyCard from "./MerchantCopyCard";
 import RetryConfirmDialog from "./RetryConfirmDialog";
@@ -38,10 +40,13 @@ export default function PictureWallResults({
             店铺 {shopName || "—"} · 已完成 {completedCount} / {entries.length || 3}
           </span>
         </div>
-        <button className="btn btn--secondary btn--sm" disabled={!canDownload} onClick={onDownload}>
-          <IconDownload style={{ width: 13, height: 13 }} />
-          {downloadStatus?.active ? "下载中…" : `下载图片 (${completedCount})`}
-        </button>
+        <BatchDownloadButton
+          label={downloadStatus?.active ? "下载中…" : "批量下载图片墙"}
+          meta={`已完成 ${completedCount}/${entries.length || 3}`}
+          disabled={!canDownload}
+          onClick={onDownload}
+          title="批量下载已生成成功的图片墙"
+        />
       </div>
       <div className="card__body">
         {downloadStatus ? (
@@ -94,6 +99,7 @@ function PictureWallTile({
   const status = entry.item.status;
   const isTileBusy = status === "queued" || status === "running";
   const errorMessage = getPictureWallErrorMessage(entry.item.errorMessage);
+  const previewUrl = getGenerationPreviewUrl(entry.item);
   const [retryConfirmOpen, setRetryConfirmOpen] = useState(false);
 
   function handleConfirmRetry() {
@@ -101,19 +107,26 @@ function PictureWallTile({
     onRetry(entry.sourceImageId);
   }
 
+  const isAutoRetrying = status === "running" && entry.item.attempt === 2;
   const busyTitle =
-    status === "queued" ? "等待生成中…" : "正在生成第 " + (index + 1) + " 张…";
+    status === "queued"
+      ? "等待生成中…"
+      : isAutoRetrying
+        ? "第一次失败，正在第二次重试…"
+        : "正在生成第 " + (index + 1) + " 张…";
   const busyHint =
     status === "queued"
       ? "前序图片完成后会自动开始"
-      : "系统单次最长可能需要1-5分钟，请耐心等待";
+      : isAutoRetrying
+        ? "系统已自动重试一次，请继续等待本次结果"
+        : "系统单次最长可能需要1-5分钟，请耐心等待";
 
   return (
     <article className="picture-wall-tile" data-status={status}>
       <div className="picture-wall-tile__head">
         <span className="picture-wall-tile__index">第 {index + 1} 张</span>
         <span className="picture-wall-tile__badge">
-          <GenerationStatusBadge status={status} elapsedMs={entry.item.elapsedMs} />
+          <GenerationStatusBadge status={status} elapsedMs={entry.item.elapsedMs} attempt={entry.item.attempt} />
         </span>
       </div>
       {status === "failed" ? (
@@ -137,8 +150,8 @@ function PictureWallTile({
         </div>
       ) : null}
       <div className="picture-wall-tile__preview" data-busy={isTileBusy}>
-        {entry.item.rawDataUrl ? (
-          <img src={entry.item.rawDataUrl} alt={`图片墙结果 ${index + 1}`} />
+        {previewUrl ? (
+          <img src={previewUrl} alt={`图片墙结果 ${index + 1}`} />
         ) : status === "failed" ? (
           <div className="picture-wall-state picture-wall-state--error">
             <IconAlert style={{ width: 20, height: 20 }} />

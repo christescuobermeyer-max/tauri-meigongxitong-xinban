@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { GenerationItem, GenerationLine, UploadedImage } from "../types";
 import { canGeneratePSignboard } from "../lib/p-signboard-form";
+import { getGenerationPreviewUrl } from "../lib/generation-preview";
 import ImageUpload from "./ImageUpload";
 import GenerationStatusBadge from "./GenerationStatusBadge";
 import GenerationLineCard from "./GenerationLineCard";
@@ -46,11 +47,19 @@ export default function PSignboardPage({
     newText,
     busy,
   });
+  const previewUrl = getGenerationPreviewUrl(item);
   const isResultBusy = item.status === "queued" || item.status === "running";
-  const busyTitle = item.status === "queued" ? "等待生成中…" : "正在替换门头文字…";
+  const isAutoRetrying = item.status === "running" && item.attempt === 2;
+  const busyTitle = item.status === "queued"
+    ? "等待生成中…"
+    : isAutoRetrying
+      ? "第一次失败，正在第二次重试…"
+      : "正在替换门头文字…";
   const busyHint =
     item.status === "queued"
       ? "前序任务完成后会自动开始"
+      : isAutoRetrying
+        ? "系统已自动重试一次，请继续等待本次结果"
       : "系统会保持原图风格和透视效果";
 
   function handleConfirmRetry() {
@@ -114,7 +123,7 @@ export default function PSignboardPage({
         <div className="card__header">
           <div className="card__title">生成结果</div>
           <div className="result__actions">
-            <GenerationStatusBadge status={item.status} elapsedMs={item.elapsedMs} />
+            <GenerationStatusBadge status={item.status} elapsedMs={item.elapsedMs} attempt={item.attempt} />
             <button
               className="btn btn--ghost btn--sm"
               disabled={busy}
@@ -139,8 +148,8 @@ export default function PSignboardPage({
         </div>
         <div className="card__body">
           <div className="p-signboard-result" data-status={item.status} data-busy={isResultBusy}>
-            {item.rawDataUrl ? (
-              <img src={item.rawDataUrl} alt="P门头生成结果" />
+            {previewUrl ? (
+              <img src={previewUrl} alt="P门头生成结果" />
             ) : item.status === "failed" ? (
               <div className="picture-wall-state picture-wall-state--error">
                 <IconAlert style={{ width: 20, height: 20 }} />

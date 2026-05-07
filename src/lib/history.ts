@@ -8,7 +8,7 @@ export interface HistoryEntry {
   title: string;
   shopName: string;
   remoteUrl: string;
-  generationLine?: "line1" | "line2" | "line3" | null;
+  generationLine?: "line1" | "line2" | "line3" | "line4" | "line5" | null;
   previewUrl?: string;
   createdAt: string;
 }
@@ -59,7 +59,11 @@ export function getHistoryTitle(kind: AssetKind): string {
           ? "产品图"
           : kind === "p_signboard"
             ? "P门头"
-            : "图片墙";
+            : kind === "picture_wall"
+              ? "图片墙"
+              : kind === "detail_page"
+                ? "详情页"
+                : "图片墙";
 }
 
 export function loadHistoryEntries(): HistoryEntry[] {
@@ -103,7 +107,7 @@ function isHistoryEntry(value: unknown): value is HistoryEntry {
     typeof entry.title === "string" &&
     typeof entry.shopName === "string" &&
     typeof entry.remoteUrl === "string" &&
-    (entry.generationLine === "line1" || entry.generationLine === "line2" || entry.generationLine === "line3" || entry.generationLine === null || typeof entry.generationLine === "undefined") &&
+    (entry.generationLine === "line1" || entry.generationLine === "line2" || entry.generationLine === "line3" || entry.generationLine === "line4" || entry.generationLine === "line5" || entry.generationLine === null || typeof entry.generationLine === "undefined") &&
     (typeof entry.previewUrl === "string" || typeof entry.previewUrl === "undefined") &&
     typeof entry.createdAt === "string"
   );
@@ -123,9 +127,9 @@ function normalizeHistoryEntries(entries: HistoryEntry[]): HistoryEntry[] {
 
 function normalizeGenerationLine(
   kind: AssetKind,
-  line?: "line1" | "line2" | "line3" | null
-): "line1" | "line2" | "line3" | null {
-  if (line === "line1" || line === "line2" || line === "line3") return line;
+  line?: "line1" | "line2" | "line3" | "line4" | "line5" | null
+): "line1" | "line2" | "line3" | "line4" | "line5" | null {
+  if (line === "line1" || line === "line2" || line === "line3" || line === "line4" || line === "line5") return line;
   return kind === "picture_wall" ? null : "line1";
 }
 
@@ -133,5 +137,6 @@ function inferHistoryKindFromUrl(remoteUrl: string): AssetKind | null {
   const value = remoteUrl.toLowerCase();
   if (value.includes("p-signboard")) return "p_signboard";
   if (value.includes("picture-wall")) return "picture_wall";
+  if (value.includes("detail-page")) return "detail_page";
   return null;
 }

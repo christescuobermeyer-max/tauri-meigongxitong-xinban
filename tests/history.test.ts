@@ -38,6 +38,7 @@ equal(getHistoryTitle("poster"), "海报");
 equal(getHistoryTitle("product"), "产品图");
 equal(getHistoryTitle("p_signboard"), "P门头");
 equal(getHistoryTitle("picture_wall"), "图片墙");
+equal(getHistoryTitle("detail_page"), "详情页");
 
 const cloudLogs = Array.from({ length: 11 }, (_, index) => ({
   id: `log-${index}`,

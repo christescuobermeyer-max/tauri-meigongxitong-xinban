@@ -10,7 +10,7 @@ import ProgressSteps from "./ProgressSteps";
 interface Props {
   shopName: string;
   setShopName: (value: string) => void;
-  platform: Platform;
+  platform: Platform | null;
   setPlatform: (value: Platform) => void;
   generationLine: GenerationLine;
   setGenerationLine: (line: GenerationLine) => void;
@@ -40,12 +40,12 @@ export default function ProductBatchGeneratePanel({
   busy,
   elapsed,
 }: Props) {
-  const platformSpec = getPlatform(platform);
+  const platformSpec = platform ? getPlatform(platform) : null;
   const batchBusy = entries.some((entry) => entry.item.status === "queued" || entry.item.status === "running");
-  const canSubmit = shopName.trim().length > 0 && images.length > 0 && styleImages.length > 0 && !busy;
-  const source = platformSpec.product.source;
-  const target = platformSpec.product.export;
-  const fileHint = platformSpec.product.maxBytes
+  const canSubmit = Boolean(platform) && shopName.trim().length > 0 && images.length > 0 && styleImages.length > 0 && !busy;
+  const source = platformSpec?.product.source;
+  const target = platformSpec?.product.export;
+  const fileHint = platformSpec?.product.maxBytes
     ? ` · JPG 不超过 ${Math.floor(platformSpec.product.maxBytes / 1024)}KB`
     : "";
 
@@ -77,8 +77,9 @@ export default function ProductBatchGeneratePanel({
             <label className="field__label">投放平台</label>
             <PlatformSelect value={platform} onChange={setPlatform} />
             <span className="field__hint">
-              原图 {source.w}×{source.h} · 导出 {target.w}×{target.h}
-              {fileHint}
+              {platformSpec ?
+                `原图 ${source?.w}×${source?.h} · 导出 ${target?.w}×${target?.h}${fileHint}` :
+                "请先选择美团或淘宝闪购，系统会按所选平台批量生成对应尺寸"}
             </span>
           </div>
 
@@ -108,14 +109,14 @@ export default function ProductBatchGeneratePanel({
               compressedLabel="风格参考总"
             />
             <span className="field__hint">
-              这里上传“制作1张设计图”的成图。生成时它会作为第 1 张传给系统的参考图，用来统一整套全店图的视觉风格
+              这里上传“制作1张设计图”的成图。每次生成只发送 1 张参考设计风格图 + 当前这一张产品图；这里的第 1 张传给系统的参考图是参考设计风格图，不是产品图列表的第 1 张、第 2 张
             </span>
           </div>
 
           <div className="field">
             <label className="field__label">产品图（参考素材）</label>
             <ImageUpload images={images} onChange={setImages} maxCount={10} />
-            <span className="field__hint">最多一次上传 10 张产品图。每次生成时当前产品图会作为第 2 张传给系统的参考图</span>
+            <span className="field__hint">最多一次上传 10 张产品图。系统会逐张生成，每次只取当前这一张产品图作为第 2 张参考图</span>
           </div>
 
           <div style={{ marginTop: 18 }}>

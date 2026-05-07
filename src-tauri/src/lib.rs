@@ -1,14 +1,22 @@
 mod env_config;
 
 mod admin_user;
+mod apimart;
+mod apimart_reference;
+mod apimart_task;
 mod api;
+mod api_validation;
 mod gemini_response;
 mod http_client;
+mod image_api_response;
+mod image_generation_payload;
 mod image_proc;
 mod image_provider;
 mod oss;
 mod pockgo_chat;
+mod pockgo_transport;
 mod reference_image;
+mod yunwu_edit;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

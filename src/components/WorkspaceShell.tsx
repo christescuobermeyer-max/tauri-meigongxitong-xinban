@@ -30,9 +30,11 @@ export default function WorkspaceShell({ profile, isAdmin, onSignOut, onRefresh 
               ? "P门头"
               : workspace.tab === "imageEdit"
                 ? "修改图片"
-                : workspace.tab === "history"
-                  ? "历史记录"
-                  : "后台管理";
+                : workspace.tab === "detailPage"
+                  ? "详情页生成"
+                  : workspace.tab === "history"
+                    ? "历史记录"
+                    : "后台管理";
 
   return (
     <div className="app-shell">

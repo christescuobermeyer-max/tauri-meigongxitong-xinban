@@ -23,12 +23,27 @@ pub fn extract_image_from_content(content: &Value) -> Option<String> {
     match content {
         Value::String(text) => extract_image_from_text(text),
         Value::Array(items) => items.iter().find_map(extract_image_from_content_part),
-        Value::Object(_) => extract_image_from_content_part(content),
+        Value::Object(_) => extract_image_from_content_part(content).or_else(|| {
+            content
+                .as_object()?
+                .values()
+                .find_map(extract_image_from_content)
+        }),
         _ => None,
     }
 }
 
 fn extract_image_from_content_part(part: &Value) -> Option<String> {
+    let structured_images = part
+        .get("images")
+        .or_else(|| part.get("generated_images"))
+        .or_else(|| part.get("generatedImages"))
+        .or_else(|| part.get("output"))
+        .and_then(extract_image_from_content);
+    if structured_images.is_some() {
+        return structured_images;
+    }
+
     let image_url = part
         .get("image_url")
         .and_then(|value| value.get("url").or(Some(value)))
@@ -38,13 +53,32 @@ fn extract_image_from_content_part(part: &Value) -> Option<String> {
         return image_url;
     }
 
+    let image = part.get("image").and_then(extract_image_from_content);
+    if image.is_some() {
+        return image;
+    }
+
     part.get("inline_data")
         .or_else(|| part.get("inlineData"))
-        .and_then(|value| value.get("data"))
+        .and_then(|value| value.get("data").or(Some(value)))
         .and_then(|value| value.as_str())
         .map(ToString::to_string)
-        .or_else(|| part.get("b64_json").and_then(|value| value.as_str()).map(ToString::to_string))
-        .or_else(|| part.get("url").and_then(|value| value.as_str()).and_then(extract_image_from_text))
+        .or_else(|| {
+            part.get("b64_json")
+                .and_then(|value| value.as_str())
+                .map(ToString::to_string)
+        })
+        .or_else(|| {
+            part.get("url")
+                .and_then(|value| value.as_str())
+                .and_then(extract_image_from_text)
+        })
+        .or_else(|| {
+            part.get("text")
+                .or_else(|| part.get("content"))
+                .and_then(|value| value.as_str())
+                .and_then(extract_image_from_text)
+        })
 }
 
 fn extract_image_from_text(text: &str) -> Option<String> {
@@ -63,7 +97,7 @@ fn extract_image_from_text(text: &str) -> Option<String> {
     if looks_like_base64_image(trimmed) {
         return Some(trimmed.to_string());
     }
-    None
+    extract_embedded_image_url(trimmed)
 }
 
 fn extract_markdown_image_target(text: &str) -> Option<&str> {
@@ -91,6 +125,40 @@ fn looks_like_base64_image(value: &str) -> bool {
         && value
             .chars()
             .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '+' | '/' | '='))
+}
+
+fn extract_embedded_image_url(text: &str) -> Option<String> {
+    let mut image_candidates = Vec::new();
+    let mut url_candidates = Vec::new();
+    for scheme in ["https://", "http://"] {
+        let mut start = 0;
+        while let Some(index) = text[start..].find(scheme) {
+            let url_start = start + index;
+            let url_end = text[url_start..]
+                .find(|ch: char| {
+                    ch.is_whitespace()
+                        || matches!(ch, '"' | '\'' | '<' | '>' | ')' | ']' | '}' | '，' | '。')
+                })
+                .map(|offset| url_start + offset)
+                .unwrap_or(text.len());
+            let url = text[url_start..url_end]
+                .trim_end_matches(|ch: char| matches!(ch, '.' | ',' | ';' | ':' | '、'))
+                .to_string();
+            if looks_like_image_url(&url) {
+                image_candidates.push(url.clone());
+            }
+            url_candidates.push(url);
+            start = url_end.saturating_add(1);
+        }
+    }
+    image_candidates.pop().or_else(|| url_candidates.pop())
+}
+
+fn looks_like_image_url(url: &str) -> bool {
+    let lower = url.to_ascii_lowercase();
+    [".png", ".jpg", ".jpeg", ".webp"]
+        .iter()
+        .any(|ext| lower.contains(ext))
 }
 
 #[cfg(test)]
@@ -121,6 +189,80 @@ mod tests {
         let value = serde_json::json!("![image_1](data:image/png;base64,abc123)");
 
         assert_eq!(extract_image_from_content(&value).unwrap(), "abc123");
+    }
+
+    #[test]
+    fn extract_markdown_image_from_text_part() {
+        let value = serde_json::json!([
+            {
+                "type": "text",
+                "text": "图片已生成：![result](https://example.com/picture-wall.png)"
+            }
+        ]);
+
+        assert_eq!(
+            extract_image_from_content(&value).unwrap(),
+            "https://example.com/picture-wall.png"
+        );
+    }
+
+    #[test]
+    fn extract_bare_image_url_embedded_in_text() {
+        let value = serde_json::json!(
+            "图片墙生成完成：https://example.com/generated/picture-wall.png 请查看。"
+        );
+
+        assert_eq!(
+            extract_image_from_content(&value).unwrap(),
+            "https://example.com/generated/picture-wall.png"
+        );
+    }
+
+    #[test]
+    fn extract_image_from_message_images_array() {
+        let value = serde_json::json!({
+            "role": "assistant",
+            "content": "图片已完成",
+            "images": [
+                { "url": "https://example.com/generated?id=second-image" }
+            ]
+        });
+
+        assert_eq!(
+            extract_image_from_content(&value).unwrap(),
+            "https://example.com/generated?id=second-image"
+        );
+    }
+
+    #[test]
+    fn prefer_structured_image_over_echoed_input_url() {
+        let value = serde_json::json!({
+            "role": "assistant",
+            "content": "已参考上传图 https://oss.example.com/source.jpg 完成生成。",
+            "images": [
+                { "url": "https://example.com/generated?id=real-output" }
+            ]
+        });
+
+        assert_eq!(
+            extract_image_from_content(&value).unwrap(),
+            "https://example.com/generated?id=real-output"
+        );
+    }
+
+    #[test]
+    fn extract_image_from_nested_image_object() {
+        let value = serde_json::json!({
+            "type": "output_image",
+            "image": {
+                "url": "https://example.com/output/second"
+            }
+        });
+
+        assert_eq!(
+            extract_image_from_content(&value).unwrap(),
+            "https://example.com/output/second"
+        );
     }
 
     #[test]

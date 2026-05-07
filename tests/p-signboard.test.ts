@@ -15,9 +15,28 @@ async function generateImage(req) {
 }
 export function __getCalls() { return calls; }
 `)
+  .replace('import { runWithAutoRetry } from "./generation-retry";', `
+async function runWithAutoRetry(options) {
+  let lastError;
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    options.onAttempt?.(attempt);
+    try {
+      const result = await options.run(attempt);
+      return { ...result, attempt };
+    } catch (error) {
+      lastError = error;
+      if (attempt === 2) {
+        if (error instanceof Error) error.attempt = attempt;
+        throw error;
+      }
+    }
+  }
+  throw lastError;
+}
+`)
   .replace(
-    'import { resolveStorefrontGenerationSize } from "./generation-size";',
-    'function resolveStorefrontGenerationSize(line = "line1") { return line === "line2" ? "16:9" : "1536x1024"; }'
+    'import { resolvePSignboardGenerationSize } from "./generation-size";',
+    'function resolvePSignboardGenerationSize(line = "line1") { return line === "line5" ? "auto" : line === "line4" ? "16:9" : "1536x1024"; }'
   )
   .replace('import { safeFileName } from "./utils";', 'function safeFileName(input) { return input.trim() || "shop"; }')
   .replace('import type { GenerationItem, GenerationLine, UploadedImage } from "../types";', "");
@@ -74,6 +93,24 @@ ok(calls[1].req.prompt.includes("新文字内容“呈尚小厨”"));
 equal(calls[2].req.folder, "generated");
 equal(item.generationLine, "line1");
 
+await libModule.generatePSignboardItem(
+  {
+    id: "b",
+    name: "door2.jpg",
+    productBase64: "source-base64",
+    mime: "image/jpeg",
+  },
+  {
+    shopName: "测试店",
+    originalText: "旧招牌",
+    newText: "新招牌",
+    generationLine: "line5",
+  }
+);
+const line5Call = libModule.__getCalls().findLast((call: { type: string }) => call.type === "generate");
+equal(line5Call.req.size, "auto");
+equal(line5Call.req.api_line, "line5");
+
 const hookSource = readFileSync(new URL("../src/hooks/usePSignboardWorkspace.ts", import.meta.url), "utf8");
 equal(hookSource.includes("generatePSignboardItem"), true);
 equal(hookSource.includes("onRecordPSignboardHistory?.(result)"), true);
@@ -83,7 +120,7 @@ equal(workspaceSource.includes("usePSignboardWorkspace"), true);
 equal(workspaceSource.includes('"pSignboard"'), true);
 equal(workspaceSource.includes('pushHistoryEntry("p_signboard", item)'), true);
 equal(workspaceSource.includes('tab !== "history"'), true);
-equal(workspaceSource.includes("fetchGenerationLogs(userId)"), true);
+equal(workspaceSource.includes("fetchGenerationLogsPage(userId"), true);
 equal(workspaceSource.includes("handleDownloadPSignboard"), true);
 
 const sidebarSource = readFileSync(new URL("../src/components/Sidebar.tsx", import.meta.url), "utf8");

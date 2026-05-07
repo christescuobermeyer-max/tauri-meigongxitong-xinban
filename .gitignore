@@ -25,6 +25,12 @@ vsdev-start-test.txt
 .DS_Store
 Thumbs.db
 
+# Local private files
+.claude/
+员工账号密码.txt
+登录页面原型图/
+登录页面海报.png
+
 # Tauri
 src-tauri/target
 src-tauri/gen/schemas

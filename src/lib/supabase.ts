@@ -19,7 +19,14 @@ export const supabase: SupabaseClient = createClient(url ?? "http://localhost", 
 
 export const isSupabaseConfigured = Boolean(url && anonKey);
 
-export type AssetKindDb = "avatar" | "storefront" | "poster" | "product" | "p_signboard" | "picture_wall";
+export type AssetKindDb =
+  | "avatar"
+  | "storefront"
+  | "poster"
+  | "product"
+  | "p_signboard"
+  | "picture_wall"
+  | "detail_page";
 export type PlatformDb = "meituan" | "taobao";
 export type RoleDb = "user" | "admin";
 
@@ -39,7 +46,7 @@ export interface GenerationLogRow {
   shop_name: string;
   asset_kind: AssetKindDb;
   platform: PlatformDb;
-  generation_line: "line1" | "line2" | "line3" | null;
+  generation_line: "line1" | "line2" | "line3" | "line4" | "line5" | null;
   oss_url: string;
   oss_key: string | null;
   created_at: string;
@@ -55,4 +62,5 @@ export interface DailyStatRow {
   product_count: number;
   p_signboard_count: number;
   picture_wall_count: number;
+  detail_page_count: number;
 }

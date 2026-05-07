@@ -13,6 +13,7 @@ import {
   downloadPictureWallEntries,
   type PictureWallDownloadProgress,
 } from "../lib/picture-wall-download";
+import { getAutoRetryAttempt } from "../lib/generation-retry";
 import type { UploadedImage } from "../types";
 import type { GenerationItem, GenerationLine } from "../types";
 
@@ -71,7 +72,17 @@ export default function usePictureWallWorkspace({
       );
 
       try {
-        const item = await generatePictureWallItem(image, shopName, generationLine);
+        const item = await generatePictureWallItem(image, shopName, generationLine, {
+          onAttempt: (attempt) =>
+            setEntries((previous) =>
+              applyPictureWallEntryUpdate(previous, image.id, (current) => ({
+                ...current,
+                status: "running",
+                errorMessage: undefined,
+                attempt,
+              }))
+            ),
+        });
         onRecordPictureWallHistory?.(item);
         setEntries((previous) =>
           applyPictureWallEntryUpdate(previous, image.id, {
@@ -81,8 +92,9 @@ export default function usePictureWallWorkspace({
         );
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
+        const attempt = getAutoRetryAttempt(error);
         setEntries((previous) =>
-          failPendingPictureWallEntries(previous, image.id, message)
+          failPendingPictureWallEntries(previous, image.id, message, attempt)
         );
         onToast(`图片墙生成失败，已停止剩余排队任务：${message}`, "error");
         return;
@@ -113,7 +125,17 @@ export default function usePictureWallWorkspace({
     );
 
     try {
-      const item = await generatePictureWallItem(image, shopName, generationLine);
+      const item = await generatePictureWallItem(image, shopName, generationLine, {
+        onAttempt: (attempt) =>
+          setEntries((previous) =>
+            applyPictureWallEntryUpdate(previous, sourceImageId, (current) => ({
+              ...current,
+              status: "running",
+              errorMessage: undefined,
+              attempt,
+            }))
+          ),
+      });
       onRecordPictureWallHistory?.(item);
       setEntries((previous) =>
         applyPictureWallEntryUpdate(previous, sourceImageId, {
@@ -124,11 +146,13 @@ export default function usePictureWallWorkspace({
       onToast("该图片墙已重新生成完成", "success");
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
+      const attempt = getAutoRetryAttempt(error);
       setEntries((previous) =>
         applyPictureWallEntryUpdate(previous, sourceImageId, (item) => ({
           ...item,
           status: "failed",
           errorMessage: message,
+          attempt: attempt ?? item.attempt,
         }))
       );
       onToast(`图片墙重试失败：${message}`, "error");

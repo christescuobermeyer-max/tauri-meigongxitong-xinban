@@ -8,7 +8,7 @@ import type {
   UploadedImage,
 } from "../types";
 import { buildProductBatchPrompt } from "../lib/prompts";
-import { saveGeneratedAsset } from "../lib/save-generated-asset";
+import { downloadProductBatchItem, downloadProductBatchItems } from "../lib/product-batch-download";
 import {
   applyProductBatchEntryUpdate,
   buildProductBatchEntries,
@@ -22,8 +22,8 @@ import { runOneGeneration, syncImagesWithOss, type RunOneResult } from "../lib/w
 
 interface UseProductBatchWorkspaceOptions {
   shopName: string;
-  platform: Platform;
-  currentPlatform: PlatformSpec;
+  platform: Platform | null;
+  currentPlatform: PlatformSpec | null;
   avatar: GenerationItem;
   storefront: GenerationItem;
   avatarMode: AvatarReferenceMode;
@@ -63,6 +63,10 @@ export default function useProductBatchWorkspace({
       onToast("请填写店铺名称", "error");
       return false;
     }
+    if (!platform || !currentPlatform) {
+      onToast("请先选择投放平台：美团或淘宝闪购", "error");
+      return false;
+    }
     if (images.length === 0) {
       onToast("请上传至少 1 张产品图", "error");
       return false;
@@ -91,6 +95,10 @@ export default function useProductBatchWorkspace({
     syncedStyleImages: UploadedImage[]
   ): Promise<RunOneResult | null> {
     const productName = sourceImage.productName.trim() || "未命名产品";
+    if (!platform || !currentPlatform) {
+      onToast("请先选择投放平台：美团或淘宝闪购", "error");
+      return null;
+    }
     const referenceImages = resolveProductBatchReferenceImages(syncedStyleImages, sourceImage);
     if (referenceImages.length < 2) {
       onToast("参考设计风格图或产品图上传状态异常，请重新上传后再试", "error");
@@ -130,6 +138,7 @@ export default function useProductBatchWorkspace({
       generationLine: result.generationLine,
       status: "succeeded",
       elapsedMs: result.elapsedMs,
+      attempt: result.attempt,
     });
 
     return result;
@@ -165,6 +174,10 @@ export default function useProductBatchWorkspace({
       onToast("请先上传参考设计风格图", "error");
       return null;
     }
+    if (!platform || !currentPlatform) {
+      onToast("请先选择投放平台：美团或淘宝闪购", "error");
+      return null;
+    }
 
     let syncedImages: UploadedImage[];
     let syncedStyleImages: UploadedImage[];
@@ -185,37 +198,23 @@ export default function useProductBatchWorkspace({
   }
 
   async function download(sourceImageId: string) {
-    const entry = entries.find((item) => item.sourceImageId === sourceImageId);
-    if (!entry) {
-      onToast("未找到对应的生成结果", "error");
+    if (!currentPlatform) {
+      onToast("请先选择投放平台：美团或淘宝闪购", "error");
       return;
     }
+    await downloadProductBatchItem({ entries, sourceImageId, shopName, currentPlatform, onToast });
+  }
 
-    try {
-      const saved = await saveGeneratedAsset(
-        "product",
-        entry.item,
-        shopName,
-        currentPlatform,
-        entry.productName
-      );
-      if (!saved) return;
-      onToast(`已保存至：${saved}`, "success");
-    } catch (error: unknown) {
-      onToast(`保存失败：${error instanceof Error ? error.message : String(error)}`, "error");
+  async function downloadAll() {
+    if (!currentPlatform) {
+      onToast("请先选择投放平台：美团或淘宝闪购", "error");
+      return;
     }
+    await downloadProductBatchItems({ entries, shopName, currentPlatform, onToast });
   }
 
   return {
-    images,
-    setImages,
-    styleImages,
-    setStyleImages,
-    entries,
-    busy,
-    completedCount,
-    handleGenerate,
-    retry,
-    download,
+    images, setImages, styleImages, setStyleImages, entries, busy, completedCount,
+    handleGenerate, retry, download, downloadAll,
   };
 }

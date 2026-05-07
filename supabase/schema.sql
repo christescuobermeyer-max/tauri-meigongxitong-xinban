@@ -37,9 +37,9 @@ create table if not exists public.generation_logs (
   id            uuid primary key default gen_random_uuid(),
   user_id       uuid not null references public.profiles(id) on delete cascade,
   shop_name     text not null,
-  asset_kind    text not null check (asset_kind in ('avatar', 'storefront', 'poster', 'product', 'p_signboard', 'picture_wall')),
+  asset_kind    text not null check (asset_kind in ('avatar', 'storefront', 'poster', 'product', 'p_signboard', 'picture_wall', 'detail_page')),
   platform      text not null check (platform in ('meituan', 'taobao')),
-  generation_line text check (generation_line in ('line1', 'line2', 'line3')),
+  generation_line text check (generation_line in ('line1', 'line2', 'line3', 'line4', 'line5')),
   oss_url       text not null,
   oss_key       text,
   created_at    timestamptz not null default now()
@@ -49,11 +49,18 @@ alter table public.generation_logs
   add column if not exists generation_line text;
 
 alter table public.generation_logs
+  drop constraint if exists generation_logs_asset_kind_check;
+
+alter table public.generation_logs
+  add constraint generation_logs_asset_kind_check
+  check (asset_kind in ('avatar', 'storefront', 'poster', 'product', 'p_signboard', 'picture_wall', 'detail_page'));
+
+alter table public.generation_logs
   drop constraint if exists generation_logs_generation_line_check;
 
 alter table public.generation_logs
   add constraint generation_logs_generation_line_check
-  check (generation_line in ('line1', 'line2', 'line3'));
+  check (generation_line in ('line1', 'line2', 'line3', 'line4', 'line5'));
 
 create index if not exists generation_logs_user_id_created_at_idx
   on public.generation_logs (user_id, created_at desc);
@@ -186,7 +193,8 @@ select
   count(*) filter (where asset_kind = 'poster')         as poster_count,
   count(*) filter (where asset_kind = 'product')        as product_count,
   count(*) filter (where asset_kind = 'p_signboard')    as p_signboard_count,
-  count(*) filter (where asset_kind = 'picture_wall')   as picture_wall_count
+  count(*) filter (where asset_kind = 'picture_wall')   as picture_wall_count,
+  count(*) filter (where asset_kind = 'detail_page')    as detail_page_count
 from public.generation_logs
 group by user_id, stat_day;
 

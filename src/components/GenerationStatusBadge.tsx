@@ -5,9 +5,11 @@ import { IconAlert, IconCheck } from "./Icons";
 export default function GenerationStatusBadge({
   status,
   elapsedMs,
+  attempt,
 }: {
   status: GenerationItem["status"];
   elapsedMs?: number;
+  attempt?: number;
 }) {
   if (status === "idle") return <span className="badge">未生成</span>;
   if (status === "queued")
@@ -21,7 +23,7 @@ export default function GenerationStatusBadge({
     return (
       <span className="badge" data-tone="info">
         <span className="dot dot--pulse" />
-        生成中
+        {attempt === 2 ? "第二次重试中" : "生成中"}
       </span>
     );
   if (status === "succeeded")

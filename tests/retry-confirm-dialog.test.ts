@@ -23,6 +23,8 @@ equal(tileSource.includes("RetryConfirmDialog"), true);
 equal(tileSource.includes("setRetryConfirmOpen(true)"), true);
 equal(tileSource.includes("handleConfirmRetry"), true);
 equal(tileSource.includes("重新生成「${title}」"), true);
+equal(tileSource.includes("downloadOptions"), true);
+equal(tileSource.includes("result-download-menu"), true);
 
 equal(pictureWallSource.includes("RetryConfirmDialog"), true);
 equal(pictureWallSource.includes("setRetryConfirmOpen(true)"), true);

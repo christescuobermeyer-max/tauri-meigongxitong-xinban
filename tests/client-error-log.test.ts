@@ -2,7 +2,7 @@ import { equal } from "node:assert/strict";
 import {
   appendClientErrorLog,
   type ClientErrorLogEntry,
-} from "../src/lib/client-error-log.js";
+} from "../src/lib/client-error-log.ts";
 
 const seed = Array.from({ length: 20 }, (_, index) => ({
   id: `old-${index}`,

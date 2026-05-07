@@ -1,20 +1,52 @@
 import { useEffect, useState } from "react";
 import type { HistoryEntry } from "../lib/history";
 import type { AssetKind } from "../types";
-import { getHistoryPageCount, getPagedHistoryEntries } from "../lib/history-pagination";
+import {
+  getHistoryPageCount,
+  getHistoryPageCountFromTotal,
+  getPagedHistoryEntries,
+} from "../lib/history-pagination";
 
 interface Props {
   entries: HistoryEntry[];
+  totalCount?: number;
+  page?: number;
+  loading?: boolean;
+  onPageChange?: (page: number) => void;
 }
 
-export default function HistoryPanel({ entries }: Props) {
-  const [page, setPage] = useState(1);
-  const pageCount = getHistoryPageCount(entries);
-  const pageEntries = getPagedHistoryEntries(entries, page);
+export default function HistoryPanel({
+  entries,
+  totalCount,
+  page: controlledPage,
+  loading = false,
+  onPageChange,
+}: Props) {
+  const [localPage, setLocalPage] = useState(1);
+  const isControlled = typeof controlledPage === "number" && typeof onPageChange === "function";
+  const page = isControlled ? controlledPage : localPage;
+  const total = totalCount ?? entries.length;
+  const pageCount = totalCount === undefined ? getHistoryPageCount(entries) : getHistoryPageCountFromTotal(total);
+  const pageEntries = isControlled ? entries : getPagedHistoryEntries(entries, page);
 
   useEffect(() => {
-    setPage((current) => Math.min(current, pageCount));
-  }, [pageCount]);
+    if (isControlled) return;
+    setLocalPage((current) => Math.min(current, pageCount));
+  }, [isControlled, pageCount]);
+
+  function setPage(nextPage: number) {
+    const safePage = Math.min(Math.max(1, nextPage), pageCount);
+    if (isControlled) {
+      onPageChange?.(safePage);
+      return;
+    }
+    setLocalPage(safePage);
+  }
+
+  useEffect(() => {
+    if (!isControlled || page <= pageCount) return;
+    onPageChange?.(pageCount);
+  }, [isControlled, onPageChange, page, pageCount]);
 
   return (
     <div className="card">
@@ -24,17 +56,19 @@ export default function HistoryPanel({ entries }: Props) {
       </div>
 
       <div className="card__body">
-        {entries.length === 0 ? (
+        {loading ? (
+          <div className="empty">正在读取云端历史记录…</div>
+        ) : total === 0 ? (
           <div className="empty">暂无历史图片</div>
         ) : (
           <>
             <div className="history-pagination">
-              <span>共 {entries.length} 张</span>
+              <span>共 {total} 张</span>
               <div className="history-pagination__actions">
                 <button
                   className="btn btn--ghost btn--sm"
                   disabled={page <= 1}
-                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  onClick={() => setPage(page - 1)}
                 >
                   上一页
                 </button>
@@ -42,13 +76,13 @@ export default function HistoryPanel({ entries }: Props) {
                 <button
                   className="btn btn--ghost btn--sm"
                   disabled={page >= pageCount}
-                  onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
+                  onClick={() => setPage(page + 1)}
                 >
                   下一页
                 </button>
               </div>
             </div>
-            <div className="history-grid history-grid--compact">
+            <div className="history-grid history-grid--compact history-grid--five-columns">
               {pageEntries.map((entry) => (
                 <article key={entry.id} className="history-card history-card--compact">
                   <div className="history-card__preview history-card__preview--contain">
@@ -78,10 +112,12 @@ export default function HistoryPanel({ entries }: Props) {
   );
 }
 
-function getGenerationLineLabel(kind: AssetKind, line?: "line1" | "line2" | "line3" | null) {
+function getGenerationLineLabel(kind: AssetKind, line?: "line1" | "line2" | "line3" | "line4" | "line5" | null) {
   if (line === "line1") return "线路1";
   if (line === "line2") return "线路2";
   if (line === "line3") return "线路3";
+  if (line === "line4") return "线路4";
+  if (line === "line5") return "线路5";
   return kind === "picture_wall" ? "专用接口" : "线路1";
 }
 

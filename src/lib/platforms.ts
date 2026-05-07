@@ -11,7 +11,7 @@ export const PLATFORMS: PlatformSpec[] = [
       export: { w: 720, h: 240 },
     },
     product: {
-      source: { w: 1792, h: 1024 },
+      source: { w: 1536, h: 1024 },
       export: { w: 600, h: 450 },
       maxBytes: 500 * 1024,
     },

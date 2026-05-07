@@ -77,7 +77,9 @@ pub fn extract_generated_image(
     } else {
         truncate_for_msg(&texts.join(" | "), 240)
     };
-    Err(format!("Gemini 接口未返回图片数据，返回内容：{text_preview}"))
+    Err(format!(
+        "Gemini 接口未返回图片数据，返回内容：{text_preview}"
+    ))
 }
 
 pub fn resolve_reference_mime_type(content_type: Option<&str>, bytes: &[u8]) -> String {

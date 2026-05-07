@@ -29,6 +29,8 @@ export default function ImageUpload({
 }: Props) {
   const [drag, setDrag] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const hoveredRef = useRef(false);
 
   const ingest = useCallback(
     async (files: FileList | File[]) => {
@@ -64,6 +66,7 @@ export default function ImageUpload({
 
   useEffect(() => {
     const onPaste = (event: ClipboardEvent) => {
+      if (!hoveredRef.current) return;
       const pastedFiles = extractClipboardImageFiles(event.clipboardData?.items);
       if (pastedFiles.length === 0) return;
       event.preventDefault();
@@ -79,7 +82,11 @@ export default function ImageUpload({
   };
 
   return (
-    <div>
+    <div
+      ref={containerRef}
+      onMouseEnter={() => { hoveredRef.current = true; }}
+      onMouseLeave={() => { hoveredRef.current = false; }}
+    >
       <div
         className="dropzone"
         data-drag={drag}

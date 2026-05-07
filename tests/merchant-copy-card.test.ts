@@ -21,6 +21,10 @@ const productResultSource = readFileSync(
   new URL("../src/components/ProductResultPanel.tsx", import.meta.url),
   "utf8"
 );
+const detailPageResultSource = readFileSync(
+  new URL("../src/components/DetailPageResults.tsx", import.meta.url),
+  "utf8"
+);
 
 equal(copyCardSource.includes("navigator.clipboard.writeText"), true);
 equal(copyCardSource.includes("useToast"), true);
@@ -61,4 +65,22 @@ equal(
   productResultSource.includes("老板，您看下这是为店铺设计的产品图风格"),
   true
 );
+equal(
+  productResultSource.includes("老板，我们分析了您店铺的销售数据"),
+  false
+);
 equal(productResultSource.includes("MerchantCopyCard"), true);
+
+equal(
+  detailPageResultSource.includes("老板，我们分析了您店铺的销售数据"),
+  true
+);
+equal(
+  detailPageResultSource.includes("下单的概率能提升20%-30%"),
+  true
+);
+equal(
+  detailPageResultSource.includes('美团现在有个"优质商品"的标签认证'),
+  true
+);
+equal(detailPageResultSource.includes("MerchantCopyCard"), true);

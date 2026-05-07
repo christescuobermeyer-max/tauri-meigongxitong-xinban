@@ -14,12 +14,16 @@ const LINE_LABEL: Record<GenerationLine, string> = {
   line1: "线路1",
   line2: "线路2",
   line3: "线路3",
+  line4: "线路4",
+  line5: "线路5",
 };
 
-const LINE_TONE: Record<GenerationLine, "success" | "warn" | "info"> = {
+const LINE_TONE: Record<GenerationLine, "success" | "warn" | "info" | "gold"> = {
   line1: "success",
-  line2: "warn",
+  line2: "success",
   line3: "info",
+  line4: "warn",
+  line5: "gold",
 };
 
 export default function TopBarStatus({
@@ -34,6 +38,7 @@ export default function TopBarStatus({
       <span
         className="badge topbar-line-badge"
         data-tone={LINE_TONE[generationLine]}
+        data-line={generationLine}
         title="当前选择的生图线路"
       >
         当前是 <strong>{LINE_LABEL[generationLine]}</strong>

@@ -5,7 +5,7 @@ import { IconSparkles } from "./Icons";
 
 interface Props {
   kind: ImageEditKind;
-  platform: PlatformSpec;
+  platform: PlatformSpec | null;
   images: UploadedImage[];
   instruction: string;
   busy: boolean;
@@ -25,17 +25,17 @@ export default function ImageEditInputCard({
   onGenerate,
 }: Props) {
   const label = IMAGE_EDIT_LABEL[kind];
-  const spec = getImageEditSpec(kind, platform);
-  const canGenerate = images.length > 0 && instruction.trim().length > 0 && !busy;
+  const spec = platform ? getImageEditSpec(kind, platform) : null;
+  const canGenerate = Boolean(platform) && images.length > 0 && instruction.trim().length > 0 && !busy;
 
   return (
     <div className="image-edit-form">
       <div className="image-edit-active-meta">
-        <span>{spec.sourceLabel}</span>
-        <span>导出 {spec.exportLabel}</span>
+        <span>{spec ? spec.sourceLabel : "请先选择投放平台"}</span>
+        <span>{spec ? `导出 ${spec.exportLabel}` : "选择后显示对应导出尺寸"}</span>
       </div>
       <div className="field">
-        <label className="field__label">{spec.uploadTitle}</label>
+        <label className="field__label">{spec ? spec.uploadTitle : `${label}图片`}</label>
         <ImageUpload
           images={images}
           onChange={onImagesChange}

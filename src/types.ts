@@ -1,8 +1,15 @@
 export type Platform = "meituan" | "taobao";
 export type AvatarReferenceMode = "category" | "image";
-export type GenerationLine = "line1" | "line2" | "line3";
+export type GenerationLine = "line1" | "line2" | "line3" | "line4" | "line5";
 
-export type AssetKind = "avatar" | "storefront" | "poster" | "product" | "p_signboard" | "picture_wall";
+export type AssetKind =
+  | "avatar"
+  | "storefront"
+  | "poster"
+  | "product"
+  | "p_signboard"
+  | "picture_wall"
+  | "detail_page";
 
 export interface AssetSize {
   w: number;
@@ -83,4 +90,6 @@ export interface GenerationItem {
   errorMessage?: string;
   /** 生成耗时（毫秒） */
   elapsedMs?: number;
+  /** 当前生成尝试次数；自动重试时第二次为 2 */
+  attempt?: number;
 }

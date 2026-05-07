@@ -62,6 +62,12 @@ export default function Sidebar({
       desc: "头像 / 店招 / 海报 / 产品图修改",
     },
     {
+      key: "detailPage",
+      label: "详情页生成",
+      icon: <IconBatchImages />,
+      desc: "3 张电商详情页展示图",
+    },
+    {
       key: "history",
       label: "历史记录",
       icon: <IconHistory />,

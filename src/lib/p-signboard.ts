@@ -1,5 +1,6 @@
 import { generateImage, uploadImageToOss } from "./tauri";
-import { resolveStorefrontGenerationSize } from "./generation-size";
+import { resolvePSignboardGenerationSize } from "./generation-size";
+import { runWithAutoRetry } from "./generation-retry";
 import { safeFileName } from "./utils";
 import type { GenerationItem, GenerationLine, UploadedImage } from "../types";
 
@@ -8,6 +9,7 @@ export interface PSignboardOptions {
   originalText: string;
   newText: string;
   generationLine?: GenerationLine;
+  onAttempt?: (attempt: number) => void;
 }
 
 export function buildPSignboardPrompt(ossUrl: string, originalText: string, newText: string): string {
@@ -30,14 +32,19 @@ export async function generatePSignboardItem(
     file_name: `${stem}-p-signboard-source-${image.id}.jpg`,
   });
   const started = Date.now();
-  const rawBase64 = await generateImage({
-    prompt: buildPSignboardPrompt(sourceUpload.url, options.originalText, options.newText),
-    size: resolveStorefrontGenerationSize(generationLine),
-    product_images: [sourceUpload.url],
-    api_line: generationLine,
+  const generated = await runWithAutoRetry({
+    onAttempt: (attempt) => options.onAttempt?.(attempt),
+    run: async () => ({
+      rawBase64: await generateImage({
+        prompt: buildPSignboardPrompt(sourceUpload.url, options.originalText, options.newText),
+        size: resolvePSignboardGenerationSize(generationLine),
+        product_images: [sourceUpload.url],
+        api_line: generationLine,
+      }),
+    }),
   });
   const resultUpload = await uploadImageToOss({
-    base64_data: rawBase64,
+    base64_data: generated.rawBase64,
     mime_type: "image/png",
     folder: "generated",
     file_name: `${stem}-p-signboard-${Date.now()}.png`,
@@ -45,11 +52,12 @@ export async function generatePSignboardItem(
 
   return {
     kind: "p_signboard",
-    rawBase64,
-    rawDataUrl: `data:image/png;base64,${rawBase64}`,
+    rawBase64: generated.rawBase64,
+    rawDataUrl: `data:image/png;base64,${generated.rawBase64}`,
     remoteUrl: resultUpload.url,
     generationLine,
     status: "succeeded",
     elapsedMs: Date.now() - started,
+    attempt: generated.attempt,
   };
 }

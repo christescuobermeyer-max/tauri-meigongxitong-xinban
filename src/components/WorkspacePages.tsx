@@ -1,4 +1,5 @@
 import AdminPage from "./AdminPage";
+import DetailPagePage from "./DetailPagePage";
 import GeneratePanel from "./GeneratePanel";
 import HistoryPanel from "./HistoryPanel";
 import ImageEditPage from "./ImageEditPage";
@@ -22,8 +23,6 @@ export default function WorkspacePages({ workspace }: Props) {
         <GeneratePanel
           shopName={workspace.shopName}
           setShopName={workspace.setShopName}
-          platform={workspace.platform}
-          setPlatform={workspace.setPlatform}
           generationLine={workspace.generationLine}
           setGenerationLine={workspace.setGenerationLine}
           avatarMode={workspace.avatarMode}
@@ -39,14 +38,13 @@ export default function WorkspacePages({ workspace }: Props) {
           poster={workspace.poster}
         />
         <ResultPanel
-          platform={workspace.currentPlatform}
           shopName={workspace.shopName}
           avatar={workspace.avatar}
           storefront={workspace.storefront}
           poster={workspace.poster}
           onRetry={(kind) => workspace.retryGeneration(kind)}
-          onDownload={(kind) => workspace.handleDownload(kind)}
-          onBatchDownload={workspace.handleBatchDownload}
+          onDownload={(kind, platform) => workspace.handleDownload(kind, platform)}
+          onBatchDownload={(platform) => workspace.handleBatchDownload(platform)}
           canBatchDownload={workspace.canBatchDownload}
         />
       </div>
@@ -61,8 +59,8 @@ export default function WorkspacePages({ workspace }: Props) {
           setShopName={workspace.setShopName}
           productName={workspace.productName}
           setProductName={workspace.setProductName}
-          platform={workspace.platform}
-          setPlatform={workspace.setPlatform}
+          platform={workspace.productPlatform}
+          setPlatform={workspace.setProductPlatform}
           generationLine={workspace.generationLine}
           setGenerationLine={workspace.setGenerationLine}
           images={workspace.images}
@@ -73,7 +71,7 @@ export default function WorkspacePages({ workspace }: Props) {
           product={workspace.product}
         />
         <ProductResultPanel
-          platform={workspace.currentPlatform}
+          platform={workspace.productCurrentPlatform}
           shopName={workspace.shopName}
           product={workspace.product}
           onRetry={() => workspace.retryGeneration("product")}
@@ -89,8 +87,8 @@ export default function WorkspacePages({ workspace }: Props) {
         <ProductBatchGeneratePanel
           shopName={workspace.shopName}
           setShopName={workspace.setShopName}
-          platform={workspace.platform}
-          setPlatform={workspace.setPlatform}
+          platform={workspace.productBatchPlatform}
+          setPlatform={workspace.setProductBatchPlatform}
           generationLine={workspace.generationLine}
           setGenerationLine={workspace.setGenerationLine}
           images={workspace.productBatchImages}
@@ -103,12 +101,13 @@ export default function WorkspacePages({ workspace }: Props) {
           elapsed={workspace.elapsed}
         />
         <ProductBatchResultPanel
-          platform={workspace.currentPlatform}
+          platform={workspace.productBatchCurrentPlatform}
           shopName={workspace.shopName}
           entries={workspace.productBatchEntries}
           completedCount={workspace.productBatchCompletedCount}
           onRetry={workspace.retryProductBatchItem}
           onDownload={workspace.handleDownloadProductBatchItem}
+          onBatchDownload={workspace.handleDownloadProductBatchAll}
         />
       </div>
     );
@@ -165,9 +164,9 @@ export default function WorkspacePages({ workspace }: Props) {
         <ImageEditPage
           shopName={workspace.shopName}
           setShopName={workspace.setShopName}
-          platform={workspace.platform}
-          setPlatform={workspace.setPlatform}
-          currentPlatform={workspace.currentPlatform}
+          platform={workspace.imageEditPlatform}
+          setPlatform={workspace.setImageEditPlatform}
+          currentPlatform={workspace.imageEditCurrentPlatform}
           generationLine={workspace.generationLine}
           setGenerationLine={workspace.setGenerationLine}
           entries={workspace.imageEditEntries}
@@ -181,10 +180,43 @@ export default function WorkspacePages({ workspace }: Props) {
     );
   }
 
+  if (workspace.tab === "detailPage") {
+    return (
+      <div className="page picture-wall-page">
+        <DetailPagePage
+          shopName={workspace.shopName}
+          setShopName={workspace.setShopName}
+          images={workspace.detailPageImages}
+          setImages={workspace.setDetailPageImages}
+          generationLine={workspace.generationLine}
+          setGenerationLine={workspace.setGenerationLine}
+          entries={workspace.detailPageEntries}
+          completedCount={workspace.detailPageCompletedCount}
+          busy={workspace.detailPageBusy}
+          onGenerate={workspace.handleGenerateDetailPage}
+          onRetry={workspace.retryDetailPageItem}
+          onDownload={workspace.handleDownloadDetailPage}
+          onDownloadItem={workspace.handleDownloadDetailPageItem}
+        />
+      </div>
+    );
+  }
+
   if (workspace.tab === "history") {
+    const cloudHistoryProps = workspace.historyUsesCloud
+      ? {
+          totalCount: workspace.historyTotalCount,
+          page: workspace.historyPage,
+          loading: workspace.historyLoading,
+          onPageChange: workspace.setHistoryPage,
+        }
+      : {};
     return (
       <div className="page page--single">
-        <HistoryPanel entries={workspace.historyEntries} />
+        <HistoryPanel
+          entries={workspace.historyEntries}
+          {...cloudHistoryProps}
+        />
       </div>
     );
   }

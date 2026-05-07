@@ -12,4 +12,4 @@ ok(productBatchIndex > 0);
 ok(pictureWallIndex > productBatchIndex);
 ok(pSignboardIndex > pictureWallIndex);
 ok(historyRefreshIndex > pSignboardIndex);
-equal(source.includes("fetchGenerationLogs(userId)"), true);
+equal(source.includes("fetchGenerationLogsPage(userId"), true);

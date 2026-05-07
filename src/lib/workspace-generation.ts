@@ -1,5 +1,5 @@
 import { archiveGeneratedImage } from "./oss-assets";
-import { buildGenerationPayload, getAssetLabel } from "./generation-flow";
+import { buildGenerationPayload } from "./generation-flow";
 import { generateImage } from "./tauri";
 import type {
   AssetKind,
@@ -14,17 +14,17 @@ import type {
 export interface GenerateAssetResult {
   rawBase64: string;
   rawDataUrl: string;
-  remoteUrl?: string;
+  remoteUrl: string;
   generationLine: GenerationLine;
   elapsedMs: number;
-  archiveErrorMessage?: string;
+  attempt?: number;
 }
 
 export function getMissingReferenceMessage(kind: AssetKind): string {
   return kind === "storefront"
-    ? "请先生成头像，再生成店招"
+    ? "请上传至少 1 张产品图，再生成店招"
     : kind === "poster"
-      ? "请先生成并归档店招，再生成海报"
+      ? "请上传至少 1 张产品图，再生成海报"
       : "请上传至少 1 张产品图";
 }
 
@@ -90,15 +90,7 @@ export async function generateAsset(options: {
     mime_type: "image/png",
   };
 
-  let remoteUrl: string | undefined;
-  let archiveErrorMessage: string | undefined;
-  try {
-    remoteUrl = await archiveGeneratedImage(kind, shopName, generated.base64_data);
-  } catch (error: unknown) {
-    archiveErrorMessage = `${getAssetLabel(kind)}已生成，但归档到 OSS 失败：${
-      error instanceof Error ? error.message : String(error)
-    }`;
-  }
+  const remoteUrl = await archiveGeneratedImage(kind, shopName, generated.base64_data);
 
   return {
     rawBase64: generated.base64_data,
@@ -106,7 +98,6 @@ export async function generateAsset(options: {
     remoteUrl,
     generationLine,
     elapsedMs: Date.now() - started,
-    archiveErrorMessage,
   };
 }
 

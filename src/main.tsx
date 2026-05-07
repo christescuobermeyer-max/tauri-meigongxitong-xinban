@@ -3,8 +3,10 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./styles/global.css";
 import { recordClientError } from "./lib/client-error-log";
+import { installDevtoolsGuard } from "./lib/devtools-guard";
 import { applyTheme, getStoredTheme } from "./lib/theme";
 
+installDevtoolsGuard();
 applyTheme(getStoredTheme());
 
 window.addEventListener("error", (event) => {

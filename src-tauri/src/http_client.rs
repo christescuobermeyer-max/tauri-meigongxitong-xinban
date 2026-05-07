@@ -1,17 +1,22 @@
 use std::{error::Error, time::Duration};
 
+const API_TIMEOUT_SECS: u64 = 600;
+const CONNECT_TIMEOUT_SECS: u64 = 30;
+
 pub fn build_api_client(client_label: &str) -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .http1_only()
-        .timeout(Duration::from_secs(600))
-        .connect_timeout(Duration::from_secs(30))
+        .timeout(Duration::from_secs(API_TIMEOUT_SECS))
+        .connect_timeout(Duration::from_secs(CONNECT_TIMEOUT_SECS))
         .build()
-        .map_err(|error| {
-            format!(
-                "初始化{client_label} HTTP 客户端失败：{}",
-                format_reqwest_error(&error)
-            )
-        })
+        .map_err(|error| format_build_error(client_label, &error))
+}
+
+fn format_build_error(client_label: &str, error: &reqwest::Error) -> String {
+    format!(
+        "初始化{client_label} HTTP 客户端失败：{}",
+        format_reqwest_error(error)
+    )
 }
 
 pub fn format_reqwest_error(error: &reqwest::Error) -> String {

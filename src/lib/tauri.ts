@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { supabase } from "./supabase";
 import type { GenerationLine } from "../types";
 
 function ensureTauriInvoke() {
@@ -9,18 +10,56 @@ function ensureTauriInvoke() {
   return invoke;
 }
 
+export function getBackendGatewayUrl(): string {
+  return (import.meta.env.VITE_BACKEND_GATEWAY_URL ?? "").trim().replace(/\/+$/, "");
+}
+
+export async function callBackendGateway<T>(path: string, body: unknown): Promise<T> {
+  const baseUrl = getBackendGatewayUrl();
+  if (!baseUrl) throw new Error("未配置后端网关地址 VITE_BACKEND_GATEWAY_URL");
+
+  const session = await supabase.auth.getSession();
+  const token = session.data.session?.access_token;
+  if (!token) throw new Error("登录态已失效，请重新登录后再试");
+
+  const response = await fetch(`${baseUrl}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+  const text = await response.text();
+  if (!response.ok) throw new Error(parseGatewayError(text) || `后端网关请求失败：${response.status}`);
+  return JSON.parse(text) as T;
+}
+
+function parseGatewayError(text: string): string {
+  if (!text.trim()) return "";
+  try {
+    const parsed = JSON.parse(text) as { error?: string };
+    return parsed.error ?? text;
+  } catch {
+    return text;
+  }
+}
+
 export interface GenerateImageRequest {
   prompt: string;
-  /** 线路1/3支持 1024x1024 / 1024x1536 / 1536x1024 / 21:9 / 3:4；线路2额外支持 16:9 / 1792x1024 */
+  /** 线路1/2/3支持 1024x1024 / 1024x1536 / 1536x1024 / 21:9 / 3:4；线路4额外支持 16:9 / 1792x1024；线路5使用比例值，门头 auto 会转为 3:2 */
   size: string;
   /** 参考图列表：支持不含 data: 前缀的 base64，也支持可访问 URL；可为空 */
   product_images: string[];
-  /** 线路1为 yunwu，线路2为 pockgo，线路3为 vectorengine */
+  /** 线路1为 yunwu，线路2为 yunwu，线路3为 vectorengine，线路4为 pockgo，线路5为 APIMart */
   api_line?: GenerationLine;
 }
 
 /** 调用 Rust 端的 image-2 生图（已设置 600s 超时） */
 export async function generateImage(req: GenerateImageRequest): Promise<string> {
+  if (getBackendGatewayUrl()) {
+    return await callBackendGateway<string>("/api/generate-image", req);
+  }
   return await ensureTauriInvoke()<string>("generate_image", { req });
 }
 
@@ -40,6 +79,9 @@ export interface UploadImageToOssResponse {
 export async function uploadImageToOss(
   req: UploadImageToOssRequest
 ): Promise<UploadImageToOssResponse> {
+  if (getBackendGatewayUrl()) {
+    return await callBackendGateway<UploadImageToOssResponse>("/api/upload-image-to-oss", req);
+  }
   return await ensureTauriInvoke()<UploadImageToOssResponse>("upload_image_to_oss", { req });
 }
 

@@ -4,11 +4,7 @@ import {
   buildStorefrontPrompt,
 } from "./prompts";
 import { buildActiveAvatarPrompt, resolveAvatarReferenceImages } from "./avatar-generation";
-import {
-  selectPosterReferenceImages,
-  selectProductUploadReferenceImages,
-  selectStorefrontReferenceImages,
-} from "./reference-images";
+import { selectProductUploadReferenceImages } from "./reference-images";
 import { resolveGenerationSize } from "./generation-size";
 import type {
   AssetKind,
@@ -27,8 +23,8 @@ export function buildGenerationPayload(
   platform: Platform,
   currentPlatform: PlatformSpec,
   sourceImages: UploadedImage[],
-  avatar: GenerationItem,
-  storefront: GenerationItem,
+  _avatar: GenerationItem,
+  _storefront: GenerationItem,
   override?: string[],
   avatarMode: AvatarReferenceMode = "image",
   avatarCategory = "",
@@ -44,16 +40,16 @@ export function buildGenerationPayload(
           category: avatarCategory,
         })
       : kind === "storefront"
-        ? buildStorefrontPrompt(shopName)
+        ? buildStorefrontPrompt(shopName, avatarCategory)
         : kind === "poster"
-          ? buildPosterPrompt(shopName)
-          : buildProductPrompt(shopName, productName, platform));
+          ? buildPosterPrompt(shopName, avatarCategory)
+          : kind === "product"
+            ? buildProductPrompt(shopName, productName, platform)
+            : promptOverride ?? "");
   const size = resolveGenerationSize(kind, currentPlatform, generationLine);
   const productImages = resolveReferenceImages(
     kind,
     sourceImages,
-    avatar,
-    storefront,
     override,
     avatarMode
   );
@@ -64,15 +60,14 @@ export function buildGenerationPayload(
 export function resolveReferenceImages(
   kind: AssetKind,
   sourceImages: UploadedImage[],
-  avatar: GenerationItem,
-  storefront: GenerationItem,
   override?: string[],
   avatarMode: AvatarReferenceMode = "image"
 ) {
   if (override) return override;
   if (kind === "avatar") return resolveAvatarReferenceImages(avatarMode, sourceImages);
-  if (kind === "storefront") return selectStorefrontReferenceImages(avatar);
-  if (kind === "poster") return selectPosterReferenceImages(storefront);
+  if (kind === "storefront") return selectProductUploadReferenceImages(sourceImages);
+  if (kind === "poster") return selectProductUploadReferenceImages(sourceImages);
+  if (kind === "detail_page") return selectProductUploadReferenceImages(sourceImages);
   return selectProductUploadReferenceImages(sourceImages);
 }
 
@@ -83,5 +78,11 @@ export function getAssetLabel(kind: AssetKind): string {
       ? "店招"
       : kind === "poster"
         ? "海报"
-        : "产品图";
+        : kind === "product"
+          ? "产品图"
+          : kind === "p_signboard"
+            ? "P门头"
+            : kind === "picture_wall"
+              ? "图片墙"
+              : "详情页";
 }

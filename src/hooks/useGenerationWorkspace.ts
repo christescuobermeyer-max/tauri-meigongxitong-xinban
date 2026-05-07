@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "../components/Toast";
+import useDetailPageWorkspace from "./useDetailPageWorkspace";
 import useImageEditWorkspace from "./useImageEditWorkspace";
 import usePSignboardWorkspace from "./usePSignboardWorkspace";
 import usePictureWallWorkspace from "./usePictureWallWorkspace";
@@ -7,11 +8,12 @@ import useProductBatchWorkspace from "./useProductBatchWorkspace";
 import { getAvatarGenerationErrorMessage } from "../lib/avatar-generation";
 import {
   cleanupExpiredGenerationLogs,
-  fetchGenerationLogs,
+  fetchGenerationLogsPage,
   fetchTodayCount,
   recordGenerationLog,
 } from "../lib/cloud-history";
 import { canBatchDownloadAssets } from "../lib/generated-asset-files";
+import { HISTORY_PAGE_SIZE } from "../lib/history-pagination";
 import { getAvatarStorefrontPosterSequence } from "../lib/generation-sequence";
 import { markGenerationLogRecorded } from "../lib/generation-log-dedupe";
 import {
@@ -50,6 +52,7 @@ export type WorkspaceTab =
   | "pictureWall"
   | "pSignboard"
   | "imageEdit"
+  | "detailPage"
   | "history"
   | "admin";
 
@@ -62,7 +65,9 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
   const [tab, setTab] = useState<WorkspaceTab>("avatarStorefront");
   const [todayCount, setTodayCount] = useState(0);
   const [shopName, setShopName] = useState("");
-  const [platform, setPlatform] = useState<Platform>("meituan");
+  const [productPlatform, setProductPlatform] = useState<Platform | null>(null);
+  const [productBatchPlatform, setProductBatchPlatform] = useState<Platform | null>(null);
+  const [imageEditPlatform, setImageEditPlatform] = useState<Platform | null>(null);
   const [generationLine, setGenerationLine] = useState<GenerationLine>("line1");
   const [avatarMode, setAvatarMode] = useState<AvatarReferenceMode>("image");
   const [avatarCategory, setAvatarCategory] = useState("");
@@ -73,13 +78,20 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
   const [poster, setPoster] = useState<GenerationItem>(emptyItem("poster"));
   const [product, setProduct] = useState<GenerationItem>(emptyItem("product"));
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyTotalCount, setHistoryTotalCount] = useState(0);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [elapsed, setElapsed] = useState(0);
 
   const startedAt = useRef<number | null>(null);
   const recordedGenerationLogs = useRef<Set<string>>(new Set());
-  const currentPlatform = getPlatform(platform);
+  const productCurrentPlatform = productPlatform ? getPlatform(productPlatform) : null;
+  const productBatchCurrentPlatform = productBatchPlatform ? getPlatform(productBatchPlatform) : null;
+  const imageEditCurrentPlatform = imageEditPlatform ? getPlatform(imageEditPlatform) : null;
+  const threePiecePlatform = getPlatform("meituan");
 
   useEffect(() => {
+    if (isSupabaseConfigured) return;
     saveHistoryEntries(historyEntries);
   }, [historyEntries]);
 
@@ -87,7 +99,10 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     let cancelled = false;
 
     if (!isSupabaseConfigured) {
-      setHistoryEntries(loadHistoryEntries());
+      const localEntries = loadHistoryEntries();
+      setHistoryEntries(localEntries);
+      setHistoryTotalCount(localEntries.length);
+      setHistoryPage(1);
       setTodayCount(0);
       return () => {
         cancelled = true;
@@ -95,16 +110,22 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     }
 
     setHistoryEntries([]);
+    setHistoryPage(1);
+    setHistoryTotalCount(0);
     setTodayCount(0);
+    setHistoryLoading(true);
     void (async () => {
       await cleanupExpiredGenerationLogs();
-      const [count, logs] = await Promise.all([
+      const [count, pageResult] = await Promise.all([
         fetchTodayCount(userId),
-        fetchGenerationLogs(userId),
+        fetchGenerationLogsPage(userId, 1, HISTORY_PAGE_SIZE),
       ]);
       if (cancelled) return;
       setTodayCount(count);
-      setHistoryEntries(buildHistoryEntriesFromGenerationLogs(logs));
+      setHistoryPage(pageResult.page);
+      setHistoryTotalCount(pageResult.totalCount);
+      setHistoryEntries(buildHistoryEntriesFromGenerationLogs(pageResult.logs));
+      setHistoryLoading(false);
     })();
 
     return () => {
@@ -120,52 +141,65 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
 
   const setters = { avatar: setAvatar, storefront: setStorefront, poster: setPoster, product: setProduct } as const;
 
-  function pushHistoryEntry(kind: AssetKind, item: GenerationItem) {
+  function pushHistoryEntry(kind: AssetKind, item: GenerationItem, recordPlatform?: Platform) {
     if (item.status !== "succeeded") return;
 
     const remoteUrl = item.remoteUrl;
-    const previewUrl = item.rawDataUrl;
+    const previewUrl = remoteUrl;
     if (!remoteUrl || !previewUrl) return;
     if (!markGenerationLogRecorded(recordedGenerationLogs.current, kind, remoteUrl)) return;
     const recordedLine = "generationLine" in item ? item.generationLine ?? null : generationLine;
+    const platformForRecord = recordPlatform ?? "meituan";
 
-    setHistoryEntries((prev) =>
-      appendHistoryEntry(prev, {
-        id: `${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        kind,
-        title: getHistoryTitle(kind),
-        shopName: shopName.trim() || "未命名店铺",
-        remoteUrl,
-        generationLine: recordedLine,
-        previewUrl,
-        createdAt: new Date().toISOString(),
-      })
-    );
+    const localEntry = {
+      id: `${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      kind,
+      title: getHistoryTitle(kind),
+      shopName: shopName.trim() || "未命名店铺",
+      remoteUrl,
+      generationLine: recordedLine,
+      previewUrl,
+      createdAt: new Date().toISOString(),
+    };
+
+    if (!isSupabaseConfigured) {
+      setHistoryEntries((prev) => appendHistoryEntry(prev, localEntry));
+      setHistoryTotalCount((count) => count + 1);
+      return;
+    }
 
     void recordGenerationLog({
       userId,
       shopName,
       assetKind: kind,
-      platform,
+      platform: platformForRecord,
       ossUrl: remoteUrl,
       generationLine: recordedLine,
-    }).then(async () => {
+    }).then(async (recorded) => {
+      if (!recorded) {
+        toast.show("云端生图记录写入失败，请刷新历史记录或联系管理员检查数据库配置", "error");
+        return;
+      }
       setTodayCount((n) => n + 1);
+      if (isSupabaseConfigured) {
+        setHistoryTotalCount((count) => count + 1);
+        if (tab === "history") await refreshCloudHistoryPage(historyPage);
+      }
       await cleanupExpiredGenerationLogs();
     });
   }
 
   const productBatchWorkspace = useProductBatchWorkspace({
     shopName,
-    platform,
-    currentPlatform,
+    platform: productBatchPlatform,
+    currentPlatform: productBatchCurrentPlatform,
     avatar,
     storefront,
     avatarMode,
     avatarCategory,
     generationLine,
     onToast: toast.show,
-    onRecordProductHistory: (item) => pushHistoryEntry("product", item),
+    onRecordProductHistory: (item) => pushHistoryEntry("product", item, productBatchPlatform ?? undefined),
   });
   const pictureWallWorkspace = usePictureWallWorkspace({
     shopName,
@@ -181,31 +215,54 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
   });
   const imageEditWorkspace = useImageEditWorkspace({
     shopName,
-    platform,
-    currentPlatform,
+    platform: imageEditPlatform,
+    currentPlatform: imageEditCurrentPlatform,
     generationLine,
     onToast: toast.show,
-    onRecordHistory: (kind, item) => pushHistoryEntry(kind, item),
+    onRecordHistory: (kind, item) => pushHistoryEntry(kind, item, imageEditPlatform ?? undefined),
+  });
+  const detailPageWorkspace = useDetailPageWorkspace({
+    shopName,
+    generationLine,
+    onToast: toast.show,
+    onRecordDetailPageHistory: (item) => pushHistoryEntry("detail_page", item),
   });
 
   useEffect(() => {
     if (tab !== "history" || !isSupabaseConfigured) return;
     let cancelled = false;
     void (async () => {
-      const logs = await fetchGenerationLogs(userId);
-      if (!cancelled) setHistoryEntries(buildHistoryEntriesFromGenerationLogs(logs));
+      setHistoryLoading(true);
+      const pageResult = await fetchGenerationLogsPage(userId, historyPage, HISTORY_PAGE_SIZE);
+      if (!cancelled) {
+        setHistoryPage(pageResult.page);
+        setHistoryTotalCount(pageResult.totalCount);
+        setHistoryEntries(buildHistoryEntriesFromGenerationLogs(pageResult.logs));
+        setHistoryLoading(false);
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [tab, userId]);
+  }, [tab, userId, historyPage]);
+
+  async function refreshCloudHistoryPage(page: number) {
+    if (!isSupabaseConfigured) return;
+    setHistoryLoading(true);
+    const pageResult = await fetchGenerationLogsPage(userId, page, HISTORY_PAGE_SIZE);
+    setHistoryPage(pageResult.page);
+    setHistoryTotalCount(pageResult.totalCount);
+    setHistoryEntries(buildHistoryEntriesFromGenerationLogs(pageResult.logs));
+    setHistoryLoading(false);
+  }
 
   const busy =
     [avatar, storefront, poster, product].some((item) => isBusyStatus(item.status)) ||
     productBatchWorkspace.busy ||
     pictureWallWorkspace.busy ||
     pSignboardWorkspace.busy ||
-    imageEditWorkspace.busy;
+    imageEditWorkspace.busy ||
+    detailPageWorkspace.busy;
   const canBatchDownload = canBatchDownloadAssets([avatar, storefront, poster]);
 
   useEffect(() => {
@@ -222,19 +279,19 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
   }, [busy]);
 
   useEffect(() => {
-    pushHistoryEntry("avatar", avatar);
+    pushHistoryEntry("avatar", avatar, "meituan");
   }, [avatar]);
 
   useEffect(() => {
-    pushHistoryEntry("storefront", storefront);
+    pushHistoryEntry("storefront", storefront, "meituan");
   }, [storefront]);
 
   useEffect(() => {
-    pushHistoryEntry("poster", poster);
+    pushHistoryEntry("poster", poster, "meituan");
   }, [poster]);
 
   useEffect(() => {
-    pushHistoryEntry("product", product);
+    pushHistoryEntry("product", product, productPlatform ?? undefined);
   }, [product]);
 
   async function syncImagesToOss() { return await syncImagesWithOss(images, setImages); }
@@ -242,6 +299,10 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
   function validateProductInputs() {
     if (!shopName.trim()) {
       toast.show("请填写店铺名称", "error");
+      return false;
+    }
+    if (!productPlatform || !productCurrentPlatform) {
+      toast.show("请先选择投放平台：美团或淘宝闪购", "error");
       return false;
     }
     if (!productName.trim()) {
@@ -284,8 +345,8 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
       sourceImages: syncedImages,
       setters,
       shopName,
-      platform,
-      currentPlatform,
+      platform: "meituan",
+      currentPlatform: threePiecePlatform,
       avatar,
       storefront,
       productName,
@@ -298,6 +359,7 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
 
   async function handleGenerateProduct() {
     if (!validateProductInputs()) return;
+    if (!productPlatform || !productCurrentPlatform) return;
 
     let syncedImages: UploadedImage[];
     try {
@@ -314,8 +376,8 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
       sourceImages: syncedImages,
       setters,
       shopName,
-      platform,
-      currentPlatform,
+      platform: productPlatform,
+      currentPlatform: productCurrentPlatform,
       avatar,
       storefront,
       productName,
@@ -327,6 +389,12 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
   }
 
   async function retryGeneration(kind: AssetKind) {
+    const generationPlatform = kind === "product" ? productPlatform : "meituan";
+    const generationPlatformSpec = kind === "product" ? productCurrentPlatform : threePiecePlatform;
+    if (!generationPlatform || !generationPlatformSpec) {
+      toast.show("请先选择投放平台：美团或淘宝闪购", "error");
+      return null;
+    }
     let syncedImages = images;
     if (kind === "avatar" || kind === "product") {
       try {
@@ -343,8 +411,8 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
       setters,
       shopName,
       productName,
-      platform,
-      currentPlatform,
+      platform: generationPlatform,
+      currentPlatform: generationPlatformSpec,
       avatar,
       storefront,
       avatarMode,
@@ -354,7 +422,7 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     });
   }
 
-  async function handleDownload(kind: AssetKind) {
+  async function handleDownload(kind: AssetKind, targetPlatform?: Platform) {
     const item =
       kind === "avatar"
         ? avatar
@@ -366,13 +434,22 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     const extractedProductName = kind === "product"
       ? images[0]?.productName?.trim() || productName.trim()
       : undefined;
+    const downloadPlatform = targetPlatform
+      ? getPlatform(targetPlatform)
+      : kind === "product"
+        ? productCurrentPlatform
+        : threePiecePlatform;
+    if (!downloadPlatform) {
+      toast.show("请先选择投放平台：美团或淘宝闪购", "error");
+      return;
+    }
 
     try {
       const saved = await saveGeneratedAsset(
         kind,
         item,
         shopName,
-        currentPlatform,
+        downloadPlatform,
         extractedProductName
       );
       if (!saved) return;
@@ -382,11 +459,16 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     }
   }
 
-  async function handleBatchDownload() {
+  async function handleBatchDownload(targetPlatform: Platform) {
     try {
-      const saved = await saveGeneratedAssetsBatch({ avatar, storefront, poster }, shopName, currentPlatform);
+      const saved = await saveGeneratedAssetsBatch(
+        { avatar, storefront, poster },
+        shopName,
+        getPlatform(targetPlatform)
+      );
       if (!saved || saved.length === 0) return;
-      toast.show(`已批量保存 ${saved.length} 张图片`, "success");
+      const platformLabel = getPlatform(targetPlatform).label;
+      toast.show(`已批量保存 ${saved.length} 张${platformLabel}尺寸图片`, "success");
     } catch (error: unknown) {
       toast.show(`批量保存失败：${error instanceof Error ? error.message : String(error)}`, "error");
     }
@@ -394,7 +476,7 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
 
   async function handleDownloadPSignboard() {
     try {
-      const saved = await saveGeneratedAsset("p_signboard", pSignboardWorkspace.item, shopName, currentPlatform);
+      const saved = await saveGeneratedAsset("p_signboard", pSignboardWorkspace.item, shopName, threePiecePlatform);
       if (!saved) return;
       toast.show(`已保存至：${saved}`, "success");
     } catch (error: unknown) {
@@ -407,8 +489,12 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     setTab,
     shopName,
     setShopName,
-    platform,
-    setPlatform,
+    productPlatform,
+    setProductPlatform,
+    productBatchPlatform,
+    setProductBatchPlatform,
+    imageEditPlatform,
+    setImageEditPlatform,
     generationLine,
     setGenerationLine,
     avatarMode,
@@ -446,12 +532,24 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     imageEditBusy: imageEditWorkspace.busy,
     setImageEditImages: imageEditWorkspace.setImages,
     setImageEditInstruction: imageEditWorkspace.setInstruction,
+    detailPageImages: detailPageWorkspace.images,
+    setDetailPageImages: detailPageWorkspace.setImages,
+    detailPageEntries: detailPageWorkspace.entries,
+    detailPageCompletedCount: detailPageWorkspace.completedCount,
+    detailPageBusy: detailPageWorkspace.busy,
     historyEntries,
+    historyPage,
+    historyTotalCount,
+    historyLoading,
+    historyUsesCloud: isSupabaseConfigured,
+    setHistoryPage,
     elapsed,
     busy,
     todayCount,
     canBatchDownload,
-    currentPlatform,
+    productCurrentPlatform,
+    productBatchCurrentPlatform,
+    imageEditCurrentPlatform,
     handleGenerateAll,
     handleGenerateProduct,
     handleGenerateProductBatch: productBatchWorkspace.handleGenerate,
@@ -462,9 +560,14 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     handleDownloadPSignboard,
     handleGenerateImageEdit: imageEditWorkspace.generate,
     handleDownloadImageEdit: imageEditWorkspace.download,
+    handleGenerateDetailPage: detailPageWorkspace.handleGenerate,
+    retryDetailPageItem: detailPageWorkspace.handleRetry,
+    handleDownloadDetailPage: detailPageWorkspace.handleDownload,
+    handleDownloadDetailPageItem: detailPageWorkspace.handleDownloadItem,
     resetPSignboard: pSignboardWorkspace.reset,
     handleDownload,
     handleDownloadProductBatchItem: productBatchWorkspace.download,
+    handleDownloadProductBatchAll: productBatchWorkspace.downloadAll,
     handleBatchDownload,
     retryGeneration,
     retryProductBatchItem: productBatchWorkspace.retry,

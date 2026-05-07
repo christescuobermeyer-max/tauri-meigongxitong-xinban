@@ -28,5 +28,13 @@ const workspaceSource = readFileSync(
   new URL("../src/hooks/useGenerationWorkspace.ts", import.meta.url),
   "utf8"
 );
+const cloudHistorySource = readFileSync(
+  new URL("../src/lib/cloud-history.ts", import.meta.url),
+  "utf8"
+);
 
 equal(workspaceSource.includes("markGenerationLogRecorded"), true);
+equal(cloudHistorySource.includes("Promise<boolean>"), true);
+equal(cloudHistorySource.includes("return false;"), true);
+equal(workspaceSource.includes("if (!recorded)"), true);
+equal(workspaceSource.includes("云端生图记录写入失败"), true);

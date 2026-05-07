@@ -4,10 +4,15 @@ version = "2.0.0"
 description = "呈尚策划 · 美工生图系统PRO"
 authors = ["呈尚策划"]
 edition = "2021"
+default-run = "csgh-image-studio"
 
 [lib]
 name = "csgh_image_studio_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "backend-gateway"
+path = "src/bin/backend_gateway.rs"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -19,7 +24,7 @@ tauri-plugin-fs = "2"
 tauri-plugin-shell = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls-native-roots", "stream", "system-proxy"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "multipart", "rustls-tls-native-roots", "stream", "system-proxy"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
 base64 = "0.22"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
@@ -29,6 +34,8 @@ log = "0.4"
 dotenvy = "0.15"
 chrono = "0.4"
 aliyun-oss-rust-sdk = { version = "0.2.2", default-features = false, features = ["async"] }
+axum = "0.7"
+tower-http = { version = "0.6", features = ["cors"] }
 
 [profile.release]
 panic = "abort"

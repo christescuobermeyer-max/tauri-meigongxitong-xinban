@@ -2,7 +2,7 @@ import { PLATFORMS } from "../lib/platforms";
 import type { Platform } from "../types";
 
 interface Props {
-  value: Platform;
+  value: Platform | null;
   onChange: (v: Platform) => void;
 }
 

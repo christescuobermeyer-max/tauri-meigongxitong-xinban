@@ -1,10 +1,12 @@
 import { generateImage, uploadImageToOss } from "./tauri";
+import { runWithAutoRetry } from "./generation-retry";
 import { safeFileName } from "./utils";
 import type { GenerationItem, GenerationLine, GenerationStatus, UploadedImage } from "../types";
 
 export const PICTURE_WALL_SOURCE_SIZE = { w: 1086, h: 1448 };
 export const PICTURE_WALL_EXPORT_SIZE = { w: 240, h: 330 };
-export const PICTURE_WALL_GENERATION_SIZE = "3:4";
+export const PICTURE_WALL_GENERATION_SIZE = "1024x1536";
+const APIMART_PICTURE_WALL_SIZE = "3:4";
 
 export interface PictureWallEntry {
   sourceImageId: string;
@@ -81,13 +83,16 @@ export function hasBusyPictureWallEntries(entries: PictureWallEntry[]) {
 }
 
 export function getPictureWallCompletedCount(entries: PictureWallEntry[]) {
-  return entries.filter((entry) => entry.item.status === "succeeded" && entry.item.rawBase64).length;
+  return entries.filter(
+    (entry) => entry.item.status === "succeeded" && entry.item.rawBase64 && entry.item.remoteUrl
+  ).length;
 }
 
 export function failPendingPictureWallEntries(
   entries: PictureWallEntry[],
   failedSourceImageId: string,
-  errorMessage: string
+  errorMessage: string,
+  attempt?: number
 ): PictureWallEntry[] {
   return entries.map((entry) => {
     if (entry.sourceImageId === failedSourceImageId) {
@@ -97,6 +102,7 @@ export function failPendingPictureWallEntries(
           ...entry.item,
           status: "failed",
           errorMessage,
+          attempt: attempt ?? entry.item.attempt,
         },
       };
     }
@@ -117,29 +123,50 @@ export function failPendingPictureWallEntries(
 export async function generatePictureWallItem(
   sourceImage: UploadedImage,
   shopName: string,
-  generationLine: GenerationLine
+  generationLine: GenerationLine,
+  options: { onAttempt?: (attempt: number) => void } = {}
 ) {
   const productOssUrl = await resolvePictureWallProductOssUrl(sourceImage, shopName);
-  const rawBase64 = await generateImage({
-    prompt: buildPictureWallPrompt(shopName, sourceImage.productName, productOssUrl),
-    size: PICTURE_WALL_GENERATION_SIZE,
-    product_images: [productOssUrl],
-    api_line: generationLine,
+  const generated = await runWithAutoRetry({
+    onAttempt: (attempt) => options.onAttempt?.(attempt),
+    run: async () => ({
+      rawBase64: await generateImage({
+        prompt: buildPictureWallPrompt(shopName, sourceImage.productName, productOssUrl),
+        size: resolvePictureWallGenerationSize(generationLine),
+        product_images: [productOssUrl],
+        api_line: generationLine,
+      }),
+    }),
   });
-  const uploaded = await uploadImageToOss({
-    base64_data: rawBase64,
-    mime_type: "image/png",
-    folder: "generated",
-    file_name: `${safeFileName(shopName)}-picture-wall-${sourceImage.id}.png`,
-  });
+  const archive = await archivePictureWallResult(generated.rawBase64, shopName, sourceImage.id);
   return {
     kind: "picture_wall" as const,
-    rawBase64,
-    rawDataUrl: `data:image/png;base64,${rawBase64}`,
-    remoteUrl: uploaded.url,
+    rawBase64: generated.rawBase64,
+    rawDataUrl: `data:image/png;base64,${generated.rawBase64}`,
+    remoteUrl: archive,
     generationLine,
     status: "succeeded" as const,
+    attempt: generated.attempt,
   };
+}
+
+function resolvePictureWallGenerationSize(generationLine: GenerationLine) {
+  return generationLine === "line5" ? APIMART_PICTURE_WALL_SIZE : PICTURE_WALL_GENERATION_SIZE;
+}
+
+async function archivePictureWallResult(rawBase64: string, shopName: string, sourceImageId: string) {
+  try {
+    const uploaded = await uploadImageToOss({
+      base64_data: rawBase64,
+      mime_type: "image/png",
+      folder: "generated",
+      file_name: `${safeFileName(shopName)}-picture-wall-${sourceImageId}.png`,
+    });
+    return uploaded.url;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`图片墙生成结果上传 OSS 失败：${message}`);
+  }
 }
 
 async function resolvePictureWallProductOssUrl(
