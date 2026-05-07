@@ -74,22 +74,62 @@ install -d -o csgh -g csgh -m 0700 /opt/csgh-gateway/secrets
 install -d -o csgh -g csgh -m 0755 /var/log/csgh-gateway
 
 # ----- 8. 安装 Caddy（反向代理 + 自动 HTTPS）-------------------------------
+# Alibaba Cloud Linux 3 没有 copr，直接下载官方静态二进制
 if command -v caddy >/dev/null 2>&1; then
   warn "Caddy 已安装，跳过"
 else
-  log "安装 Caddy..."
-  dnf install -y 'dnf-command(copr)' || true
-  dnf copr enable -y @caddy/caddy || {
-    warn "copr 不可用，改用官方下载..."
-    CADDY_VER="2.8.4"
-    curl -sSL "https://github.com/caddyserver/caddy/releases/download/v${CADDY_VER}/caddy_${CADDY_VER}_linux_amd64.tar.gz" \
-      | tar -xz -C /usr/local/bin caddy
-    chmod +x /usr/local/bin/caddy
-    # 创建 caddy 用户和目录（手动安装时需要）
-    id caddy &>/dev/null || useradd -r -d /var/lib/caddy -s /sbin/nologin caddy
-    install -d -o caddy -g caddy /var/lib/caddy /var/log/caddy /etc/caddy
-  }
-  dnf install -y caddy 2>/dev/null || true
+  log "下载 Caddy 官方二进制..."
+  CADDY_VER="2.8.4"
+  CADDY_TMP=$(mktemp -d)
+  curl -fsSL "https://github.com/caddyserver/caddy/releases/download/v${CADDY_VER}/caddy_${CADDY_VER}_linux_amd64.tar.gz" \
+    -o "$CADDY_TMP/caddy.tar.gz"
+  tar -xzf "$CADDY_TMP/caddy.tar.gz" -C "$CADDY_TMP" caddy
+  install -m 0755 "$CADDY_TMP/caddy" /usr/local/bin/caddy
+  rm -rf "$CADDY_TMP"
+
+  log "创建 caddy 用户与目录..."
+  id caddy &>/dev/null || useradd -r -d /var/lib/caddy -s /sbin/nologin caddy
+  install -d -o caddy -g caddy -m 0755 /var/lib/caddy /var/log/caddy
+  install -d -m 0755 /etc/caddy
+
+  log "写入 Caddy systemd unit..."
+  cat > /etc/systemd/system/caddy.service <<'CADDY_UNIT'
+[Unit]
+Description=Caddy Web Server
+Documentation=https://caddyserver.com/docs/
+After=network.target network-online.target
+Requires=network-online.target
+
+[Service]
+Type=notify
+User=caddy
+Group=caddy
+ExecStart=/usr/local/bin/caddy run --environ --config /etc/caddy/Caddyfile
+ExecReload=/usr/local/bin/caddy reload --config /etc/caddy/Caddyfile --force
+TimeoutStopSec=5s
+LimitNOFILE=1048576
+LimitNPROC=512
+PrivateTmp=true
+ProtectSystem=full
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target
+CADDY_UNIT
+
+  # 占位 Caddyfile，避免 systemctl enable 时报错
+  if [[ ! -f /etc/caddy/Caddyfile ]]; then
+    cat > /etc/caddy/Caddyfile <<'CADDY_PLACEHOLDER'
+# 占位配置 · bootstrap 阶段。后续按 docs/cloud-gateway/Caddyfile 模板替换。
+:80 {
+	respond "csgh-gateway bootstrap placeholder" 200
+}
+CADDY_PLACEHOLDER
+    chown caddy:caddy /etc/caddy/Caddyfile
+  fi
+
+  systemctl daemon-reload
+  log "Caddy 安装完成（systemd 服务名：caddy）"
 fi
 
 # ----- 9. 安装 Rust 工具链（用于编译 backend-gateway）-----------------------
