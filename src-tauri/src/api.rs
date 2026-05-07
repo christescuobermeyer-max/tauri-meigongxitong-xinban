@@ -34,7 +34,7 @@ pub struct GenerateRequest {
 }
 
 /// 调用生图接口，返回图片的 base64（不含 data: 前缀）
-#[tauri::command]
+#[cfg_attr(feature = "tauri-commands", tauri::command)]
 pub async fn generate_image(req: GenerateRequest) -> Result<String, String> {
     validate_generate_request(&req)?;
     let provider = resolve_image_provider(req.api_line);

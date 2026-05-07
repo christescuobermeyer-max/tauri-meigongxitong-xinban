@@ -42,7 +42,7 @@ pub struct CompressGeneratedImageResponse {
 }
 
 /// 解码 base64 → 拉伸到目标尺寸 → 按扩展名保存
-#[tauri::command]
+#[cfg_attr(feature = "tauri-commands", tauri::command)]
 pub async fn resize_and_save_image(req: ResizeRequest) -> Result<String, String> {
     if req.target_width == 0 || req.target_height == 0 {
         return Err("目标尺寸不能为 0".into());
@@ -92,7 +92,7 @@ pub async fn resize_and_save_image(req: ResizeRequest) -> Result<String, String>
     Ok(req.output_path)
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "tauri-commands", tauri::command)]
 pub async fn compress_generated_image(
     req: CompressGeneratedImageRequest,
 ) -> Result<CompressGeneratedImageResponse, String> {

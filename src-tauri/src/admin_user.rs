@@ -35,7 +35,7 @@ pub struct AdminCreateUserResponse {
     pub password: String,
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "tauri-commands", tauri::command)]
 pub async fn admin_create_user(
     req: AdminCreateUserRequest,
 ) -> Result<AdminCreateUserResponse, String> {

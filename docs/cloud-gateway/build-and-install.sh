@@ -29,11 +29,11 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ----- 1. 编译 ---------------------------------------------------------------
-log "切换到 csgh 用户编译 backend-gateway（release 模式）..."
+log "切换到 csgh 用户编译 backend-gateway（release 模式，禁用 tauri-commands）..."
 chown -R csgh:csgh "$PROJECT_ROOT"
 sudo -u csgh bash -c "cd '$PROJECT_ROOT/src-tauri' && \
   source ~/.cargo/env && \
-  cargo build --release --bin backend-gateway"
+  cargo build --release --bin backend-gateway --no-default-features"
 
 # ----- 2. 安装二进制 ---------------------------------------------------------
 log "安装二进制到 /opt/csgh-gateway/bin/..."

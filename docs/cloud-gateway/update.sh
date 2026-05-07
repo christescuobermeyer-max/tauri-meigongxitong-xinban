@@ -31,7 +31,7 @@ sudo -u csgh git -C "$PROJECT_ROOT" pull --ff-only
 log "重新编译..."
 sudo -u csgh bash -c "cd '$PROJECT_ROOT/src-tauri' && \
   source ~/.cargo/env && \
-  cargo build --release --bin backend-gateway"
+  cargo build --release --bin backend-gateway --no-default-features"
 
 log "替换二进制..."
 install -o csgh -g csgh -m 0755 \

@@ -25,7 +25,7 @@ pub struct UploadImageToOssResponse {
     pub url: String,
 }
 
-#[tauri::command]
+#[cfg_attr(feature = "tauri-commands", tauri::command)]
 pub async fn upload_image_to_oss(
     req: UploadImageToOssRequest,
 ) -> Result<UploadImageToOssResponse, String> {
