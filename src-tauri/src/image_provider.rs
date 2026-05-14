@@ -92,7 +92,7 @@ pub fn resolve_image_provider(line: ImageApiLine) -> ImageProvider {
             log_label: "image-2:line2",
             user_label: "线路2",
             api_key_env_keys: &LINE2_API_KEY_ENV_KEYS,
-            quality: Some("low"),
+            quality: Some("high"),
             format: Some("png"),
             reference_image_json_field: ReferenceImageJsonField::Image,
         },
@@ -160,7 +160,7 @@ mod tests {
         assert_eq!(provider.model, "gpt-image-2");
         assert_eq!(provider.log_label, "image-2:line2");
         assert_eq!(provider.api_key_env_keys[0], "IMAGE_2_LINE2_API_KEY");
-        assert_eq!(provider.quality, Some("low"));
+        assert_eq!(provider.quality, Some("high"));
         assert_eq!(provider.format, Some("png"));
     }
 

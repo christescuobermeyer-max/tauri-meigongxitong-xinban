@@ -5,8 +5,8 @@
 //!
 //! 由于单次生成可能耗时较久，客户端超时设置为 300s。
 
-use crate::apimart::generate_apimart_image;
 use crate::api_validation::validate_generate_request;
+use crate::apimart::generate_apimart_image;
 use crate::env_config::read_required_env;
 use crate::gemini_response::truncate_for_msg;
 use crate::http_client::{build_api_client, format_reqwest_error};
@@ -24,7 +24,7 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub struct GenerateRequest {
     pub prompt: String,
-    /// 线路1/2/3支持 "1024x1024" / "1024x1536" / "1536x1024" / "21:9" / "3:4"；线路4额外支持 "16:9" / "1792x1024"；线路5使用比例值，门头 "auto" 会转为 "3:2"
+    /// 线路1/3支持 "1024x1024" / "1024x1536" / "1536x1024" / "21:9" / "3:4"；线路2海报使用 "1792x768"；线路4额外支持 "16:9" / "1792x1024"；线路5使用比例值，门头 "auto" 会转为 "3:2"
     pub size: String,
     /// 参考图列表：支持不含 data: 前缀的 base64，也支持可访问 URL；可为空
     pub product_images: Vec<String>,

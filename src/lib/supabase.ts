@@ -26,7 +26,8 @@ export type AssetKindDb =
   | "product"
   | "p_signboard"
   | "picture_wall"
-  | "detail_page";
+  | "detail_page"
+  | "brand_story";
 export type PlatformDb = "meituan" | "taobao";
 export type RoleDb = "user" | "admin";
 
@@ -63,4 +64,5 @@ export interface DailyStatRow {
   p_signboard_count: number;
   picture_wall_count: number;
   detail_page_count: number;
+  brand_story_count: number;
 }

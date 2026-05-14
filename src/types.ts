@@ -2,6 +2,17 @@ export type Platform = "meituan" | "taobao";
 export type AvatarReferenceMode = "category" | "image";
 export type GenerationLine = "line1" | "line2" | "line3" | "line4" | "line5";
 
+/** 主题色偏好（可选，未选时不影响 prompt） */
+export type ThemeColor = "light" | "dark" | "red" | "yellow" | "orange";
+/** 设计风格偏好（可选，未选时不影响 prompt） */
+export type BrandStyle = "young" | "lifeFire" | "fresh";
+
+/** 三件套生成时附加的视觉偏好；两个字段都不传时与默认提示词完全等价 */
+export interface AppearanceOptions {
+  themeColor?: ThemeColor;
+  brandStyle?: BrandStyle;
+}
+
 export type AssetKind =
   | "avatar"
   | "storefront"
@@ -9,7 +20,36 @@ export type AssetKind =
   | "product"
   | "p_signboard"
   | "picture_wall"
-  | "detail_page";
+  | "detail_page"
+  | "brand_story";
+
+/** 品牌故事文案 4 条线路 */
+export type BrandStoryThreadId = "thread1" | "thread2" | "thread3" | "thread4";
+
+export interface BrandCopyDetail {
+  title: string;
+  content: string;
+}
+
+export interface BrandCopy {
+  mainSlogan: string;
+  subSlogan: string;
+  featureTitle: string;
+  featureContent: string;
+  detailsTitle: string;
+  details: BrandCopyDetail[];
+}
+
+export interface BrandStoryThreadAvailabilityItem {
+  available: boolean;
+  name: string;
+  description: string;
+}
+
+export type BrandStoryThreadAvailability = Record<
+  BrandStoryThreadId,
+  BrandStoryThreadAvailabilityItem
+>;
 
 export interface AssetSize {
   w: number;

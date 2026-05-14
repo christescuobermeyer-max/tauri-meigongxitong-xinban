@@ -22,7 +22,12 @@ pub async fn submit_apimart_task<T: Serialize + ?Sized>(
         .json(payload)
         .send()
         .await
-        .map_err(|error| format!("调用线路5 APIMart接口失败：{}", format_reqwest_error(&error)))?;
+        .map_err(|error| {
+            format!(
+                "调用线路5 APIMart接口失败：{}",
+                format_reqwest_error(&error)
+            )
+        })?;
 
     let status = response.status();
     let body_text = response
@@ -95,7 +100,12 @@ async fn fetch_task_status(
         .bearer_auth(api_key)
         .send()
         .await
-        .map_err(|error| format!("轮询线路5 APIMart任务失败：{}", format_reqwest_error(&error)))?;
+        .map_err(|error| {
+            format!(
+                "轮询线路5 APIMart任务失败：{}",
+                format_reqwest_error(&error)
+            )
+        })?;
     let status = response.status();
     let body_text = response
         .text()
@@ -146,9 +156,17 @@ fn extract_generated_image(parsed: &Value) -> Option<String> {
     }
 
     let data = parsed.get("data").unwrap_or(parsed);
-    ["output", "result", "response", "images", "image_url", "url", "b64_json"]
-        .iter()
-        .find_map(|key| data.get(*key).and_then(extract_image_value))
+    [
+        "output",
+        "result",
+        "response",
+        "images",
+        "image_url",
+        "url",
+        "b64_json",
+    ]
+    .iter()
+    .find_map(|key| data.get(*key).and_then(extract_image_value))
 }
 
 fn extract_image_value(value: &Value) -> Option<String> {
@@ -176,21 +194,27 @@ fn extract_image_from_text(text: &str) -> Option<String> {
 fn find_string_by_keys(value: &Value, keys: &[&str]) -> Option<String> {
     match value {
         Value::String(_) => None,
-        Value::Array(items) => items.iter().find_map(|item| find_string_by_keys(item, keys)),
+        Value::Array(items) => items
+            .iter()
+            .find_map(|item| find_string_by_keys(item, keys)),
         Value::Object(map) => {
             for key in keys {
                 if let Some(Value::String(text)) = map.get(*key) {
                     return Some(text.clone());
                 }
             }
-            map.values().find_map(|item| find_string_by_keys(item, keys))
+            map.values()
+                .find_map(|item| find_string_by_keys(item, keys))
         }
         _ => None,
     }
 }
 
 fn is_failed_status(status: &str) -> bool {
-    matches!(status, "failed" | "failure" | "error" | "cancelled" | "canceled")
+    matches!(
+        status,
+        "failed" | "failure" | "error" | "cancelled" | "canceled"
+    )
 }
 
 fn is_completed_status(status: &str) -> bool {

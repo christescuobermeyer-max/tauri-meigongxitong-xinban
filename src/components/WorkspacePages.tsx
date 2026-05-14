@@ -1,15 +1,16 @@
 import AdminPage from "./AdminPage";
+import BrandStoryPage from "./BrandStoryPage";
 import DetailPagePage from "./DetailPagePage";
 import GeneratePanel from "./GeneratePanel";
 import HistoryPanel from "./HistoryPanel";
 import ImageEditPage from "./ImageEditPage";
 import PictureWallPage from "./PictureWallPage";
 import PSignboardPage from "./PSignboardPage";
-import ProductBatchGeneratePanel from "./ProductBatchGeneratePanel";
-import ProductBatchResultPanel from "./ProductBatchResultPanel";
 import ProductGeneratePanel from "./ProductGeneratePanel";
 import ProductResultPanel from "./ProductResultPanel";
 import ResultPanel from "./ResultPanel";
+import PackageImageWorkspacePage from "./workspace/PackageImageWorkspacePage";
+import ProductBatchWorkspacePage from "./workspace/ProductBatchWorkspacePage";
 import type { GenerationWorkspace } from "../hooks/useGenerationWorkspace";
 
 interface Props {
@@ -18,64 +19,76 @@ interface Props {
 
 export default function WorkspacePages({ workspace }: Props) {
   if (workspace.tab === "avatarStorefront") {
+    const tp = workspace.threePiece;
     return (
       <div className="page">
         <GeneratePanel
-          shopName={workspace.shopName}
-          setShopName={workspace.setShopName}
+          shopName={tp.shopName}
+          setShopName={tp.setShopName}
           generationLine={workspace.generationLine}
           setGenerationLine={workspace.setGenerationLine}
-          avatarMode={workspace.avatarMode}
-          avatarCategory={workspace.avatarCategory}
-          setAvatarCategory={workspace.setAvatarCategory}
-          images={workspace.images}
-          setImages={workspace.setImages}
-          onGenerate={workspace.handleGenerateAll}
-          busy={workspace.busy}
+          avatarMode={tp.avatarMode}
+          avatarCategory={tp.avatarCategory}
+          setAvatarCategory={tp.setAvatarCategory}
+          themeColor={tp.themeColor}
+          setThemeColor={tp.setThemeColor}
+          brandStyle={tp.brandStyle}
+          setBrandStyle={tp.setBrandStyle}
+          images={tp.images}
+          setImages={tp.setImages}
+          onGenerate={tp.handleGenerate}
+          busy={tp.busy}
           elapsed={workspace.elapsed}
-          avatar={workspace.avatar}
-          storefront={workspace.storefront}
-          poster={workspace.poster}
+          avatar={tp.avatar}
+          storefront={tp.storefront}
+          poster={tp.poster}
         />
         <ResultPanel
-          shopName={workspace.shopName}
-          avatar={workspace.avatar}
-          storefront={workspace.storefront}
-          poster={workspace.poster}
-          onRetry={(kind) => workspace.retryGeneration(kind)}
-          onDownload={(kind, platform) => workspace.handleDownload(kind, platform)}
-          onBatchDownload={(platform) => workspace.handleBatchDownload(platform)}
-          canBatchDownload={workspace.canBatchDownload}
+          shopName={tp.shopName}
+          avatar={tp.avatar}
+          storefront={tp.storefront}
+          poster={tp.poster}
+          onRetry={(kind) => tp.retry(kind as "avatar" | "storefront" | "poster")}
+          onDownload={(kind, platform) =>
+            tp.handleDownload(kind as "avatar" | "storefront" | "poster", platform)
+          }
+          onBatchDownload={(platform) => tp.handleBatchDownload(platform)}
+          canBatchDownload={tp.canBatchDownload}
         />
       </div>
     );
   }
 
   if (workspace.tab === "productImage") {
+    const pi = workspace.productImage;
     return (
       <div className="page">
         <ProductGeneratePanel
-          shopName={workspace.shopName}
-          setShopName={workspace.setShopName}
-          productName={workspace.productName}
-          setProductName={workspace.setProductName}
-          platform={workspace.productPlatform}
-          setPlatform={workspace.setProductPlatform}
+          shopName={pi.shopName}
+          setShopName={pi.setShopName}
+          productName={pi.productName}
+          setProductName={pi.setProductName}
+          platform={pi.platform}
+          setPlatform={pi.setPlatform}
           generationLine={workspace.generationLine}
           setGenerationLine={workspace.setGenerationLine}
-          images={workspace.images}
-          setImages={workspace.setImages}
-          onGenerate={workspace.handleGenerateProduct}
-          busy={workspace.busy}
+          themeColor={pi.themeColor}
+          setThemeColor={pi.setThemeColor}
+          brandStyle={pi.brandStyle}
+          setBrandStyle={pi.setBrandStyle}
+          images={pi.images}
+          setImages={pi.setImages}
+          onGenerate={pi.handleGenerate}
+          busy={pi.busy}
           elapsed={workspace.elapsed}
-          product={workspace.product}
+          product={pi.product}
         />
         <ProductResultPanel
-          platform={workspace.productCurrentPlatform}
-          shopName={workspace.shopName}
-          product={workspace.product}
-          onRetry={() => workspace.retryGeneration("product")}
-          onDownload={() => workspace.handleDownload("product")}
+          platform={pi.currentPlatform}
+          shopName={pi.shopName}
+          product={pi.product}
+          onRetry={() => pi.retry()}
+          onDownload={() => pi.handleDownload()}
         />
       </div>
     );
@@ -84,119 +97,150 @@ export default function WorkspacePages({ workspace }: Props) {
   if (workspace.tab === "productBatch") {
     return (
       <div className="page">
-        <ProductBatchGeneratePanel
-          shopName={workspace.shopName}
-          setShopName={workspace.setShopName}
-          platform={workspace.productBatchPlatform}
-          setPlatform={workspace.setProductBatchPlatform}
+        <ProductBatchWorkspacePage
+          productBatch={workspace.productBatch}
           generationLine={workspace.generationLine}
           setGenerationLine={workspace.setGenerationLine}
-          images={workspace.productBatchImages}
-          setImages={workspace.setProductBatchImages}
-          styleImages={workspace.productBatchStyleImages}
-          setStyleImages={workspace.setProductBatchStyleImages}
-          entries={workspace.productBatchEntries}
-          onGenerate={workspace.handleGenerateProductBatch}
-          busy={workspace.busy}
           elapsed={workspace.elapsed}
         />
-        <ProductBatchResultPanel
-          platform={workspace.productBatchCurrentPlatform}
-          shopName={workspace.shopName}
-          entries={workspace.productBatchEntries}
-          completedCount={workspace.productBatchCompletedCount}
-          onRetry={workspace.retryProductBatchItem}
-          onDownload={workspace.handleDownloadProductBatchItem}
-          onBatchDownload={workspace.handleDownloadProductBatchAll}
+      </div>
+    );
+  }
+
+  if (workspace.tab === "packageImage") {
+    return (
+      <div className="page">
+        <PackageImageWorkspacePage
+          packageImage={workspace.packageImage}
+          generationLine={workspace.generationLine}
+          setGenerationLine={workspace.setGenerationLine}
+          elapsed={workspace.elapsed}
         />
       </div>
     );
   }
 
   if (workspace.tab === "pictureWall") {
+    const pw = workspace.pictureWall;
     return (
       <div className="page picture-wall-page">
         <PictureWallPage
-          shopName={workspace.shopName}
-          setShopName={workspace.setShopName}
-          images={workspace.pictureWallImages}
-          setImages={workspace.setPictureWallImages}
+          shopName={pw.shopName}
+          setShopName={pw.setShopName}
+          images={pw.images}
+          setImages={pw.setImages}
           generationLine={workspace.generationLine}
           setGenerationLine={workspace.setGenerationLine}
-          entries={workspace.pictureWallEntries}
-          completedCount={workspace.pictureWallCompletedCount}
-          downloadStatus={workspace.pictureWallDownloadStatus}
-          busy={workspace.busy}
-          onGenerate={workspace.handleGeneratePictureWall}
-          onDownload={workspace.handleDownloadPictureWall}
-          onRetry={workspace.retryPictureWallItem}
+          themeColor={pw.themeColor}
+          setThemeColor={pw.setThemeColor}
+          brandStyle={pw.brandStyle}
+          setBrandStyle={pw.setBrandStyle}
+          entries={pw.entries}
+          completedCount={pw.completedCount}
+          downloadStatus={pw.downloadStatus}
+          busy={pw.busy}
+          onGenerate={pw.handleGenerate}
+          onDownload={pw.handleDownload}
+          onRetry={pw.handleRetry}
         />
       </div>
     );
   }
 
   if (workspace.tab === "pSignboard") {
+    const ps = workspace.pSignboard;
     return (
       <div className="page page--single picture-wall-page">
         <PSignboardPage
-          shopName={workspace.shopName}
-          images={workspace.pSignboardImages}
-          setImages={workspace.setPSignboardImages}
-          originalText={workspace.pSignboardOriginalText}
-          setOriginalText={workspace.setPSignboardOriginalText}
-          newText={workspace.pSignboardNewText}
-          setNewText={workspace.setPSignboardNewText}
+          shopName={ps.shopName}
+          images={ps.images}
+          setImages={ps.setImages}
+          originalText={ps.originalText}
+          setOriginalText={ps.setOriginalText}
+          newText={ps.newText}
+          setNewText={ps.setNewText}
           generationLine={workspace.generationLine}
           setGenerationLine={workspace.setGenerationLine}
-          item={workspace.pSignboardItem}
-          busy={workspace.pSignboardBusy}
-          onGenerate={workspace.handleGeneratePSignboard}
-          onRetry={workspace.handleGeneratePSignboard}
-          onDownload={workspace.handleDownloadPSignboard}
+          item={ps.item}
+          busy={ps.busy}
+          onGenerate={ps.handleGenerate}
+          onRetry={ps.handleGenerate}
+          onDownload={ps.handleDownload}
         />
       </div>
     );
   }
 
   if (workspace.tab === "imageEdit") {
+    const ie = workspace.imageEdit;
     return (
       <div className="page image-edit-page">
         <ImageEditPage
-          shopName={workspace.shopName}
-          setShopName={workspace.setShopName}
-          platform={workspace.imageEditPlatform}
-          setPlatform={workspace.setImageEditPlatform}
-          currentPlatform={workspace.imageEditCurrentPlatform}
+          shopName={ie.shopName}
+          setShopName={ie.setShopName}
+          platform={ie.platform}
+          setPlatform={ie.setPlatform}
+          currentPlatform={ie.currentPlatform}
           generationLine={workspace.generationLine}
           setGenerationLine={workspace.setGenerationLine}
-          entries={workspace.imageEditEntries}
-          busy={workspace.imageEditBusy}
-          setImages={workspace.setImageEditImages}
-          setInstruction={workspace.setImageEditInstruction}
-          onGenerate={workspace.handleGenerateImageEdit}
-          onDownload={workspace.handleDownloadImageEdit}
+          entries={ie.entries}
+          busy={ie.busy}
+          setImages={ie.setImages}
+          setReferenceImages={ie.setReferenceImages}
+          setInstruction={ie.setInstruction}
+          onGenerate={ie.generate}
+          onDownload={ie.download}
         />
       </div>
     );
   }
 
   if (workspace.tab === "detailPage") {
+    const dp = workspace.detailPage;
     return (
       <div className="page picture-wall-page">
         <DetailPagePage
-          shopName={workspace.shopName}
-          setShopName={workspace.setShopName}
-          images={workspace.detailPageImages}
-          setImages={workspace.setDetailPageImages}
+          shopName={dp.shopName}
+          setShopName={dp.setShopName}
+          images={dp.images}
+          setImages={dp.setImages}
           generationLine={workspace.generationLine}
           setGenerationLine={workspace.setGenerationLine}
-          entries={workspace.detailPageEntries}
-          completedCount={workspace.detailPageCompletedCount}
-          busy={workspace.detailPageBusy}
-          onGenerate={workspace.handleGenerateDetailPage}
-          onRetry={workspace.retryDetailPageItem}
-          onDownload={workspace.handleDownloadDetailPage}
-          onDownloadItem={workspace.handleDownloadDetailPageItem}
+          entries={dp.entries}
+          completedCount={dp.completedCount}
+          busy={dp.busy}
+          onGenerate={dp.handleGenerate}
+          onRetry={dp.handleRetry}
+          onDownload={dp.handleDownload}
+          onDownloadItem={dp.handleDownloadItem}
+        />
+      </div>
+    );
+  }
+
+  if (workspace.tab === "brandStory") {
+    const bs = workspace.brandStory;
+    return (
+      <div className="page brand-story-page">
+        <BrandStoryPage
+          storeName={bs.storeName}
+          setStoreName={bs.setStoreName}
+          category={bs.category}
+          setCategory={bs.setCategory}
+          generationLine={workspace.generationLine}
+          setGenerationLine={workspace.setGenerationLine}
+          copy={bs.copy}
+          entries={bs.entries}
+          busy={bs.busy}
+          textBusy={bs.textBusy}
+          imagesBusy={bs.imagesBusy}
+          phase={bs.phase}
+          imageProgress={bs.imageProgress}
+          completedCount={bs.completedCount}
+          onGenerate={bs.handleGenerate}
+          onRetry={bs.handleRetryImage}
+          onDownload={bs.handleDownload}
+          onDownloadItem={bs.handleDownloadItem}
         />
       </div>
     );

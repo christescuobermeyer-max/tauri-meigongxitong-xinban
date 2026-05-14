@@ -21,6 +21,10 @@ const adminDetailSource = readFileSync(
   new URL("../src/components/admin/AdminGenerationDetail.tsx", import.meta.url),
   "utf8"
 );
+const adminLogListSource = readFileSync(
+  new URL("../src/components/admin/AdminGenerationLogList.tsx", import.meta.url),
+  "utf8"
+);
 const transpiled = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ESNext,
@@ -99,6 +103,6 @@ equal(module.GENERATION_LINE_LABEL.line3, "线路3");
 equal(module.GENERATION_LINE_LABEL.line4, "线路4");
 equal(adminSource.includes('gte("created_at", range.startIso)'), true);
 equal(adminSource.includes('lt("created_at", range.endIso)'), true);
-equal(adminDetailSource.includes("getGenerationLineLabel(log.asset_kind, log.generation_line)"), true);
-equal(adminDetailSource.includes('kind === "picture_wall"'), true);
+equal(adminLogListSource.includes("getGenerationLineLabel(log.asset_kind, log.generation_line)"), true);
+equal(adminLogListSource.includes('kind === "picture_wall"'), true);
 equal(adminDetailSource.includes('"详情页"'), true);

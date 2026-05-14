@@ -1,7 +1,8 @@
 import type { PictureWallEntry } from "../lib/picture-wall";
 import { PICTURE_WALL_EXPORT_SIZE, PICTURE_WALL_SOURCE_SIZE } from "../lib/picture-wall";
 import type { PictureWallDownloadProgress } from "../lib/picture-wall-download";
-import type { GenerationLine, UploadedImage } from "../types";
+import type { BrandStyle, GenerationLine, ThemeColor, UploadedImage } from "../types";
+import AppearanceFields from "./AppearanceFields";
 import GenerationLineCard from "./GenerationLineCard";
 import ImageUpload from "./ImageUpload";
 import { IconSparkles } from "./Icons";
@@ -17,6 +18,10 @@ interface Props {
   setImages: (images: UploadedImage[]) => void;
   generationLine: GenerationLine;
   setGenerationLine: (line: GenerationLine) => void;
+  themeColor: ThemeColor | "";
+  setThemeColor: (v: ThemeColor | "") => void;
+  brandStyle: BrandStyle | "";
+  setBrandStyle: (v: BrandStyle | "") => void;
   entries: PictureWallEntry[];
   completedCount: number;
   downloadStatus: (PictureWallDownloadProgress & { active: boolean }) | null;
@@ -33,6 +38,10 @@ export default function PictureWallPage({
   setImages,
   generationLine,
   setGenerationLine,
+  themeColor,
+  setThemeColor,
+  brandStyle,
+  setBrandStyle,
   entries,
   completedCount,
   downloadStatus,
@@ -42,6 +51,8 @@ export default function PictureWallPage({
   onRetry,
 }: Props) {
   const canGenerate = shopName.trim().length > 0 && images.length === 3 && !busy;
+  const failedCount = entries.filter((entry) => entry.item.status === "failed").length;
+  const generateLabel = failedCount > 0 ? `补生成失败图片（${failedCount}张）` : "生成图片墙";
 
   return (
     <>
@@ -65,6 +76,13 @@ export default function PictureWallPage({
               <span className="field__hint">会以品牌标识艺术小字写入图片墙画面</span>
             </div>
 
+            <AppearanceFields
+              themeColor={themeColor}
+              setThemeColor={setThemeColor}
+              brandStyle={brandStyle}
+              setBrandStyle={setBrandStyle}
+            />
+
             <div className="field">
               <label className="field__label">产品图片</label>
               <ImageUpload
@@ -84,7 +102,7 @@ export default function PictureWallPage({
             <div className="picture-wall-actions">
               <button className="btn btn--primary btn--lg" disabled={!canGenerate} onClick={onGenerate}>
                 <IconSparkles style={{ width: 14, height: 14 }} />
-                {busy ? "生成中…" : "生成图片墙"}
+                {busy ? "生成中…" : generateLabel}
               </button>
             </div>
           </div>

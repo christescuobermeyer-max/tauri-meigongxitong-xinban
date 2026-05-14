@@ -1,12 +1,12 @@
 use serde::Serialize;
+#[cfg(not(windows))]
+use std::time::Duration;
 use std::{
     fs,
     path::{Path, PathBuf},
     process::Command,
     time::{SystemTime, UNIX_EPOCH},
 };
-#[cfg(not(windows))]
-use std::time::Duration;
 
 const STATUS_MARKER: &str = "__CSGH_HTTP_STATUS__:";
 

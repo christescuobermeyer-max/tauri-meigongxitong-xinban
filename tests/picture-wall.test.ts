@@ -1,4 +1,4 @@
-import { equal, ok, rejects } from "node:assert/strict";
+import { deepStrictEqual, equal, ok, rejects } from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
 
@@ -96,6 +96,8 @@ const downloadModule = await import(
 equal(typeof libModule.buildPictureWallPrompt, "function");
 equal(typeof libModule.buildPictureWallEntries, "function");
 equal(typeof libModule.failPendingPictureWallEntries, "function");
+equal(typeof libModule.getPictureWallFailedSourceImageIds, "function");
+equal(typeof libModule.queuePictureWallEntriesForRetry, "function");
 
 const prompt = libModule.buildPictureWallPrompt(
   "韩大叔炸鸡拌饭",
@@ -125,6 +127,31 @@ equal(stoppedEntries[1].item.status, "failed");
 equal(stoppedEntries[1].item.errorMessage, "已停止生成：前一张图片生成失败");
 equal(stoppedEntries[2].item.status, "failed");
 equal(stoppedEntries[2].item.errorMessage, "已停止生成：前一张图片生成失败");
+
+const mixedEntries = [
+  {
+    ...entries[0],
+    item: {
+      ...entries[0].item,
+      status: "succeeded",
+      rawBase64: "raw-a",
+      rawDataUrl: "data:image/png;base64,raw-a",
+      remoteUrl: "https://oss.example.com/a.jpg",
+    },
+  },
+  stoppedEntries[1],
+  stoppedEntries[2],
+];
+const failedIds = libModule.getPictureWallFailedSourceImageIds(mixedEntries);
+deepStrictEqual(failedIds, ["b", "c"]);
+const retryQueuedEntries = libModule.queuePictureWallEntriesForRetry(mixedEntries, failedIds);
+equal(retryQueuedEntries[0].item.status, "succeeded");
+equal(retryQueuedEntries[0].item.rawBase64, "raw-a");
+equal(retryQueuedEntries[1].item.status, "queued");
+equal(retryQueuedEntries[1].item.rawBase64, null);
+equal(retryQueuedEntries[1].item.errorMessage, undefined);
+equal(retryQueuedEntries[2].item.status, "queued");
+equal(retryQueuedEntries[2].item.rawBase64, null);
 
 const generatedItem = await libModule.generatePictureWallItem(
   {

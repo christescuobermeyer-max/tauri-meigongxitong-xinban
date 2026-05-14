@@ -1,14 +1,20 @@
 import { invoke } from "@tauri-apps/api/core";
 import { getShanghaiDateRange } from "./admin-log-filters";
+import {
+  ALL_ACCOUNTS_ID,
+  aggregateDailyStatRows,
+  getShanghaiCutoffDay,
+  type AccountSummary,
+} from "./admin-stats";
 import { supabase, type DailyStatRow, type GenerationLogRow, type ProfileRow } from "./supabase";
 import { callBackendGateway, getBackendGatewayUrl } from "./tauri";
 
-export interface AccountSummary extends ProfileRow {
-  /** 累计生图总数 */
-  total_count: number;
-  /** 今日生图数 */
-  today_count: number;
-}
+export {
+  ALL_ACCOUNTS_ID,
+  aggregateDailyStatRows,
+  buildAllAccountsSummary,
+} from "./admin-stats";
+export type { AccountSummary } from "./admin-stats";
 
 /** 获取所有账号列表 + 每个账号的累计/今日生图数（管理员视角，依赖 RLS） */
 export async function listAccountSummaries(): Promise<AccountSummary[]> {
@@ -20,7 +26,7 @@ export async function listAccountSummaries(): Promise<AccountSummary[]> {
   const profileRows = (profiles as ProfileRow[] | null) ?? [];
   if (profileRows.length === 0) return [];
 
-  const stats = await fetchAggregatedStats();
+  const stats = await fetchAggregatedStats(profileRows.map((profile) => profile.id));
   const summaries: AccountSummary[] = profileRows.map((profile) => {
     const stat = stats.get(profile.id);
     return {
@@ -44,25 +50,32 @@ interface AggregatedStat {
   today: number;
 }
 
-async function fetchAggregatedStats(): Promise<Map<string, AggregatedStat>> {
-  const { data, error } = await supabase
-    .from("generation_logs")
-    .select("user_id, created_at")
-    .order("created_at", { ascending: false })
-    .limit(20000);
-  if (error) {
-    console.warn("[admin] fetchAggregatedStats failed:", error.message);
-    return new Map();
-  }
+async function fetchAggregatedStats(profileIds: string[]): Promise<Map<string, AggregatedStat>> {
   const todayStartIso = startOfShanghaiTodayIso();
-  const map = new Map<string, AggregatedStat>();
-  for (const row of (data as Array<{ user_id: string; created_at: string }> | null) ?? []) {
-    const stat = map.get(row.user_id) ?? { total: 0, today: 0 };
-    stat.total += 1;
-    if (row.created_at >= todayStartIso) stat.today += 1;
-    map.set(row.user_id, stat);
+  const pairs = await Promise.all(
+    profileIds.map(async (userId) => {
+      const [total, today] = await Promise.all([
+        fetchExactGenerationCount(userId),
+        fetchExactGenerationCount(userId, todayStartIso),
+      ]);
+      return [userId, { total, today }] as const;
+    })
+  );
+  return new Map(pairs);
+}
+
+async function fetchExactGenerationCount(userId: string, startIso?: string): Promise<number> {
+  let query = supabase
+    .from("generation_logs")
+    .select("id", { count: "exact", head: true });
+  if (userId !== ALL_ACCOUNTS_ID) query = query.eq("user_id", userId);
+  if (startIso) query = query.gte("created_at", startIso);
+  const { count, error } = await query;
+  if (error) {
+    console.warn("[admin] fetchExactGenerationCount failed:", error.message);
+    return 0;
   }
-  return map;
+  return count ?? 0;
 }
 
 interface GenerationLogQueryOptions {
@@ -80,8 +93,8 @@ export async function fetchAccountGenerationLogs(
   let query = supabase
     .from("generation_logs")
     .select("*")
-    .eq("user_id", userId)
     .order("created_at", { ascending: false });
+  if (userId !== ALL_ACCOUNTS_ID) query = query.eq("user_id", userId);
   if (statDay) {
     const range = getShanghaiDateRange(statDay);
     query = query.gte("created_at", range.startIso).lt("created_at", range.endIso);
@@ -96,14 +109,20 @@ export async function fetchAccountDailyStats(
   userId: string,
   days = 14
 ): Promise<DailyStatRow[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("daily_generation_stats")
     .select("*")
-    .eq("user_id", userId)
-    .order("stat_day", { ascending: false })
-    .limit(days);
+    .order("stat_day", { ascending: false });
+  if (userId === ALL_ACCOUNTS_ID) {
+    const cutoffDay = getShanghaiCutoffDay(days);
+    query = query.gte("stat_day", cutoffDay).limit(50000);
+  } else {
+    query = query.eq("user_id", userId).limit(days);
+  }
+  const { data, error } = await query;
   if (error) throw new Error(`读取每日统计失败：${error.message}`);
-  return (data as DailyStatRow[] | null) ?? [];
+  const rows = (data as DailyStatRow[] | null) ?? [];
+  return userId === ALL_ACCOUNTS_ID ? aggregateDailyStatRows(rows, days) : rows;
 }
 
 function startOfShanghaiTodayIso(): string {

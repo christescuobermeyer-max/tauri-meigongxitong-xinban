@@ -1,11 +1,13 @@
 mod env_config;
 
 mod admin_user;
+mod api;
+mod api_validation;
 mod apimart;
 mod apimart_reference;
 mod apimart_task;
-mod api;
-mod api_validation;
+mod brand_story;
+mod brand_story_clients;
 mod gemini_response;
 mod http_client;
 mod image_api_response;
@@ -31,6 +33,8 @@ pub fn run() {
             api::generate_image,
             image_proc::resize_and_save_image,
             oss::upload_image_to_oss,
+            brand_story::brand_story_generate_text,
+            brand_story::brand_story_thread_availability,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

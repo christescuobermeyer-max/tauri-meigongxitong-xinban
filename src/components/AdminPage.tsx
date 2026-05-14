@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import {
+  ALL_ACCOUNTS_ID,
+  buildAllAccountsSummary,
   fetchAccountDailyStats,
   fetchAccountGenerationLogs,
   listAccountSummaries,
@@ -17,7 +19,7 @@ export default function AdminPage() {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<AccountSummary[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string>(ALL_ACCOUNTS_ID);
   const [logs, setLogs] = useState<GenerationLogRow[]>([]);
   const [dailyStats, setDailyStats] = useState<DailyStatRow[]>([]);
   const [filter, setFilter] = useState<AssetKindLabel>("全部");
@@ -33,7 +35,11 @@ export default function AdminPage() {
     try {
       const list = await listAccountSummaries();
       setAccounts(list);
-      if (list.length > 0 && !selectedId) setSelectedId(list[0].id);
+      setSelectedId((current) =>
+        current === ALL_ACCOUNTS_ID || list.some((account) => account.id === current)
+          ? current
+          : ALL_ACCOUNTS_ID
+      );
     } catch (error: unknown) {
       toast.show(error instanceof Error ? error.message : String(error), "error");
     } finally {
@@ -42,17 +48,13 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (!selectedId) {
-      setLogs([]);
-      setDailyStats([]);
-      return;
-    }
     let cancelled = false;
     void (async () => {
       try {
+        const isAllAccounts = selectedId === ALL_ACCOUNTS_ID;
         const [nextLogs, nextStats] = await Promise.all([
           fetchAccountGenerationLogs(selectedId, {
-            limit: selectedDate ? 500 : 100,
+            limit: isAllAccounts ? (selectedDate ? 5000 : 500) : selectedDate ? 500 : 100,
             statDay: selectedDate,
           }),
           fetchAccountDailyStats(selectedId, 14),
@@ -69,7 +71,15 @@ export default function AdminPage() {
     };
   }, [selectedId, selectedDate, toast]);
 
-  const selected = accounts.find((account) => account.id === selectedId) ?? null;
+  const allAccountsSummary = buildAllAccountsSummary(accounts);
+  const accountRows = accounts.length > 0 ? [allAccountsSummary, ...accounts] : [];
+  const selected =
+    selectedId === ALL_ACCOUNTS_ID
+      ? allAccountsSummary
+      : accounts.find((account) => account.id === selectedId) ?? null;
+  const accountNameById = Object.fromEntries(
+    accounts.map((account) => [account.id, account.display_name])
+  );
 
   function handleSelectAccount(id: string) {
     setSelectedId(id);
@@ -83,8 +93,8 @@ export default function AdminPage() {
           <h2 className="section-heading" style={{ margin: 0 }}>账号管理</h2>
           <span className="meta-row">
             <span>共 <strong>{accounts.length}</strong> 个账号</span>
-            <span>累计生图 <strong>{accounts.reduce((sum, item) => sum + item.total_count, 0)}</strong> 张</span>
-            <span>今日生图 <strong>{accounts.reduce((sum, item) => sum + item.today_count, 0)}</strong> 张</span>
+            <span>累计生图 <strong>{allAccountsSummary.total_count}</strong> 张</span>
+            <span>今日生图 <strong>{allAccountsSummary.today_count}</strong> 张</span>
           </span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
@@ -101,7 +111,7 @@ export default function AdminPage() {
 
       <div className="admin__layout">
         <AdminAccountsTable
-          accounts={accounts}
+          accounts={accountRows}
           loading={loading}
           selectedId={selectedId}
           onSelect={handleSelectAccount}
@@ -112,6 +122,7 @@ export default function AdminPage() {
           dailyStats={dailyStats}
           filter={filter}
           selectedDate={selectedDate}
+          accountNameById={accountNameById}
           onFilterChange={setFilter}
           onDateChange={setSelectedDate}
         />

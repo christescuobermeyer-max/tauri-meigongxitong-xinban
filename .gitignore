@@ -39,3 +39,7 @@ src-tauri/gen/schemas
 .env
 .env.local
 .env.*.local
+
+# OSS / 数据库导出（含大量图片，不应入仓）
+数据导出/
+*.bak.*

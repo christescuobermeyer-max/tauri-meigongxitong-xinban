@@ -25,6 +25,7 @@ for (const [file, title] of files) {
 const styles = readFileSync(new URL("../src/styles/global.css", import.meta.url), "utf8");
 const lineCard = readFileSync(new URL("../src/components/GenerationLineCard.tsx", import.meta.url), "utf8");
 const lineSelect = readFileSync(new URL("../src/components/GenerationLineSelect.tsx", import.meta.url), "utf8");
+const workspaceHook = readFileSync(new URL("../src/hooks/useGenerationWorkspace.ts", import.meta.url), "utf8");
 const selectIndex = lineCard.indexOf("<GenerationLineSelect");
 const noticeIndex = lineCard.indexOf("generation-line-card__notice");
 
@@ -43,6 +44,11 @@ equal(lineSelect.includes("segmented__meta"), false, "线路切换按钮不应�
 equal(lineCard.includes("generation-line-card__hint"), false, "生图线路顶部说明应移除");
 ok(lineCard.includes("generation-line-card__notice-engine"), "生图线路底部应显示引擎名标签");
 ok(lineCard.includes("yunwu"), "线路1说明应保留 yunwu");
+ok(lineSelect.includes('{ id: "line1", label: "线路1", disabled: true }'), "线路1切换按钮应被禁用");
+ok(lineSelect.includes("disabled={line.disabled}"), "禁用线路按钮应使用原生 disabled 属性");
+ok(lineSelect.includes("线路1已停用，请使用线路5"), "线路1按钮应提示改用线路5");
+ok(lineCard.includes("线路1已停用，王郡江 杨有淇 王涛 请使用线路5"), "线路1的三位运营应提示使用线路5");
+ok(workspaceHook.includes('useState<GenerationLine>("line5")'), "默认生图线路应切换为线路5");
 ok(lineCard.includes('<div className="generation-line-card__notice-row" data-line="line2">'), "线路2应保留独立展示行");
 ok(lineCard.includes("王清月 袁丽妮 黄兆微 使用"), "线路2应展示原线路2人员");
 ok(lineCard.includes("pockgo"), "线路4说明应保留 pockgo");

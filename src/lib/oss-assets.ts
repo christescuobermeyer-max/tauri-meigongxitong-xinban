@@ -27,6 +27,7 @@ const COMPRESSION_BY_KIND: Record<AssetKind, CompressionConfig> = {
   product: { maxDimension: 1024, quality: 88 },
   picture_wall: { maxDimension: 1024, quality: 88 },
   detail_page: { maxDimension: 2048, quality: 92 },
+  brand_story: { maxDimension: 1792, quality: 90 },
 };
 
 export async function ensureUploadedImagesOnOss(

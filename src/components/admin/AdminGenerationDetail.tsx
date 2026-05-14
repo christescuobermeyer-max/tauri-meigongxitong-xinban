@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import {
-  ASSET_LABEL,
   filterGenerationLogs,
   type AssetKindLabel,
 } from "../../lib/admin-log-filters";
 import type { AccountSummary } from "../../lib/admin";
 import type { DailyStatRow, GenerationLogRow } from "../../lib/supabase";
+import AdminGenerationLogList, { getAdminGenerationPageSize } from "./AdminGenerationLogList";
 
 interface Props {
   selected: AccountSummary | null;
@@ -13,12 +13,23 @@ interface Props {
   dailyStats: DailyStatRow[];
   filter: AssetKindLabel;
   selectedDate: string | null;
+  accountNameById: Record<string, string>;
   onFilterChange: (filter: AssetKindLabel) => void;
   onDateChange: (date: string | null) => void;
 }
 
-const FILTERS: AssetKindLabel[] = ["全部", "头像", "店招", "海报", "产品图", "P门头", "图片墙", "详情页"];
-const PAGE_SIZE = 30;
+const FILTERS: AssetKindLabel[] = [
+  "全部",
+  "头像",
+  "店招",
+  "海报",
+  "产品图",
+  "P门头",
+  "图片墙",
+  "详情页",
+  "品牌故事",
+];
+const PAGE_SIZE = getAdminGenerationPageSize();
 
 export default function AdminGenerationDetail({
   selected,
@@ -26,6 +37,7 @@ export default function AdminGenerationDetail({
   dailyStats,
   filter,
   selectedDate,
+  accountNameById,
   onFilterChange,
   onDateChange,
 }: Props) {
@@ -46,6 +58,7 @@ export default function AdminGenerationDetail({
 
   const todayStr = toShanghaiDateString(new Date());
   const maxDate = todayStr;
+  const showAccountName = Boolean(selected?.is_all);
 
   let minDate = todayStr;
   if (dailyStats.length > 0) {
@@ -75,7 +88,7 @@ export default function AdminGenerationDetail({
       </div>
       <div className="card__body">
         {!selected ? (
-          <div className="empty">从左侧选择一个账号查看其生图记录</div>
+          <div className="empty">从左侧选择账号或所有账户查看生图记录</div>
         ) : (
           <>
             <div className="admin__date-filter">
@@ -116,7 +129,8 @@ export default function AdminGenerationDetail({
                     {selectedDayStat.product_count}产 ·{" "}
                     {selectedDayStat.p_signboard_count}门 ·{" "}
                     {selectedDayStat.picture_wall_count}墙 ·{" "}
-                    {selectedDayStat.detail_page_count}详
+                    {selectedDayStat.detail_page_count}详 ·{" "}
+                    {selectedDayStat.brand_story_count}事
                   </span>
                 </div>
               ) : selectedDate ? (
@@ -136,123 +150,20 @@ export default function AdminGenerationDetail({
                 </div>
               )}
             </div>
-            <LogList logs={pageLogs} />
-            {filteredLogs.length > PAGE_SIZE && (
-              <Pagination
-                page={safePage}
-                totalPages={totalPages}
-                total={filteredLogs.length}
-                onPageChange={setPage}
-              />
-            )}
+            <AdminGenerationLogList
+              logs={pageLogs}
+              page={safePage}
+              totalPages={totalPages}
+              total={filteredLogs.length}
+              showAccountName={showAccountName}
+              accountNameById={accountNameById}
+              onPageChange={setPage}
+            />
           </>
         )}
       </div>
     </section>
   );
-}
-
-function LogList({ logs }: { logs: GenerationLogRow[] }) {
-  if (logs.length === 0) return <div className="empty empty--inline">该筛选条件下无生图记录</div>;
-  return (
-    <div className="admin__logs">
-      {logs.map((log) => (
-        <article key={log.id} className="admin__log">
-          <div className="admin__log-thumb admin__log-thumb--contain">
-            <img
-              className="admin__log-thumb-image admin__log-thumb-image--contain"
-              src={log.oss_url}
-              alt={log.shop_name}
-              loading="lazy"
-            />
-          </div>
-          <div className="admin__log-meta">
-            <div className="admin__log-head">
-              <span className="badge" data-tone="info">{ASSET_LABEL[log.asset_kind] ?? log.asset_kind}</span>
-              <span className="badge">{log.platform === "meituan" ? "美团" : "淘宝闪购"}</span>
-              <span
-                className="badge"
-                data-tone={
-                  log.generation_line === "line2"
-                    ? "success"
-                    : log.generation_line === "line3"
-                      ? "info"
-                      : log.generation_line === "line4"
-                        ? "warning"
-                        : log.generation_line === "line5"
-                          ? "info"
-                          : "success"
-                }
-              >
-                {getGenerationLineLabel(log.asset_kind, log.generation_line)}
-              </span>
-              <span className="admin__log-time">{formatDateTime(log.created_at)}</span>
-            </div>
-            <div className="admin__log-shop">{log.shop_name}</div>
-            <a className="admin__log-url" href={log.oss_url} target="_blank" rel="noreferrer">
-              {log.oss_url}
-            </a>
-          </div>
-        </article>
-      ))}
-    </div>
-  );
-}
-
-function Pagination({
-  page,
-  totalPages,
-  total,
-  onPageChange,
-}: {
-  page: number;
-  totalPages: number;
-  total: number;
-  onPageChange: (p: number) => void;
-}) {
-  return (
-    <div className="admin__pagination">
-      <span className="admin__pagination-info">
-        共 {total} 条 · 第 {page} / {totalPages} 页
-      </span>
-      <div className="admin__pagination-actions">
-        <button
-          className="btn btn--ghost btn--sm"
-          disabled={page <= 1}
-          onClick={() => onPageChange(page - 1)}
-        >
-          ‹ 上一页
-        </button>
-        <button
-          className="btn btn--ghost btn--sm"
-          disabled={page >= totalPages}
-          onClick={() => onPageChange(page + 1)}
-        >
-          下一页 ›
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function getGenerationLineLabel(
-  kind: GenerationLogRow["asset_kind"],
-  line: GenerationLogRow["generation_line"]
-) {
-  if (line === "line1") return "线路1";
-  if (line === "line2") return "线路2";
-  if (line === "line3") return "线路3";
-  if (line === "line4") return "线路4";
-  if (line === "line5") return "线路5";
-  return kind === "picture_wall" ? "专用接口" : "线路1";
-}
-
-function formatDateTime(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return `${date.getMonth() + 1}-${date.getDate()} ${String(date.getHours()).padStart(2, "0")}:${String(
-    date.getMinutes()
-  ).padStart(2, "0")}`;
 }
 
 function formatDateLabel(iso: string): string {

@@ -10,6 +10,10 @@ mod apimart;
 mod apimart_reference;
 #[path = "../apimart_task.rs"]
 mod apimart_task;
+#[path = "../brand_story.rs"]
+mod brand_story;
+#[path = "../brand_story_clients.rs"]
+mod brand_story_clients;
 #[path = "../env_config.rs"]
 mod env_config;
 #[path = "../gemini_response.rs"]
@@ -73,6 +77,14 @@ async fn main() -> Result<(), String> {
         .route("/api/generate-image", post(generate_image))
         .route("/api/upload-image-to-oss", post(upload_image_to_oss))
         .route("/api/admin-create-user", post(admin_create_user))
+        .route(
+            "/api/brand-story-generate-text",
+            post(brand_story_generate_text),
+        )
+        .route(
+            "/api/brand-story-thread-availability",
+            get(brand_story_thread_availability),
+        )
         .layer(cors_layer())
         .with_state(state);
     let addr = gateway_addr()?;
@@ -99,7 +111,10 @@ async fn generate_image(
     Json(req): Json<api::GenerateRequest>,
 ) -> Result<Json<String>, GatewayError> {
     verify_access_token(&state, &headers).await?;
-    api::generate_image(req).await.map(Json).map_err(GatewayError::bad_gateway)
+    api::generate_image(req)
+        .await
+        .map(Json)
+        .map_err(GatewayError::bad_gateway)
 }
 
 async fn upload_image_to_oss(
@@ -124,6 +139,23 @@ async fn admin_create_user(
         .await
         .map(Json)
         .map_err(GatewayError::bad_request)
+}
+
+async fn brand_story_generate_text(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<brand_story::BrandStoryTextRequestInput>,
+) -> Result<Json<brand_story::BrandCopy>, GatewayError> {
+    verify_access_token(&state, &headers).await?;
+    brand_story::brand_story_generate_text(req)
+        .await
+        .map(Json)
+        .map_err(GatewayError::bad_gateway)
+}
+
+async fn brand_story_thread_availability(
+) -> Json<brand_story::BrandStoryThreadAvailability> {
+    Json(brand_story::brand_story_thread_availability())
 }
 
 async fn verify_access_token(state: &AppState, headers: &HeaderMap) -> Result<(), GatewayError> {

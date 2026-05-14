@@ -1,4 +1,9 @@
-import { getImageEditSpec, IMAGE_EDIT_LABEL, type ImageEditKind } from "../lib/image-edit";
+import {
+  getImageEditSourceMaxCount,
+  getImageEditSpec,
+  IMAGE_EDIT_LABEL,
+  type ImageEditKind,
+} from "../lib/image-edit";
 import type { PlatformSpec, UploadedImage } from "../types";
 import ImageUpload from "./ImageUpload";
 import { IconSparkles } from "./Icons";
@@ -7,9 +12,11 @@ interface Props {
   kind: ImageEditKind;
   platform: PlatformSpec | null;
   images: UploadedImage[];
+  referenceImages: UploadedImage[];
   instruction: string;
   busy: boolean;
   onImagesChange: (images: UploadedImage[]) => void;
+  onReferenceImagesChange: (images: UploadedImage[]) => void;
   onInstructionChange: (value: string) => void;
   onGenerate: () => void;
 }
@@ -18,14 +25,18 @@ export default function ImageEditInputCard({
   kind,
   platform,
   images,
+  referenceImages,
   instruction,
   busy,
   onImagesChange,
+  onReferenceImagesChange,
   onInstructionChange,
   onGenerate,
 }: Props) {
   const label = IMAGE_EDIT_LABEL[kind];
   const spec = platform ? getImageEditSpec(kind, platform) : null;
+  const sourceMaxCount = getImageEditSourceMaxCount(kind);
+  const sourceCountText = kind === "product" ? "1-4 张" : "1 张";
   const canGenerate = Boolean(platform) && images.length > 0 && instruction.trim().length > 0 && !busy;
 
   return (
@@ -39,11 +50,25 @@ export default function ImageEditInputCard({
         <ImageUpload
           images={images}
           onChange={onImagesChange}
-          maxCount={1}
-          dropzoneTitle={`点击、拖拽或 Ctrl+V 粘贴 1 张${label}图片`}
+          maxCount={sourceMaxCount}
+          dropzoneTitle={`点击、拖拽或 Ctrl+V 粘贴 ${sourceCountText}${label}图片`}
           compressedLabel={`${label}参考图`}
           showProductName={kind === "product"}
         />
+        {kind === "product" ? (
+          <span className="field__hint">最多上传 4 张产品图，可把套餐内多个产品融入同一张图</span>
+        ) : null}
+      </div>
+      <div className="field">
+        <label className="field__label">参考图（可选）</label>
+        <ImageUpload
+          images={referenceImages}
+          onChange={onReferenceImagesChange}
+          maxCount={1}
+          dropzoneTitle={`可选：点击、拖拽或 Ctrl+V 粘贴 1 张${label}参考图`}
+          compressedLabel={`${label}可选参考图`}
+        />
+        <span className="field__hint">没有参考图可留空；上传后会随原图一起作为生成参考</span>
       </div>
       <div className="field">
         <label className="field__label">修改要求</label>

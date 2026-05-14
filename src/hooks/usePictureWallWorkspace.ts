@@ -4,8 +4,10 @@ import {
   buildPictureWallEntries,
   failPendingPictureWallEntries,
   generatePictureWallItem,
+  getPictureWallFailedSourceImageIds,
   getPictureWallCompletedCount,
   hasBusyPictureWallEntries,
+  queuePictureWallEntriesForRetry,
   syncPictureWallEntries,
   type PictureWallEntry,
 } from "../lib/picture-wall";
@@ -14,22 +16,37 @@ import {
   type PictureWallDownloadProgress,
 } from "../lib/picture-wall-download";
 import { getAutoRetryAttempt } from "../lib/generation-retry";
-import type { UploadedImage } from "../types";
-import type { GenerationItem, GenerationLine } from "../types";
+import type {
+  AssetKind,
+  BrandStyle,
+  GenerationItem,
+  GenerationLine,
+  Platform,
+  ThemeColor,
+  UploadedImage,
+} from "../types";
+
+const PICTURE_WALL_PLATFORM: Platform = "meituan";
 
 interface Options {
-  shopName: string;
   generationLine: GenerationLine;
   onToast: (message: string, tone: "error" | "info" | "success") => void;
-  onRecordPictureWallHistory?: (item: GenerationItem) => void;
+  onRecordHistory: (
+    kind: AssetKind,
+    item: GenerationItem,
+    shopName: string,
+    platform: Platform
+  ) => void;
 }
 
 export default function usePictureWallWorkspace({
-  shopName,
   generationLine,
   onToast,
-  onRecordPictureWallHistory,
+  onRecordHistory,
 }: Options) {
+  const [shopName, setShopName] = useState("");
+  const [themeColor, setThemeColor] = useState<ThemeColor | "">("");
+  const [brandStyle, setBrandStyle] = useState<BrandStyle | "">("");
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [entries, setEntries] = useState<PictureWallEntry[]>([]);
   const [downloadStatus, setDownloadStatus] = useState<
@@ -58,10 +75,34 @@ export default function usePictureWallWorkspace({
   async function handleGenerate() {
     if (!validateInputs()) return;
 
-    setEntries(buildPictureWallEntries(images, "queued"));
-    onToast("正在按顺序生成 3 张图片墙，请耐心等待…", "info");
+    const snapshot = {
+      shopName: shopName.trim(),
+      generationLine,
+      appearance: {
+        themeColor: themeColor || undefined,
+        brandStyle: brandStyle || undefined,
+      },
+    };
 
-    for (const image of images) {
+    const failedSourceImageIds = getPictureWallFailedSourceImageIds(entries);
+    const shouldRetryFailedOnly = failedSourceImageIds.length > 0;
+    const targetImages = shouldRetryFailedOnly
+      ? images.filter((image) => failedSourceImageIds.includes(image.id))
+      : images;
+
+    setEntries((previous) =>
+      shouldRetryFailedOnly
+        ? queuePictureWallEntriesForRetry(previous, failedSourceImageIds)
+        : buildPictureWallEntries(images, "queued")
+    );
+    onToast(
+      shouldRetryFailedOnly
+        ? `正在补生成 ${targetImages.length} 张失败图片墙，请耐心等待…`
+        : "正在按顺序生成 3 张图片墙，请耐心等待…",
+      "info"
+    );
+
+    for (const image of targetImages) {
       const started = Date.now();
       setEntries((previous) =>
         applyPictureWallEntryUpdate(previous, image.id, (item) => ({
@@ -72,7 +113,8 @@ export default function usePictureWallWorkspace({
       );
 
       try {
-        const item = await generatePictureWallItem(image, shopName, generationLine, {
+        const item = await generatePictureWallItem(image, snapshot.shopName, snapshot.generationLine, {
+          appearance: snapshot.appearance,
           onAttempt: (attempt) =>
             setEntries((previous) =>
               applyPictureWallEntryUpdate(previous, image.id, (current) => ({
@@ -83,7 +125,7 @@ export default function usePictureWallWorkspace({
               }))
             ),
         });
-        onRecordPictureWallHistory?.(item);
+        onRecordHistory("picture_wall", item, snapshot.shopName, PICTURE_WALL_PLATFORM);
         setEntries((previous) =>
           applyPictureWallEntryUpdate(previous, image.id, {
             ...item,
@@ -101,7 +143,7 @@ export default function usePictureWallWorkspace({
       }
     }
 
-    onToast("图片墙已生成完成", "success");
+    onToast(shouldRetryFailedOnly ? "失败图片墙已补生成完成" : "图片墙已生成完成", "success");
   }
 
   async function handleRetry(sourceImageId: string) {
@@ -115,6 +157,15 @@ export default function usePictureWallWorkspace({
       return;
     }
 
+    const snapshot = {
+      shopName: shopName.trim(),
+      generationLine,
+      appearance: {
+        themeColor: themeColor || undefined,
+        brandStyle: brandStyle || undefined,
+      },
+    };
+
     const started = Date.now();
     setEntries((previous) =>
       applyPictureWallEntryUpdate(previous, sourceImageId, (item) => ({
@@ -125,7 +176,8 @@ export default function usePictureWallWorkspace({
     );
 
     try {
-      const item = await generatePictureWallItem(image, shopName, generationLine, {
+      const item = await generatePictureWallItem(image, snapshot.shopName, snapshot.generationLine, {
+        appearance: snapshot.appearance,
         onAttempt: (attempt) =>
           setEntries((previous) =>
             applyPictureWallEntryUpdate(previous, sourceImageId, (current) => ({
@@ -136,7 +188,7 @@ export default function usePictureWallWorkspace({
             }))
           ),
       });
-      onRecordPictureWallHistory?.(item);
+      onRecordHistory("picture_wall", item, snapshot.shopName, PICTURE_WALL_PLATFORM);
       setEntries((previous) =>
         applyPictureWallEntryUpdate(previous, sourceImageId, {
           ...item,
@@ -191,6 +243,12 @@ export default function usePictureWallWorkspace({
   }
 
   return {
+    shopName,
+    setShopName,
+    themeColor,
+    setThemeColor,
+    brandStyle,
+    setBrandStyle,
     images,
     setImages,
     entries,

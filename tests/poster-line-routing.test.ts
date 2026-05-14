@@ -23,6 +23,7 @@ ok(
   "海报生成应和其他 image-2 任务一样透传线路"
 );
 ok(apiSource.includes('"21:9"'), "Rust image-2 请求校验应允许 21:9 海报尺寸");
+ok(apiSource.includes('"1792x768"'), "Rust image-2 请求校验应允许线路2海报像素尺寸");
 ok(
   pockgoFormatSource.includes('"21:9" => "21:9"'),
   "线路4 pockgo 的比例映射应支持 21:9"

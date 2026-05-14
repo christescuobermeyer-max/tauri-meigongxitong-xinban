@@ -37,7 +37,7 @@ create table if not exists public.generation_logs (
   id            uuid primary key default gen_random_uuid(),
   user_id       uuid not null references public.profiles(id) on delete cascade,
   shop_name     text not null,
-  asset_kind    text not null check (asset_kind in ('avatar', 'storefront', 'poster', 'product', 'p_signboard', 'picture_wall', 'detail_page')),
+  asset_kind    text not null check (asset_kind in ('avatar', 'storefront', 'poster', 'product', 'p_signboard', 'picture_wall', 'detail_page', 'brand_story')),
   platform      text not null check (platform in ('meituan', 'taobao')),
   generation_line text check (generation_line in ('line1', 'line2', 'line3', 'line4', 'line5')),
   oss_url       text not null,
@@ -53,7 +53,7 @@ alter table public.generation_logs
 
 alter table public.generation_logs
   add constraint generation_logs_asset_kind_check
-  check (asset_kind in ('avatar', 'storefront', 'poster', 'product', 'p_signboard', 'picture_wall', 'detail_page'));
+  check (asset_kind in ('avatar', 'storefront', 'poster', 'product', 'p_signboard', 'picture_wall', 'detail_page', 'brand_story'));
 
 alter table public.generation_logs
   drop constraint if exists generation_logs_generation_line_check;
@@ -194,7 +194,8 @@ select
   count(*) filter (where asset_kind = 'product')        as product_count,
   count(*) filter (where asset_kind = 'p_signboard')    as p_signboard_count,
   count(*) filter (where asset_kind = 'picture_wall')   as picture_wall_count,
-  count(*) filter (where asset_kind = 'detail_page')    as detail_page_count
+  count(*) filter (where asset_kind = 'detail_page')    as detail_page_count,
+  count(*) filter (where asset_kind = 'brand_story')    as brand_story_count
 from public.generation_logs
 group by user_id, stat_day;
 

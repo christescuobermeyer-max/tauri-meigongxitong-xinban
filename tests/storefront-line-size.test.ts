@@ -88,11 +88,35 @@ function productSize(
   ).size;
 }
 
+function posterSize(line: "line1" | "line2" | "line3" | "line4" | "line5") {
+  return module.buildGenerationPayload(
+    "poster",
+    "测试店",
+    "",
+    "meituan",
+    meituanPlatformSpec,
+    [],
+    item,
+    item,
+    undefined,
+    "image",
+    "",
+    undefined,
+    line
+  ).size;
+}
+
 equal(storefrontSize("line1"), "1536x1024");
 equal(storefrontSize("line2"), "1536x1024");
 equal(storefrontSize("line3"), "1536x1024");
 equal(storefrontSize("line4"), "16:9");
 equal(storefrontSize("line5"), "16:9");
+
+equal(posterSize("line1"), "21:9");
+equal(posterSize("line2"), "1792x768");
+equal(posterSize("line3"), "21:9");
+equal(posterSize("line4"), "21:9");
+equal(posterSize("line5"), "21:9");
 
 equal(productSize("line1", "meituan", meituanPlatformSpec), "1536x1024");
 equal(productSize("line2", "meituan", meituanPlatformSpec), "1536x1024");

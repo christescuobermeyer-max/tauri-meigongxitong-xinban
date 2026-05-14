@@ -77,7 +77,10 @@ fn compress_reference_to_data_url(bytes: &[u8], index: usize) -> Result<String, 
     encoder
         .encode_image(&DynamicImage::ImageRgb8(rgb))
         .map_err(|error| format!("压缩线路5第 {} 张参考图失败：{error}", index + 1))?;
-    Ok(format!("data:image/jpeg;base64,{}", STANDARD.encode(buffer)))
+    Ok(format!(
+        "data:image/jpeg;base64,{}",
+        STANDARD.encode(buffer)
+    ))
 }
 
 fn flatten_to_white_rgb(image: &DynamicImage) -> RgbImage {

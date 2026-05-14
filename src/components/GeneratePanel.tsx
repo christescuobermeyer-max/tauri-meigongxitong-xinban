@@ -1,5 +1,13 @@
-import type { AvatarReferenceMode, GenerationItem, GenerationLine, UploadedImage } from "../types";
+import type {
+  AvatarReferenceMode,
+  BrandStyle,
+  GenerationItem,
+  GenerationLine,
+  ThemeColor,
+  UploadedImage,
+} from "../types";
 import { getAvatarGenerationErrorMessage } from "../lib/avatar-generation";
+import AppearanceFields from "./AppearanceFields";
 import GenerationLineCard from "./GenerationLineCard";
 import ImageUpload from "./ImageUpload";
 import { IconSparkles } from "./Icons";
@@ -13,6 +21,10 @@ interface Props {
   avatarMode: AvatarReferenceMode;
   avatarCategory: string;
   setAvatarCategory: (v: string) => void;
+  themeColor: ThemeColor | "";
+  setThemeColor: (v: ThemeColor | "") => void;
+  brandStyle: BrandStyle | "";
+  setBrandStyle: (v: BrandStyle | "") => void;
   images: UploadedImage[];
   setImages: (imgs: UploadedImage[]) => void;
   onGenerate: () => void;
@@ -32,6 +44,10 @@ export default function GeneratePanel(props: Props) {
     avatarMode,
     avatarCategory,
     setAvatarCategory,
+    themeColor,
+    setThemeColor,
+    brandStyle,
+    setBrandStyle,
     images,
     setImages,
     onGenerate,
@@ -80,6 +96,13 @@ export default function GeneratePanel(props: Props) {
             />
             <span className="field__hint">必填，用于告诉系统店铺主要卖什么</span>
           </div>
+
+          <AppearanceFields
+            themeColor={themeColor}
+            setThemeColor={setThemeColor}
+            brandStyle={brandStyle}
+            setBrandStyle={setBrandStyle}
+          />
 
           <div className="field">
             <label className="field__label">产品图（参考素材）</label>

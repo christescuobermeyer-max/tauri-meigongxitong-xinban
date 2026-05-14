@@ -19,7 +19,7 @@ export default function GenerationLineCard({ value, onChange }: Props) {
         <div className="generation-line-card__notice-row" data-line="line1">
           <span className="generation-line-card__notice-label">线路1</span>
           <span className="generation-line-card__notice-engine">yunwu</span>
-          <span className="generation-line-card__notice-text">王郡江 杨有淇 王涛 使用</span>
+          <span className="generation-line-card__notice-text">线路1已停用，王郡江 杨有淇 王涛 请使用线路5</span>
         </div>
         <div className="generation-line-card__notice-row" data-line="line2">
           <span className="generation-line-card__notice-label">线路2</span>

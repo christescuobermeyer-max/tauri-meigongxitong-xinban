@@ -1,4 +1,4 @@
-import { IconBatchImages, IconDesignSuite, IconHistory, IconImage, IconSettings, IconShield, IconStore } from "./Icons";
+import { IconBatchImages, IconDesignSuite, IconHistory, IconImage, IconSettings, IconShield, IconSparkles, IconStore } from "./Icons";
 import UserStatusCard from "./UserStatusCard";
 import type { WorkspaceTab } from "../hooks/useGenerationWorkspace";
 
@@ -45,6 +45,12 @@ export default function Sidebar({
       desc: "最多 10 张批量全店图",
     },
     {
+      key: "packageImage",
+      label: "制作套餐图",
+      icon: <IconBatchImages />,
+      desc: "最多 4 张产品合成套餐图",
+    },
+    {
       key: "pictureWall",
       label: "图片墙生成",
       icon: <IconImage />,
@@ -67,6 +73,12 @@ export default function Sidebar({
       label: "详情页生成",
       icon: <IconBatchImages />,
       desc: "3 张电商详情页展示图",
+    },
+    {
+      key: "brandStory",
+      label: "品牌故事",
+      icon: <IconSparkles />,
+      desc: "店铺品牌文案 + 5 张配图",
     },
     {
       key: "history",

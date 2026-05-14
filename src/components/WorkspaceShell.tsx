@@ -24,17 +24,21 @@ export default function WorkspaceShell({ profile, isAdmin, onSignOut, onRefresh 
         ? "制作1张设计图"
         : workspace.tab === "productBatch"
           ? "制作全店图"
-          : workspace.tab === "pictureWall"
-            ? "图片墙生成"
-            : workspace.tab === "pSignboard"
-              ? "P门头"
-              : workspace.tab === "imageEdit"
-                ? "修改图片"
-                : workspace.tab === "detailPage"
-                  ? "详情页生成"
-                  : workspace.tab === "history"
-                    ? "历史记录"
-                    : "后台管理";
+          : workspace.tab === "packageImage"
+            ? "制作套餐图"
+            : workspace.tab === "pictureWall"
+              ? "图片墙生成"
+              : workspace.tab === "pSignboard"
+                ? "P门头"
+                : workspace.tab === "imageEdit"
+                  ? "修改图片"
+                  : workspace.tab === "detailPage"
+                    ? "详情页生成"
+                    : workspace.tab === "brandStory"
+                      ? "品牌故事"
+                      : workspace.tab === "history"
+                        ? "历史记录"
+                        : "后台管理";
 
   return (
     <div className="app-shell">

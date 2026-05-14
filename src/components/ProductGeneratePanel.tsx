@@ -1,5 +1,13 @@
-import type { GenerationItem, GenerationLine, Platform, UploadedImage } from "../types";
+import type {
+  BrandStyle,
+  GenerationItem,
+  GenerationLine,
+  Platform,
+  ThemeColor,
+  UploadedImage,
+} from "../types";
 import { getPlatform } from "../lib/platforms";
+import AppearanceFields from "./AppearanceFields";
 import PlatformSelect from "./PlatformSelect";
 import GenerationLineCard from "./GenerationLineCard";
 import ImageUpload from "./ImageUpload";
@@ -15,6 +23,10 @@ interface Props {
   setPlatform: (p: Platform) => void;
   generationLine: GenerationLine;
   setGenerationLine: (line: GenerationLine) => void;
+  themeColor: ThemeColor | "";
+  setThemeColor: (v: ThemeColor | "") => void;
+  brandStyle: BrandStyle | "";
+  setBrandStyle: (v: BrandStyle | "") => void;
   images: UploadedImage[];
   setImages: (imgs: UploadedImage[]) => void;
   onGenerate: () => void;
@@ -32,6 +44,10 @@ export default function ProductGeneratePanel({
   setPlatform,
   generationLine,
   setGenerationLine,
+  themeColor,
+  setThemeColor,
+  brandStyle,
+  setBrandStyle,
   images,
   setImages,
   onGenerate,
@@ -93,6 +109,13 @@ export default function ProductGeneratePanel({
             />
             <span className="field__hint">默认从上传文件名提取，可手动修改，生成时会写入图中</span>
           </div>
+
+          <AppearanceFields
+            themeColor={themeColor}
+            setThemeColor={setThemeColor}
+            brandStyle={brandStyle}
+            setBrandStyle={setBrandStyle}
+          />
 
           <div className="field">
             <label className="field__label">产品图（参考素材）</label>

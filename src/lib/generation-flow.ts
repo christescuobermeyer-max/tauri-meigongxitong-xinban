@@ -7,6 +7,7 @@ import { buildActiveAvatarPrompt, resolveAvatarReferenceImages } from "./avatar-
 import { selectProductUploadReferenceImages } from "./reference-images";
 import { resolveGenerationSize } from "./generation-size";
 import type {
+  AppearanceOptions,
   AssetKind,
   AvatarReferenceMode,
   GenerationLine,
@@ -29,7 +30,8 @@ export function buildGenerationPayload(
   avatarMode: AvatarReferenceMode = "image",
   avatarCategory = "",
   promptOverride?: string,
-  generationLine: GenerationLine = "line1"
+  generationLine: GenerationLine = "line1",
+  appearance: AppearanceOptions = {}
 ) {
   const prompt =
     promptOverride ??
@@ -38,13 +40,14 @@ export function buildGenerationPayload(
           shopName,
           mode: avatarMode,
           category: avatarCategory,
+          appearance,
         })
       : kind === "storefront"
-        ? buildStorefrontPrompt(shopName, avatarCategory)
+        ? buildStorefrontPrompt(shopName, avatarCategory, appearance)
         : kind === "poster"
-          ? buildPosterPrompt(shopName, avatarCategory)
+          ? buildPosterPrompt(shopName, avatarCategory, appearance)
           : kind === "product"
-            ? buildProductPrompt(shopName, productName, platform)
+            ? buildProductPrompt(shopName, productName, platform, appearance)
             : promptOverride ?? "");
   const size = resolveGenerationSize(kind, currentPlatform, generationLine);
   const productImages = resolveReferenceImages(

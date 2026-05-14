@@ -19,6 +19,10 @@ VECTORENGINE_IMAGE_2_API_KEY=线路3 key
 POCKGO_IMAGE_2_API_KEY=线路4 key
 APIMART_IMAGE_2_API_KEY=线路5 key
 
+# 品牌故事文案接口（仅启用 yunwu 线路；图片仍走上述 image-2 线路）
+BRAND_STORY_THREAD1_BASE_URL=https://yunwu.ai
+BRAND_STORY_THREAD1_TEXT_API_KEY=品牌故事文案 key
+
 ALI_OSS_REGION=oss-cn-hangzhou
 ALI_OSS_ACCESS_KEY_ID=你的 OSS access key id
 ALI_OSS_ACCESS_KEY_SECRET=你的 OSS access key secret
@@ -27,6 +31,10 @@ ALI_OSS_BUCKET=你的 OSS bucket
 BACKEND_GATEWAY_HOST=0.0.0.0
 BACKEND_GATEWAY_PORT=8787
 ```
+
+> 品牌故事工作区新增两个端点：
+> - `POST /api/brand-story-generate-text`：生成 6 段品牌文案（鉴权同 generate-image，需要 Supabase access_token）
+> - `GET  /api/brand-story-thread-availability`：返回 4 条线路可用性，仅暴露线路名称/描述，不暴露密钥本身
 
 ## 后端构建与启动
 

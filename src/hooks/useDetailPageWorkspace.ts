@@ -9,21 +9,33 @@ import {
 } from "../lib/detail-page";
 import { downloadDetailPageEntries, downloadDetailPageEntry } from "../lib/detail-page-download";
 import { getAutoRetryAttempt } from "../lib/generation-retry";
-import type { GenerationItem, GenerationLine, UploadedImage } from "../types";
+import type {
+  AssetKind,
+  GenerationItem,
+  GenerationLine,
+  Platform,
+  UploadedImage,
+} from "../types";
+
+const DETAIL_PAGE_PLATFORM: Platform = "meituan";
 
 interface Options {
-  shopName: string;
   generationLine: GenerationLine;
   onToast: (message: string, tone: "error" | "info" | "success") => void;
-  onRecordDetailPageHistory?: (item: GenerationItem) => void;
+  onRecordHistory: (
+    kind: AssetKind,
+    item: GenerationItem,
+    shopName: string,
+    platform: Platform
+  ) => void;
 }
 
 export default function useDetailPageWorkspace({
-  shopName,
   generationLine,
   onToast,
-  onRecordDetailPageHistory,
+  onRecordHistory,
 }: Options) {
+  const [shopName, setShopName] = useState("");
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [entries, setEntries] = useState<DetailPageEntry[]>(() => buildDetailPageEntries());
 
@@ -50,11 +62,16 @@ export default function useDetailPageWorkspace({
     if (!validateInputs()) return;
     const sourceImage = images[0];
 
+    const snapshot = {
+      shopName: shopName.trim(),
+      generationLine,
+    };
+
     setEntries(buildDetailPageEntries("queued"));
     onToast("正在按顺序生成 3 张详情页图，请耐心等待…", "info");
 
     for (const entry of buildDetailPageEntries("queued")) {
-      await runSingle(sourceImage, entry.pageIndex);
+      await runSingle(sourceImage, entry.pageIndex, snapshot);
     }
 
     onToast("详情页图已生成完成", "success");
@@ -62,10 +79,18 @@ export default function useDetailPageWorkspace({
 
   async function handleRetry(pageIndex: number) {
     if (!validateInputs()) return;
-    await runSingle(images[0], pageIndex);
+    const snapshot = {
+      shopName: shopName.trim(),
+      generationLine,
+    };
+    await runSingle(images[0], pageIndex, snapshot);
   }
 
-  async function runSingle(sourceImage: UploadedImage, pageIndex: number) {
+  async function runSingle(
+    sourceImage: UploadedImage,
+    pageIndex: number,
+    snapshot: { shopName: string; generationLine: GenerationLine }
+  ) {
     const started = Date.now();
     setEntries((previous) =>
       applyDetailPageEntryUpdate(previous, pageIndex, (item) => ({
@@ -76,19 +101,25 @@ export default function useDetailPageWorkspace({
     );
 
     try {
-      const item = await generateDetailPageItem(sourceImage, shopName, pageIndex, generationLine, {
-        onAttempt: (attempt) =>
-          setEntries((previous) =>
-            applyDetailPageEntryUpdate(previous, pageIndex, (current) => ({
-              ...current,
-              status: "running",
-              errorMessage: undefined,
-              attempt,
-            }))
-          ),
-      });
+      const item = await generateDetailPageItem(
+        sourceImage,
+        snapshot.shopName,
+        pageIndex,
+        snapshot.generationLine,
+        {
+          onAttempt: (attempt) =>
+            setEntries((previous) =>
+              applyDetailPageEntryUpdate(previous, pageIndex, (current) => ({
+                ...current,
+                status: "running",
+                errorMessage: undefined,
+                attempt,
+              }))
+            ),
+        }
+      );
       const itemWithElapsed = { ...item, elapsedMs: Date.now() - started };
-      onRecordDetailPageHistory?.(itemWithElapsed);
+      onRecordHistory("detail_page", itemWithElapsed, snapshot.shopName, DETAIL_PAGE_PLATFORM);
       setEntries((previous) => applyDetailPageEntryUpdate(previous, pageIndex, itemWithElapsed));
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
@@ -127,6 +158,8 @@ export default function useDetailPageWorkspace({
   }
 
   return {
+    shopName,
+    setShopName,
     images,
     setImages,
     entries,

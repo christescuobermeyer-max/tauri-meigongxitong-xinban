@@ -9,6 +9,7 @@ import PlatformSelect from "./PlatformSelect";
 
 interface Entry {
   images: UploadedImage[];
+  referenceImages: UploadedImage[];
   instruction: string;
   item: GenerationItem;
 }
@@ -24,6 +25,7 @@ interface Props {
   entries: Record<ImageEditKind, Entry>;
   busy: boolean;
   setImages: (kind: ImageEditKind, images: UploadedImage[]) => void;
+  setReferenceImages: (kind: ImageEditKind, images: UploadedImage[]) => void;
   setInstruction: (kind: ImageEditKind, value: string) => void;
   onGenerate: (kind: ImageEditKind) => void;
   onDownload: (kind: ImageEditKind) => void;
@@ -40,6 +42,7 @@ export default function ImageEditPage({
   entries,
   busy,
   setImages,
+  setReferenceImages,
   setInstruction,
   onGenerate,
   onDownload,
@@ -82,9 +85,11 @@ export default function ImageEditPage({
               kind={activeKind}
               platform={currentPlatform}
               images={activeEntry.images}
+              referenceImages={activeEntry.referenceImages}
               instruction={activeEntry.instruction}
               busy={busy}
               onImagesChange={(images) => setImages(activeKind, images)}
+              onReferenceImagesChange={(images) => setReferenceImages(activeKind, images)}
               onInstructionChange={(value) => setInstruction(activeKind, value)}
               onGenerate={() => onGenerate(activeKind)}
             />

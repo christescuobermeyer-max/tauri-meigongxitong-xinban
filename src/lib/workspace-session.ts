@@ -4,6 +4,7 @@ import { getAutoRetryAttempt, runWithAutoRetry } from "./generation-retry";
 import { ensureUploadedImagesOnOss } from "./oss-assets";
 import { generateAsset } from "./workspace-generation";
 import type {
+  AppearanceOptions,
   AssetKind,
   AvatarReferenceMode,
   GenerationLine,
@@ -46,6 +47,7 @@ interface RunOneOptions {
   avatarMode: AvatarReferenceMode;
   avatarCategory: string;
   generationLine: GenerationLine;
+  appearance?: AppearanceOptions;
   onToast: (message: string, tone: "error" | "info" | "success") => void;
 }
 
@@ -99,6 +101,7 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
     avatarMode,
     avatarCategory,
     generationLine,
+    appearance,
     onToast,
   } = options;
   const setter = getSetterByKind(kind, setters);
@@ -122,6 +125,7 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
           avatarMode,
           avatarCategory,
           generationLine,
+          appearance,
         }),
     });
     setter({

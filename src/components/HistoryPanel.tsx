@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
+import { downloadHistoryEntry } from "../lib/history-download";
 import type { HistoryEntry } from "../lib/history";
-import type { AssetKind } from "../types";
 import {
   getHistoryPageCount,
   getHistoryPageCountFromTotal,
   getPagedHistoryEntries,
 } from "../lib/history-pagination";
+import type { AssetKind } from "../types";
+import { IconDownload } from "./Icons";
+import { useToast } from "./Toast";
 
 interface Props {
   entries: HistoryEntry[];
@@ -22,11 +25,13 @@ export default function HistoryPanel({
   loading = false,
   onPageChange,
 }: Props) {
+  const toast = useToast();
   const [localPage, setLocalPage] = useState(1);
+  const [downloadingIds, setDownloadingIds] = useState<Set<string>>(() => new Set());
   const isControlled = typeof controlledPage === "number" && typeof onPageChange === "function";
   const page = isControlled ? controlledPage : localPage;
-  const total = totalCount ?? entries.length;
-  const pageCount = totalCount === undefined ? getHistoryPageCount(entries) : getHistoryPageCountFromTotal(total);
+  const total = (totalCount != null && totalCount > 0) ? totalCount : entries.length;
+  const pageCount = (totalCount != null && totalCount > 0) ? getHistoryPageCountFromTotal(totalCount) : getHistoryPageCount(entries);
   const pageEntries = isControlled ? entries : getPagedHistoryEntries(entries, page);
 
   useEffect(() => {
@@ -47,6 +52,33 @@ export default function HistoryPanel({
     if (!isControlled || page <= pageCount) return;
     onPageChange?.(pageCount);
   }, [isControlled, onPageChange, page, pageCount]);
+
+  async function handleDownload(entry: HistoryEntry) {
+    if (downloadingIds.has(entry.id)) return;
+    setDownloadingIds((prev) => {
+      const next = new Set(prev);
+      next.add(entry.id);
+      return next;
+    });
+    try {
+      const saved = await downloadHistoryEntry(entry);
+      if (!saved || saved.length === 0) return;
+      const message =
+        saved.length === 1 ? `已保存至：${saved[0]}` : `已保存 ${saved.length} 个文件`;
+      toast.show(message, "success");
+    } catch (error: unknown) {
+      toast.show(
+        `下载失败：${error instanceof Error ? error.message : String(error)}`,
+        "error"
+      );
+    } finally {
+      setDownloadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(entry.id);
+        return next;
+      });
+    }
+  }
 
   return (
     <div className="card">
@@ -75,7 +107,7 @@ export default function HistoryPanel({
                 <span>第 {page} / {pageCount} 页</span>
                 <button
                   className="btn btn--ghost btn--sm"
-                  disabled={page >= pageCount}
+                  disabled
                   onClick={() => setPage(page + 1)}
                 >
                   下一页
@@ -83,27 +115,39 @@ export default function HistoryPanel({
               </div>
             </div>
             <div className="history-grid history-grid--compact history-grid--five-columns">
-              {pageEntries.map((entry) => (
-                <article key={entry.id} className="history-card history-card--compact">
-                  <div className="history-card__preview history-card__preview--contain">
-                    <img
-                      className="history-card__image history-card__image--contain"
-                      src={entry.previewUrl || entry.remoteUrl}
-                      alt={`${entry.shopName}-${entry.title}`}
-                    />
-                  </div>
-                  <div className="history-card__meta">
-                    <div className="history-card__head">
-                      <strong>{entry.title}</strong>
-                      <span>{formatCreatedAt(entry.createdAt)}</span>
+              {pageEntries.map((entry) => {
+                const isDownloading = downloadingIds.has(entry.id);
+                return (
+                  <article key={entry.id} className="history-card history-card--compact">
+                    <div className="history-card__preview history-card__preview--contain">
+                      <img
+                        className="history-card__image history-card__image--contain"
+                        src={entry.previewUrl || entry.remoteUrl}
+                        alt={`${entry.shopName}-${entry.title}`}
+                      />
                     </div>
-                    <div className="history-card__line">
-                      {getGenerationLineLabel(entry.kind, entry.generationLine)}
+                    <div className="history-card__meta">
+                      <div className="history-card__head">
+                        <strong>{entry.title}</strong>
+                        <span>{formatCreatedAt(entry.createdAt)}</span>
+                      </div>
+                      <div className="history-card__line">
+                        {getGenerationLineLabel(entry.kind, entry.generationLine)}
+                      </div>
+                      <div className="history-card__shop">{entry.shopName}</div>
+                      <button
+                        className="btn btn--secondary btn--sm history-card__download"
+                        type="button"
+                        disabled={isDownloading}
+                        onClick={() => handleDownload(entry)}
+                      >
+                        <IconDownload style={{ width: 13, height: 13 }} />
+                        {isDownloading ? "下载中…" : "下载"}
+                      </button>
                     </div>
-                    <div className="history-card__shop">{entry.shopName}</div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           </>
         )}

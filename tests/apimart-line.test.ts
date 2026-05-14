@@ -17,6 +17,7 @@ const supabaseSource = read("src/lib/supabase.ts");
 const historySource = read("src/lib/history.ts");
 const historyPanelSource = read("src/components/HistoryPanel.tsx");
 const adminDetailSource = read("src/components/admin/AdminGenerationDetail.tsx");
+const adminLogListSource = read("src/components/admin/AdminGenerationLogList.tsx");
 const schemaSource = read("supabase/schema.sql");
 const providerSource = read("src-tauri/src/image_provider.rs");
 const apiSource = read("src-tauri/src/api.rs");
@@ -37,7 +38,7 @@ ok(topbarSource.includes('line5: "线路5"'), "顶部当前线路提醒应支持
 ok(supabaseSource.includes('"line5"'), "云端生图记录类型应允许线路5");
 ok(historySource.includes('"line5"'), "历史记录规范化应保留线路5");
 ok(historyPanelSource.includes('if (line === "line5") return "线路5";'), "历史记录应显示线路5");
-ok(adminDetailSource.includes('if (line === "line5") return "线路5";'), "后台明细应显示线路5");
+ok(adminLogListSource.includes('if (line === "line5") return "线路5";'), "后台明细应显示线路5");
 ok(schemaSource.includes("'line5'"), "Supabase 约束应允许写入线路5");
 
 ok(providerSource.includes('#[serde(rename = "line5")]'), "Rust 生图线路枚举应包含 line5");

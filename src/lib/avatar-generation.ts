@@ -1,11 +1,12 @@
 import { buildAvatarCategoryPrompt, buildAvatarPrompt } from "./prompts";
 import { selectAvatarReferenceImages } from "./reference-images";
-import type { AvatarReferenceMode, UploadedImage } from "../types";
+import type { AppearanceOptions, AvatarReferenceMode, UploadedImage } from "../types";
 
 interface AvatarPromptOptions {
   shopName: string;
   mode: AvatarReferenceMode;
   category: string;
+  appearance?: AppearanceOptions;
 }
 
 interface AvatarValidationOptions {
@@ -16,10 +17,10 @@ interface AvatarValidationOptions {
 }
 
 export function buildActiveAvatarPrompt(options: AvatarPromptOptions): string {
-  const { shopName, category } = options;
+  const { shopName, category, appearance } = options;
   return category.trim()
-    ? buildAvatarCategoryPrompt(shopName, category)
-    : buildAvatarPrompt(shopName);
+    ? buildAvatarCategoryPrompt(shopName, category, appearance ?? {})
+    : buildAvatarPrompt(shopName, appearance ?? {});
 }
 
 export function getAvatarGenerationErrorMessage(

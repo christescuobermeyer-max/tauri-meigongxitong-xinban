@@ -2,6 +2,7 @@ import { archiveGeneratedImage } from "./oss-assets";
 import { buildGenerationPayload } from "./generation-flow";
 import { generateImage } from "./tauri";
 import type {
+  AppearanceOptions,
   AssetKind,
   AvatarReferenceMode,
   GenerationLine,
@@ -42,6 +43,7 @@ export async function generateAsset(options: {
   avatarCategory?: string;
   promptOverride?: string;
   generationLine: GenerationLine;
+  appearance?: AppearanceOptions;
 }): Promise<GenerateAssetResult> {
   const {
     kind,
@@ -57,6 +59,7 @@ export async function generateAsset(options: {
     avatarCategory = "",
     promptOverride,
     generationLine,
+    appearance = {},
   } = options;
   const { prompt, size, productImages } = buildGenerationPayload(
     kind,
@@ -71,7 +74,8 @@ export async function generateAsset(options: {
     avatarMode,
     avatarCategory,
     promptOverride,
-    generationLine
+    generationLine,
+    appearance
   );
 
   if (shouldRequireReferenceImages(kind, avatarMode) && (!productImages || productImages.length === 0)) {

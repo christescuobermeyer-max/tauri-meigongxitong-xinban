@@ -1,6 +1,7 @@
-import type { GenerationLine, Platform, UploadedImage } from "../types";
+import type { BrandStyle, GenerationLine, Platform, ThemeColor, UploadedImage } from "../types";
 import type { ProductBatchEntry } from "../lib/product-batch";
 import { getPlatform } from "../lib/platforms";
+import AppearanceFields from "./AppearanceFields";
 import PlatformSelect from "./PlatformSelect";
 import GenerationLineCard from "./GenerationLineCard";
 import ImageUpload from "./ImageUpload";
@@ -14,6 +15,10 @@ interface Props {
   setPlatform: (value: Platform) => void;
   generationLine: GenerationLine;
   setGenerationLine: (line: GenerationLine) => void;
+  themeColor: ThemeColor | "";
+  setThemeColor: (value: ThemeColor | "") => void;
+  brandStyle: BrandStyle | "";
+  setBrandStyle: (value: BrandStyle | "") => void;
   images: UploadedImage[];
   setImages: (images: UploadedImage[]) => void;
   styleImages: UploadedImage[];
@@ -31,6 +36,10 @@ export default function ProductBatchGeneratePanel({
   setPlatform,
   generationLine,
   setGenerationLine,
+  themeColor,
+  setThemeColor,
+  brandStyle,
+  setBrandStyle,
   images,
   setImages,
   styleImages,
@@ -98,6 +107,13 @@ export default function ProductBatchGeneratePanel({
             </div>
             <span className="field__hint">生成时会把各产品名称分别替换到对应的全店图文案中</span>
           </div>
+
+          <AppearanceFields
+            themeColor={themeColor}
+            setThemeColor={setThemeColor}
+            brandStyle={brandStyle}
+            setBrandStyle={setBrandStyle}
+          />
 
           <div className="field">
             <label className="field__label">参考设计风格图</label>

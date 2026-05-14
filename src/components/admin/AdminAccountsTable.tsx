@@ -39,6 +39,7 @@ export default function AdminAccountsTable({ accounts, loading, selectedId, onSe
                 <tr
                   key={account.id}
                   data-active={account.id === selectedId}
+                  data-all={account.is_all ? "true" : undefined}
                   onClick={() => onSelect(account.id)}
                 >
                   <td>
@@ -47,18 +48,25 @@ export default function AdminAccountsTable({ accounts, loading, selectedId, onSe
                       <div>
                         <strong>{account.display_name}</strong>
                         <span className="admin-table__sub">
-                          {account.id.slice(0, 8)}…{account.is_active ? "" : " · 已停用"}
+                          {account.is_all
+                            ? "所有账户 · 汇总视图"
+                            : `${account.id.slice(0, 8)}…${account.is_active ? "" : " · 已停用"}`}
                         </span>
                       </div>
                     </div>
                   </td>
                   <td>
-                    <span className="badge" data-tone={account.role === "admin" ? "warn" : "info"}>
-                      {account.role === "admin" ? "管理员" : "普通"}
+                    <span
+                      className="badge"
+                      data-tone={account.is_all ? "info" : account.role === "admin" ? "warn" : "info"}
+                    >
+                      {account.is_all ? "全部" : account.role === "admin" ? "管理员" : "普通"}
                     </span>
                   </td>
-                  <td>{account.login_count}</td>
-                  <td className="admin-table__time">{formatDate(account.last_login_at)}</td>
+                  <td>{account.is_all ? "—" : account.login_count}</td>
+                  <td className="admin-table__time">
+                    {account.is_all ? "—" : formatDate(account.last_login_at)}
+                  </td>
                   <td><strong>{account.total_count}</strong></td>
                   <td>{account.today_count}</td>
                 </tr>

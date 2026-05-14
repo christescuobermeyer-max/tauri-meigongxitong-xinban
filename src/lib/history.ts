@@ -1,6 +1,6 @@
-import type { GenerationLogRow } from "./supabase";
+import type { GenerationLogRow, PlatformDb } from "./supabase";
 import { pruneExpiredHistoryEntries } from "./history-retention.js";
-import type { AssetKind } from "../types";
+import type { AssetKind, Platform } from "../types";
 
 export interface HistoryEntry {
   id: string;
@@ -8,6 +8,7 @@ export interface HistoryEntry {
   title: string;
   shopName: string;
   remoteUrl: string;
+  platform: Platform;
   generationLine?: "line1" | "line2" | "line3" | "line4" | "line5" | null;
   previewUrl?: string;
   createdAt: string;
@@ -27,7 +28,7 @@ export function buildHistoryEntriesFromGenerationLogs(
   logs: Array<
     Pick<
       GenerationLogRow,
-      "id" | "asset_kind" | "shop_name" | "oss_url" | "generation_line" | "created_at"
+      "id" | "asset_kind" | "shop_name" | "oss_url" | "generation_line" | "created_at" | "platform"
     >
   >,
   now = new Date()
@@ -40,6 +41,7 @@ export function buildHistoryEntriesFromGenerationLogs(
         title: getHistoryTitle(log.asset_kind),
         shopName: log.shop_name,
         remoteUrl: log.oss_url,
+        platform: normalizePlatform(log.platform),
         generationLine: normalizeGenerationLine(log.asset_kind, log.generation_line),
         createdAt: log.created_at,
       }))
@@ -63,7 +65,9 @@ export function getHistoryTitle(kind: AssetKind): string {
               ? "图片墙"
               : kind === "detail_page"
                 ? "详情页"
-                : "图片墙";
+                : kind === "brand_story"
+                  ? "品牌故事"
+                  : "图片墙";
 }
 
 export function loadHistoryEntries(): HistoryEntry[] {
@@ -88,6 +92,7 @@ export function saveHistoryEntries(entries: HistoryEntry[]) {
       title: entry.title,
       shopName: entry.shopName,
       remoteUrl: entry.remoteUrl,
+      platform: entry.platform,
       generationLine: entry.generationLine,
       createdAt: entry.createdAt,
     }));
@@ -107,6 +112,7 @@ function isHistoryEntry(value: unknown): value is HistoryEntry {
     typeof entry.title === "string" &&
     typeof entry.shopName === "string" &&
     typeof entry.remoteUrl === "string" &&
+    (entry.platform === "meituan" || entry.platform === "taobao" || typeof entry.platform === "undefined") &&
     (entry.generationLine === "line1" || entry.generationLine === "line2" || entry.generationLine === "line3" || entry.generationLine === "line4" || entry.generationLine === "line5" || entry.generationLine === null || typeof entry.generationLine === "undefined") &&
     (typeof entry.previewUrl === "string" || typeof entry.previewUrl === "undefined") &&
     typeof entry.createdAt === "string"
@@ -117,12 +123,18 @@ function normalizeHistoryEntries(entries: HistoryEntry[]): HistoryEntry[] {
   return entries.map((entry) => {
     const inferredKind = inferHistoryKindFromUrl(entry.remoteUrl) ?? entry.kind;
     const generationLine = normalizeGenerationLine(inferredKind, entry.generationLine);
+    const platform = normalizePlatform(entry.platform);
     return inferredKind === entry.kind &&
       entry.title === getHistoryTitle(inferredKind) &&
-      generationLine === entry.generationLine
+      generationLine === entry.generationLine &&
+      platform === entry.platform
       ? entry
-      : { ...entry, kind: inferredKind, title: getHistoryTitle(inferredKind), generationLine };
+      : { ...entry, kind: inferredKind, title: getHistoryTitle(inferredKind), generationLine, platform };
   });
+}
+
+function normalizePlatform(platform: PlatformDb | Platform | null | undefined): Platform {
+  return platform === "taobao" ? "taobao" : "meituan";
 }
 
 function normalizeGenerationLine(
@@ -138,5 +150,6 @@ function inferHistoryKindFromUrl(remoteUrl: string): AssetKind | null {
   if (value.includes("p-signboard")) return "p_signboard";
   if (value.includes("picture-wall")) return "picture_wall";
   if (value.includes("detail-page")) return "detail_page";
+  if (value.includes("brand-story")) return "brand_story";
   return null;
 }

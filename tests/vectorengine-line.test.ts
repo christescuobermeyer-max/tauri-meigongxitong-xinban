@@ -17,6 +17,10 @@ const adminDetailSource = readFileSync(
   new URL("../src/components/admin/AdminGenerationDetail.tsx", import.meta.url),
   "utf8"
 );
+const adminLogListSource = readFileSync(
+  new URL("../src/components/admin/AdminGenerationLogList.tsx", import.meta.url),
+  "utf8"
+);
 const adminFiltersSource = readFileSync(
   new URL("../src/lib/admin-log-filters.ts", import.meta.url),
   "utf8"
@@ -44,8 +48,8 @@ equal(tauriSource.includes("线路4为 pockgo"), true);
 equal(supabaseSource.includes('"line1" | "line2" | "line3" | "line4" | "line5" | null'), true);
 equal(historySource.includes('if (line === "line3") return "线路3";'), true);
 equal(historySource.includes('if (line === "line4") return "线路4";'), true);
-equal(adminDetailSource.includes('if (line === "line3") return "线路3";'), true);
-equal(adminDetailSource.includes('if (line === "line4") return "线路4";'), true);
+equal(adminLogListSource.includes('if (line === "line3") return "线路3";'), true);
+equal(adminLogListSource.includes('if (line === "line4") return "线路4";'), true);
 equal(adminFiltersSource.includes('line3: "线路3"'), true);
 equal(adminFiltersSource.includes('line4: "线路4"'), true);
 equal(adminFiltersSource.includes('line5: "线路5"'), true);

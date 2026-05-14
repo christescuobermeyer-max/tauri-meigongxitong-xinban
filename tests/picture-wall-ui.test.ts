@@ -10,19 +10,20 @@ const workspaceHookSource = readFileSync(
 );
 equal(workspaceHookSource.includes('"pictureWall"'), true);
 equal(workspaceHookSource.includes("usePictureWallWorkspace"), true);
-equal(workspaceHookSource.includes("onRecordPictureWallHistory"), true);
-equal(workspaceHookSource.includes('pushHistoryEntry("picture_wall", item)'), true);
-equal(workspaceHookSource.includes("retryPictureWallItem"), true);
+equal(workspaceHookSource.includes("onRecordHistory: recordHistory"), true);
+equal(workspaceHookSource.includes("pictureWall,"), true);
 equal(workspaceHookSource.includes("resetPictureWall"), false);
 
 const pictureWallHookSource = readFileSync(
   new URL("../src/hooks/usePictureWallWorkspace.ts", import.meta.url),
   "utf8"
 );
-equal(pictureWallHookSource.includes("onRecordPictureWallHistory"), true);
-equal(pictureWallHookSource.includes("onRecordPictureWallHistory?.(item)"), true);
+equal(pictureWallHookSource.includes("onRecordHistory"), true);
+equal(pictureWallHookSource.includes('onRecordHistory("picture_wall"'), true);
 equal(pictureWallHookSource.includes("generationLine"), true);
 equal(pictureWallHookSource.includes("handleRetry"), true);
+equal(pictureWallHookSource.includes("getPictureWallFailedSourceImageIds"), true);
+equal(pictureWallHookSource.includes("queuePictureWallEntriesForRetry"), true);
 equal(pictureWallHookSource.includes("function reset"), false);
 
 const shellSource = readFileSync(new URL("../src/components/WorkspaceShell.tsx", import.meta.url), "utf8");
@@ -37,6 +38,7 @@ const pageSource = readFileSync(new URL("../src/components/PictureWallPage.tsx",
 equal(pageSource.includes("ImageUpload"), true);
 equal(pageSource.includes("maxCount={3}"), true);
 equal(pageSource.includes("生成图片墙"), true);
+equal(pageSource.includes("补生成失败图片"), true);
 equal(pageSource.includes("PICTURE_WALL_EXPORT_SIZE"), true);
 equal(pageSource.includes("downloadStatus"), true);
 equal(pageSource.includes("GenerationLineCard"), true);

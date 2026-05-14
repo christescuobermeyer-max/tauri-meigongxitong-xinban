@@ -3,6 +3,7 @@ import type { AssetKind, GenerationLine, PlatformSpec } from "../types";
 const IMAGE_GENERATION_STOREFRONT_SIZE = "1536x1024";
 const DETAIL_PAGE_GENERATION_SIZE = "1024x1536";
 const POCKGO_STOREFRONT_RATIO = "16:9";
+const YUNWU_POSTER_SIZE = "1792x768";
 
 export function resolveStorefrontGenerationSize(line: GenerationLine = "line1") {
   return line === "line4" || line === "line5" ? POCKGO_STOREFRONT_RATIO : IMAGE_GENERATION_STOREFRONT_SIZE;
@@ -22,7 +23,7 @@ export function resolveGenerationSize(
   if (kind === "storefront" || kind === "p_signboard") {
     return resolveStorefrontGenerationSize(line);
   }
-  if (kind === "poster") return currentPlatform.poster.sourceLabel;
+  if (kind === "poster") return line === "line2" ? YUNWU_POSTER_SIZE : currentPlatform.poster.sourceLabel;
   if (kind === "detail_page") return DETAIL_PAGE_GENERATION_SIZE;
   if (kind === "product") return formatSize(currentPlatform.product.source);
   return IMAGE_GENERATION_STOREFRONT_SIZE;

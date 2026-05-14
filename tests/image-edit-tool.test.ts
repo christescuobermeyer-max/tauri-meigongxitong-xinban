@@ -1,4 +1,4 @@
-import { equal, ok } from "node:assert/strict";
+import { deepEqual, equal, ok } from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
 
@@ -19,8 +19,63 @@ const prompt = libModule.buildImageEditPrompt({
   productName: "招牌饭",
 });
 ok(prompt.includes("上传的产品图 OSS 地址：https://oss.example.com/source.jpg"));
+equal(prompt.includes("参考图仅用于风格、构图或细节参照"), false);
+equal(prompt.includes("不要替代原图主体"), false);
+ok(prompt.includes("除非修改要求明确要求替换主体、食物或参考图元素"));
 ok(prompt.includes("修改要求：“把背景改成暖色，产品主体不变”"));
 ok(prompt.includes("产品名称：“招牌饭”"));
+
+const packagePrompt = libModule.buildImageEditPrompt({
+  kind: "product",
+  instruction: "制作套餐图，四个产品都要出现",
+  referenceUrls: [
+    "https://oss.example.com/dish-a.jpg",
+    "https://oss.example.com/dish-b.jpg",
+    "https://oss.example.com/dish-c.jpg",
+    "https://oss.example.com/dish-d.jpg",
+  ],
+  shopName: "套餐店",
+  productName: "双人套餐",
+});
+ok(packagePrompt.includes("上传的产品图 OSS 地址共 4 张"));
+ok(packagePrompt.includes("第 4 张 https://oss.example.com/dish-d.jpg"));
+ok(packagePrompt.includes("都合理融入同一张成图"));
+equal(typeof libModule.getImageEditSourceMaxCount, "function");
+equal(libModule.getImageEditSourceMaxCount("product"), 4);
+equal(libModule.getImageEditSourceMaxCount("avatar"), 1);
+
+deepEqual(
+  libModule.resolveImageEditReferences(
+    [{ productOssUrl: "https://oss.example.com/source.jpg", productBase64: "source-base64" }],
+    []
+  ),
+  ["https://oss.example.com/source.jpg"]
+);
+deepEqual(
+  libModule.resolveImageEditReferences(
+    [{ productBase64: "source-base64" }],
+    [{ productOssUrl: "https://oss.example.com/style.jpg" }, { base64: "legacy-ref" }]
+  ),
+  ["source-base64", "https://oss.example.com/style.jpg", "legacy-ref"]
+);
+deepEqual(
+  libModule.resolveImageEditReferences(
+    [
+      { productOssUrl: "https://oss.example.com/dish-a.jpg" },
+      { productOssUrl: "https://oss.example.com/dish-b.jpg" },
+      { productBase64: "dish-c-base64" },
+      { base64: "dish-d-base64" },
+    ],
+    [{ productOssUrl: "https://oss.example.com/style.jpg" }]
+  ),
+  [
+    "https://oss.example.com/dish-a.jpg",
+    "https://oss.example.com/dish-b.jpg",
+    "dish-c-base64",
+    "dish-d-base64",
+    "https://oss.example.com/style.jpg",
+  ]
+);
 
 const platform = {
   avatar: { w: 800, h: 800 },
@@ -38,6 +93,10 @@ const pagesSource = readFileSync(new URL("../src/components/WorkspacePages.tsx",
 const hookSource = readFileSync(new URL("../src/hooks/useImageEditWorkspace.ts", import.meta.url), "utf8");
 const workspaceSource = readFileSync(new URL("../src/hooks/useGenerationWorkspace.ts", import.meta.url), "utf8");
 const pageSource = readFileSync(new URL("../src/components/ImageEditPage.tsx", import.meta.url), "utf8");
+const inputCardSource = readFileSync(
+  new URL("../src/components/ImageEditInputCard.tsx", import.meta.url),
+  "utf8"
+);
 
 equal(sidebarSource.includes('key: "pSignboard"'), true);
 ok(sidebarSource.indexOf('key: "imageEdit"') > sidebarSource.indexOf('key: "pSignboard"'));
@@ -47,14 +106,19 @@ equal(pagesSource.includes("ImageEditPage"), true);
 equal(workspaceSource.includes(' | "imageEdit"'), true);
 equal(workspaceSource.includes(' | "detailPage"'), true);
 equal(workspaceSource.includes("useImageEditWorkspace"), true);
-equal(workspaceSource.includes("handleGenerateImageEdit"), true);
+equal(workspaceSource.includes("imageEdit,"), true);
 equal(workspaceSource.includes("useDetailPageWorkspace"), true);
-equal(workspaceSource.includes("handleGenerateDetailPage"), true);
+equal(workspaceSource.includes("detailPage,"), true);
 equal(hookSource.includes("ensureUploadedImagesOnOss"), true);
 equal(hookSource.includes("runWithAutoRetry"), true);
-equal(hookSource.includes("referenceImages: [referenceUrl]"), true);
+equal(hookSource.includes("referenceImages: requestReferences"), true);
+equal(hookSource.includes("referenceUrls: sourceReferences"), true);
+equal(hookSource.includes("setReferenceImages"), true);
 equal(hookSource.includes("attempt: generated.attempt"), true);
 equal(hookSource.includes("saveGeneratedAsset(kind"), true);
+equal(inputCardSource.includes("getImageEditSourceMaxCount"), true);
+equal(inputCardSource.includes("maxCount={sourceMaxCount}"), true);
+equal(inputCardSource.includes("最多上传 4 张产品图"), true);
 equal(pageSource.includes("GenerationLineCard"), true);
 equal(pageSource.includes("PlatformSelect"), true);
 equal(pageSource.includes("IMAGE_EDIT_KINDS.map"), false);
@@ -63,6 +127,7 @@ equal(pageSource.includes('useState<ImageEditKind>("avatar")'), true);
 equal(pageSource.includes("const activeEntry = entries[activeKind]"), true);
 equal(pageSource.includes("kind={activeKind}"), true);
 equal(pageSource.includes("images={activeEntry.images}"), true);
+equal(pageSource.includes("referenceImages={activeEntry.referenceImages}"), true);
 equal(pageSource.includes("instruction={activeEntry.instruction}"), true);
 
 // Task 3: ImageEditResults activeKind assertions
