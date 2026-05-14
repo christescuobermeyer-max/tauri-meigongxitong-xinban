@@ -43,3 +43,7 @@ src-tauri/gen/schemas
 # OSS / 数据库导出（含大量图片，不应入仓）
 数据导出/
 *.bak.*
+
+# 本地凭证文档（含真实密码/连接串）
+运维凭证.local.md
+*.local.md
