@@ -3,8 +3,14 @@ import BrandStoryCopyBlock from "./BrandStoryCopyBlock";
 import GenerationResultTile from "./GenerationResultTile";
 import MerchantCopyCard from "./MerchantCopyCard";
 import { IconImage } from "./Icons";
-import { BRAND_STORY_STRATEGY_TEXT, type BrandStoryImageEntry } from "../lib/brand-story";
+import {
+  BRAND_STORY_EXPORT_SIZE,
+  BRAND_STORY_STRATEGY_TEXT,
+  type BrandStoryImageEntry,
+} from "../lib/brand-story";
 import type { BrandCopy } from "../types";
+
+const EXPORT_SIZE_LABEL = `${BRAND_STORY_EXPORT_SIZE.w}×${BRAND_STORY_EXPORT_SIZE.h}`;
 
 interface Props {
   copy: BrandCopy | null;
@@ -96,24 +102,29 @@ export default function BrandStoryResults({
           <div className="card__heading">
             <div className="card__title">视觉资产 · 5 张配图</div>
             <span className="card__hint">
-              主文案配图（3:2） · 品牌特色配图（16:9） · 细节配图 3 张（4:3）
+              所有配图统一输出 {EXPORT_SIZE_LABEL}（高清横版，下载时按目标尺寸拉伸不裁剪）
             </span>
           </div>
         </div>
         <div className="card__body">
           <div className="brand-story-grid">
-            {entries.map((entry) => (
-              <GenerationResultTile
+            {entries.map((entry, idx) => (
+              <div
                 key={entry.index}
-                title={`配图 ${entry.index}`}
-                sub={`${entry.name} · ${entry.aspectRatio}`}
-                item={entry.item}
-                exportSize={entry.aspectRatio}
-                idleMessage="生成后会在这里展示该张配图"
-                compact
-                onRetry={() => onRetry(entry.index)}
-                onDownload={() => onDownloadItem(entry.index)}
-              />
+                className="brand-story-grid__cell"
+                data-hero={idx === 0 ? "true" : "false"}
+              >
+                <GenerationResultTile
+                  title={`配图 ${entry.index}`}
+                  sub={`${entry.name} · ${EXPORT_SIZE_LABEL}`}
+                  item={entry.item}
+                  exportSize={EXPORT_SIZE_LABEL}
+                  idleMessage="生成后会在这里展示该张配图"
+                  compact
+                  onRetry={() => onRetry(entry.index)}
+                  onDownload={() => onDownloadItem(entry.index)}
+                />
+              </div>
             ))}
           </div>
         </div>

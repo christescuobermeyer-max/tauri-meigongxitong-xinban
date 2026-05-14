@@ -10,40 +10,46 @@ import type {
   GenerationStatus,
 } from "../types";
 
-/** 5 张配图的固定配置（与源项目一致） */
+/** 5 张配图统一的下载尺寸（生成模型尺寸按线路兼容，最终拉伸到此尺寸不裁剪） */
+export const BRAND_STORY_EXPORT_SIZE = { w: 1536, h: 1024 } as const;
+
+/**
+ * 根据生图线路解析传给后端 generate_image 的 size 字符串。
+ * - line5 (APIMart) 白名单只含比例值（3:2 等），不含 1536x1024
+ * - line1/2/3/4 接受 1536x1024 像素值
+ */
+export function resolveBrandStorySize(generationLine: GenerationLine): string {
+  return generationLine === "line5" ? "3:2" : "1536x1024";
+}
+
+/** 5 张配图的固定配置 — 名称 + prompt 提取函数，尺寸统一 1536×1024 */
 export const BRAND_STORY_IMAGE_CONFIGS: ReadonlyArray<{
   index: number;
-  aspectRatio: "3:2" | "16:9" | "4:3";
   name: string;
   getPrompt: (copy: BrandCopy) => string;
 }> = [
   {
     index: 1,
-    aspectRatio: "3:2",
     name: "主文案配图",
     getPrompt: (copy) => `${copy.mainSlogan} ${copy.subSlogan}`.trim(),
   },
   {
     index: 2,
-    aspectRatio: "16:9",
     name: "品牌特色配图",
     getPrompt: (copy) => `${copy.featureTitle} ${copy.featureContent}`.trim(),
   },
   {
     index: 3,
-    aspectRatio: "4:3",
     name: "细节1配图",
     getPrompt: (copy) => copy.details[0]?.content ?? "",
   },
   {
     index: 4,
-    aspectRatio: "4:3",
     name: "细节2配图",
     getPrompt: (copy) => copy.details[1]?.content ?? "",
   },
   {
     index: 5,
-    aspectRatio: "4:3",
     name: "细节3配图",
     getPrompt: (copy) => copy.details[2]?.content ?? "",
   },
@@ -64,7 +70,6 @@ export const BRAND_STORY_STRATEGY_TEXT =
 export interface BrandStoryImageEntry {
   /** 1..5 */
   index: number;
-  aspectRatio: string;
   name: string;
   item: GenerationItem;
 }
@@ -72,7 +77,6 @@ export interface BrandStoryImageEntry {
 export function buildBrandStoryEntries(status: GenerationStatus = "idle"): BrandStoryImageEntry[] {
   return BRAND_STORY_IMAGE_CONFIGS.map((config) => ({
     index: config.index,
-    aspectRatio: config.aspectRatio,
     name: config.name,
     item: {
       kind: "brand_story",
@@ -163,7 +167,7 @@ export async function generateBrandStoryImage(options: {
     run: async () => ({
       rawBase64: await generateImage({
         prompt,
-        size: config.aspectRatio,
+        size: resolveBrandStorySize(options.generationLine),
         product_images: [],
         api_line: options.generationLine,
       }),
