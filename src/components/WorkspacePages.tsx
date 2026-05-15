@@ -1,9 +1,11 @@
 import AdminPage from "./AdminPage";
 import BrandStoryPage from "./BrandStoryPage";
+import DataAnalysisPage from "./DataAnalysisPage";
 import DetailPagePage from "./DetailPagePage";
 import GeneratePanel from "./GeneratePanel";
 import HistoryPanel from "./HistoryPanel";
 import ImageEditPage from "./ImageEditPage";
+import PatrolScriptPage from "./PatrolScriptPage";
 import PictureWallPage from "./PictureWallPage";
 import PSignboardPage from "./PSignboardPage";
 import ProductGeneratePanel from "./ProductGeneratePanel";
@@ -141,6 +143,7 @@ export default function WorkspacePages({ workspace }: Props) {
           busy={pw.busy}
           onGenerate={pw.handleGenerate}
           onDownload={pw.handleDownload}
+          onDownloadSingle={pw.handleDownloadSingle}
           onRetry={pw.handleRetry}
         />
       </div>
@@ -241,6 +244,50 @@ export default function WorkspacePages({ workspace }: Props) {
           onRetry={bs.handleRetryImage}
           onDownload={bs.handleDownload}
           onDownloadItem={bs.handleDownloadItem}
+        />
+      </div>
+    );
+  }
+
+  if (workspace.tab === "dataAnalysis") {
+    const da = workspace.dataAnalysis;
+    return (
+      <div className="page picture-wall-page">
+        <DataAnalysisPage
+          storeName={da.storeName}
+          setStoreName={da.setStoreName}
+          images={da.images}
+          setImages={da.setImages}
+          generationLine={workspace.generationLine}
+          setGenerationLine={workspace.setGenerationLine}
+          item={da.item}
+          busy={da.busy}
+          onGenerate={da.handleGenerate}
+          onRetry={da.handleRetry}
+          onDownload={da.handleDownload}
+        />
+      </div>
+    );
+  }
+
+  if (workspace.tab === "patrolScript") {
+    const ps = workspace.patrolScript;
+    return (
+      <div className="page picture-wall-page">
+        <PatrolScriptPage
+          storeName={ps.storeName}
+          setStoreName={ps.setStoreName}
+          scriptId={ps.scriptId}
+          setScriptId={ps.setScriptId}
+          selectedScript={ps.selectedScript}
+          generationLine={workspace.generationLine}
+          setGenerationLine={workspace.setGenerationLine}
+          item={ps.item}
+          busy={ps.busy}
+          onGenerate={ps.handleGenerate}
+          onRetry={ps.handleRetry}
+          onCopyScript={ps.handleCopyScript}
+          onDownload={ps.handleDownload}
         />
       </div>
     );

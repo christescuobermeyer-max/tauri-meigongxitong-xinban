@@ -91,7 +91,7 @@ sudo journalctl -u csgh-backend-gateway --since "10 min ago" | grep ERROR
 
 常见：
 - 上游线路 API Key 失效 → 编辑 gateway.env → `systemctl restart csgh-backend-gateway`
-- 上游 API 短暂抖动 → 客户端会自动重试 1 次（已内置）
+- 上游 API 短暂抖动或响应很慢 → 客户端只等待本次请求结果，不会自动重试扣费
 
 ### 4. 上传图片失败
 

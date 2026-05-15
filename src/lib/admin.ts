@@ -6,7 +6,13 @@ import {
   getShanghaiCutoffDay,
   type AccountSummary,
 } from "./admin-stats";
-import { supabase, type DailyStatRow, type GenerationLogRow, type ProfileRow } from "./supabase";
+import {
+  supabase,
+  type DailyStatRow,
+  type GenerationLogRow,
+  type GenerationTotalRow,
+  type ProfileRow,
+} from "./supabase";
 import { callBackendGateway, getBackendGatewayUrl } from "./tauri";
 
 export {
@@ -52,27 +58,60 @@ interface AggregatedStat {
 
 async function fetchAggregatedStats(profileIds: string[]): Promise<Map<string, AggregatedStat>> {
   const todayStartIso = startOfShanghaiTodayIso();
+  const totals = await fetchPermanentGenerationTotals(profileIds);
   const pairs = await Promise.all(
     profileIds.map(async (userId) => {
-      const [total, today] = await Promise.all([
-        fetchExactGenerationCount(userId),
-        fetchExactGenerationCount(userId, todayStartIso),
+      const [today, fallbackTotal] = await Promise.all([
+        fetchExactTodayGenerationCount(userId, todayStartIso),
+        totals ? Promise.resolve(null) : fetchCurrentGenerationLogCount(userId),
       ]);
-      return [userId, { total, today }] as const;
+      const total = totals?.get(userId) ?? 0;
+      return [userId, { total: fallbackTotal ?? total, today }] as const;
     })
   );
   return new Map(pairs);
 }
 
-async function fetchExactGenerationCount(userId: string, startIso?: string): Promise<number> {
+async function fetchPermanentGenerationTotals(
+  profileIds: string[]
+): Promise<Map<string, number> | null> {
+  const { data, error } = await supabase
+    .from("generation_totals")
+    .select("user_id,total_count")
+    .in("user_id", profileIds);
+  if (error) {
+    console.warn("[admin] fetchPermanentGenerationTotals failed:", error.message);
+    return null;
+  }
+  return new Map(
+    ((data as Pick<GenerationTotalRow, "user_id" | "total_count">[] | null) ?? []).map(
+      (row) => [row.user_id, row.total_count]
+    )
+  );
+}
+
+async function fetchCurrentGenerationLogCount(userId: string): Promise<number> {
   let query = supabase
     .from("generation_logs")
     .select("id", { count: "exact", head: true });
   if (userId !== ALL_ACCOUNTS_ID) query = query.eq("user_id", userId);
-  if (startIso) query = query.gte("created_at", startIso);
   const { count, error } = await query;
   if (error) {
-    console.warn("[admin] fetchExactGenerationCount failed:", error.message);
+    console.warn("[admin] fetchCurrentGenerationLogCount failed:", error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+async function fetchExactTodayGenerationCount(userId: string, startIso: string): Promise<number> {
+  let query = supabase
+    .from("generation_logs")
+    .select("id", { count: "exact", head: true });
+  if (userId !== ALL_ACCOUNTS_ID) query = query.eq("user_id", userId);
+  query = query.gte("created_at", startIso);
+  const { count, error } = await query;
+  if (error) {
+    console.warn("[admin] fetchExactTodayGenerationCount failed:", error.message);
     return 0;
   }
   return count ?? 0;

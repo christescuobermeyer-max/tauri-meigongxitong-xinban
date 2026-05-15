@@ -21,7 +21,9 @@ export type AssetKind =
   | "p_signboard"
   | "picture_wall"
   | "detail_page"
-  | "brand_story";
+  | "brand_story"
+  | "data_analysis"
+  | "patrol_script";
 
 /** 品牌故事文案 4 条线路 */
 export type BrandStoryThreadId = "thread1" | "thread2" | "thread3" | "thread4";
@@ -130,6 +132,6 @@ export interface GenerationItem {
   errorMessage?: string;
   /** 生成耗时（毫秒） */
   elapsedMs?: number;
-  /** 当前生成尝试次数；自动重试时第二次为 2 */
+  /** 当前生成尝试次数；每次生成请求固定为 1 */
   attempt?: number;
 }

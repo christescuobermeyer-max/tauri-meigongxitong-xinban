@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "../components/Toast";
 import useBrandStoryWorkspace from "./useBrandStoryWorkspace";
+import useDataAnalysisWorkspace from "./useDataAnalysisWorkspace";
 import useDetailPageWorkspace from "./useDetailPageWorkspace";
 import useImageEditWorkspace from "./useImageEditWorkspace";
 import usePackageImageWorkspace from "./usePackageImageWorkspace";
 import usePSignboardWorkspace from "./usePSignboardWorkspace";
+import usePatrolScriptWorkspace from "./usePatrolScriptWorkspace";
 import usePictureWallWorkspace from "./usePictureWallWorkspace";
 import useProductBatchWorkspace from "./useProductBatchWorkspace";
 import useProductImageWorkspace from "./useProductImageWorkspace";
@@ -13,6 +15,7 @@ import {
   cleanupExpiredGenerationLogs,
   fetchGenerationLogsPage,
   fetchTodayCount,
+  fetchTotalCount,
   recordGenerationLog,
 } from "../lib/cloud-history";
 import { HISTORY_PAGE_SIZE } from "../lib/history-pagination";
@@ -25,6 +28,7 @@ import {
   saveHistoryEntries,
   type HistoryEntry,
 } from "../lib/history";
+import { loadLinePreference, saveLinePreference } from "../lib/line-preferences";
 import { isSupabaseConfigured } from "../lib/supabase";
 import type {
   AssetKind,
@@ -43,6 +47,8 @@ export type WorkspaceTab =
   | "imageEdit"
   | "detailPage"
   | "brandStory"
+  | "dataAnalysis"
+  | "patrolScript"
   | "history"
   | "admin";
 
@@ -54,7 +60,14 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
   const toast = useToast();
   const [tab, setTab] = useState<WorkspaceTab>("avatarStorefront");
   const [todayCount, setTodayCount] = useState(0);
-  const [generationLine, setGenerationLine] = useState<GenerationLine>("line5");
+  const [totalCount, setTotalCount] = useState(0);
+  const [generationLine, setGenerationLine] = useState<GenerationLine>(
+    () => loadLinePreference(userId) ?? "line5"
+  );
+
+  useEffect(() => {
+    saveLinePreference(userId, generationLine);
+  }, [userId, generationLine]);
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
   const [historyPage, setHistoryPage] = useState(1);
   const [historyTotalCount, setHistoryTotalCount] = useState(0);
@@ -78,6 +91,7 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
       setHistoryTotalCount(localEntries.length);
       setHistoryPage(1);
       setTodayCount(0);
+      setTotalCount(0);
       return () => {
         cancelled = true;
       };
@@ -87,15 +101,18 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     setHistoryPage(1);
     setHistoryTotalCount(0);
     setTodayCount(0);
+    setTotalCount(0);
     setHistoryLoading(true);
     void (async () => {
       await cleanupExpiredGenerationLogs();
-      const [count, pageResult] = await Promise.all([
+      const [count, total, pageResult] = await Promise.all([
         fetchTodayCount(userId),
+        fetchTotalCount(userId),
         fetchGenerationLogsPage(userId, 1, HISTORY_PAGE_SIZE),
       ]);
       if (cancelled) return;
       setTodayCount(count);
+      setTotalCount(total);
       setHistoryPage(pageResult.page);
       setHistoryTotalCount(pageResult.totalCount);
       setHistoryEntries(buildHistoryEntriesFromGenerationLogs(pageResult.logs));
@@ -120,6 +137,7 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     if (!markGenerationLogRecorded(recordedGenerationLogs.current, kind, remoteUrl)) return;
     const recordedLine = item.generationLine ?? generationLine;
     const trimmedShopName = shopNameSnapshot.trim() || "未命名店铺";
+    const previewUrl = remoteUrl;
 
     const localEntry = {
       id: `${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -129,7 +147,7 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
       remoteUrl,
       platform: platformSnapshot,
       generationLine: recordedLine,
-      previewUrl: remoteUrl,
+      previewUrl,
       createdAt: new Date().toISOString(),
     };
 
@@ -152,6 +170,7 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
         return;
       }
       setTodayCount((n) => n + 1);
+      setTotalCount((n) => n + 1);
       setHistoryTotalCount((count) => count + 1);
       if (tab === "history") await refreshCloudHistoryPage(historyPage);
       await cleanupExpiredGenerationLogs();
@@ -212,6 +231,18 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     onRecordHistory: recordHistory,
   });
 
+  const dataAnalysis = useDataAnalysisWorkspace({
+    generationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
+
+  const patrolScript = usePatrolScriptWorkspace({
+    generationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
+
   useEffect(() => {
     if (tab !== "history" || !isSupabaseConfigured) return;
     let cancelled = false;
@@ -249,7 +280,9 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     pSignboard.busy ||
     imageEdit.busy ||
     detailPage.busy ||
-    brandStory.busy;
+    brandStory.busy ||
+    dataAnalysis.busy ||
+    patrolScript.busy;
 
   useEffect(() => {
     if (!busy) {
@@ -270,6 +303,7 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     generationLine,
     setGenerationLine,
     todayCount,
+    totalCount,
     busy,
     elapsed,
     historyEntries,
@@ -287,6 +321,8 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     imageEdit,
     detailPage,
     brandStory,
+    dataAnalysis,
+    patrolScript,
   };
 }
 

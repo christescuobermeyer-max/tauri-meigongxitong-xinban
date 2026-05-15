@@ -4,7 +4,7 @@ import {
   getHistoryPageCountFromTotal,
   getHistoryQueryRange,
 } from "./history-pagination.js";
-import { supabase, type GenerationLogRow } from "./supabase";
+import { supabase, type GenerationLogRow, type GenerationTotalRow } from "./supabase";
 import type { AssetKind, Platform } from "../types";
 
 export interface RecordGenerationLogInput {
@@ -98,6 +98,32 @@ export async function fetchTodayCount(userId: string): Promise<number> {
     .gte("created_at", startIso);
   if (error) {
     console.warn("[cloud-history] fetchTodayCount failed:", error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+/** 读取当前用户累计的生图数量（口径与后台管理「累计生图」一致）。 */
+export async function fetchTotalCount(userId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from("generation_totals")
+    .select("total_count")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) {
+    console.warn("[cloud-history] fetchTotalCount failed:", error.message);
+    return fetchCurrentGenerationLogCount(userId);
+  }
+  return ((data as Pick<GenerationTotalRow, "total_count"> | null)?.total_count) ?? 0;
+}
+
+async function fetchCurrentGenerationLogCount(userId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("generation_logs")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId);
+  if (error) {
+    console.warn("[cloud-history] fetchCurrentGenerationLogCount failed:", error.message);
     return 0;
   }
   return count ?? 0;

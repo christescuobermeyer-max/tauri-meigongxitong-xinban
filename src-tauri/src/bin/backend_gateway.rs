@@ -26,6 +26,8 @@ mod image_api_response;
 mod image_generation_payload;
 #[path = "../image_provider.rs"]
 mod image_provider;
+#[path = "../line_health.rs"]
+mod line_health;
 #[path = "../oss.rs"]
 mod oss;
 #[path = "../pockgo_chat.rs"]
@@ -47,14 +49,22 @@ use axum::{
     Json, Router,
 };
 use serde::Serialize;
-use std::{env, net::SocketAddr, time::Duration};
+use std::{
+    env,
+    net::SocketAddr,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 use tower_http::cors::{Any, CorsLayer};
+
+use line_health::{LineHealthRegistry, LineHealthSnapshot};
 
 #[derive(Clone)]
 struct AppState {
     client: reqwest::Client,
     supabase_url: String,
     supabase_anon_key: String,
+    line_health: Arc<LineHealthRegistry>,
 }
 
 #[derive(Serialize)]
@@ -77,6 +87,7 @@ async fn main() -> Result<(), String> {
     let app = Router::new()
         .route("/health", get(health))
         .route("/api/generate-image", post(generate_image))
+        .route("/api/line-health", get(get_line_health))
         .route("/api/upload-image-to-oss", post(upload_image_to_oss))
         .route("/api/admin-create-user", post(admin_create_user))
         .route(
@@ -113,10 +124,18 @@ async fn generate_image(
     Json(req): Json<api::GenerateRequest>,
 ) -> Result<Json<String>, GatewayError> {
     verify_access_token(&state, &headers).await?;
-    api::generate_image(req)
-        .await
-        .map(Json)
-        .map_err(GatewayError::bad_gateway)
+    let line = req.api_line.as_str();
+    let started = Instant::now();
+    let result = api::generate_image(req).await;
+    let latency_ms = started.elapsed().as_millis() as u64;
+    state
+        .line_health
+        .record(line, latency_ms, result.is_ok());
+    result.map(Json).map_err(GatewayError::bad_gateway)
+}
+
+async fn get_line_health(State(state): State<AppState>) -> Json<LineHealthSnapshot> {
+    Json(state.line_health.snapshot())
 }
 
 async fn upload_image_to_oss(
@@ -196,7 +215,7 @@ fn build_state() -> Result<AppState, String> {
     let supabase_anon_key =
         env_config::read_required_env(&["SUPABASE_ANON_KEY", "VITE_SUPABASE_ANON_KEY"])?;
     let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(300))
+        .timeout(Duration::from_secs(350))
         .build()
         .map_err(|error| format!("初始化后端网关 HTTP 客户端失败：{error}"))?;
 
@@ -204,6 +223,7 @@ fn build_state() -> Result<AppState, String> {
         client,
         supabase_url,
         supabase_anon_key,
+        line_health: Arc::new(LineHealthRegistry::new()),
     })
 }
 

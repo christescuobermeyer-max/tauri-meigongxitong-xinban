@@ -1,6 +1,6 @@
 use std::{error::Error, time::Duration};
 
-const API_TIMEOUT_SECS: u64 = 300;
+const API_TIMEOUT_SECS: u64 = 350;
 const CONNECT_TIMEOUT_SECS: u64 = 30;
 
 pub fn build_api_client(client_label: &str) -> Result<reqwest::Client, String> {

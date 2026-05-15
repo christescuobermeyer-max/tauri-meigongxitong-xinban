@@ -11,10 +11,10 @@ gateway.example.com {
 
 	# 反向代理到本地 backend-gateway:8787
 	reverse_proxy 127.0.0.1:8787 {
-		# image-2 接口最长可能 90 秒响应，超时调到 5 分钟
+		# image-2 接口耗时可能较久，超时调到 350 秒
 		transport http {
-			read_timeout 300s
-			write_timeout 300s
+			read_timeout 350s
+			write_timeout 350s
 			dial_timeout 10s
 		}
 		# 透传客户端真实 IP

@@ -3,7 +3,7 @@
 //! 接口：POST https://api3.wlai.vip/v1/images/generations
 //! 请求体：{ model, prompt, size, n, image: [base64|url] }
 //!
-//! 由于单次生成可能耗时较久，客户端超时设置为 300s。
+//! 由于单次生成可能耗时较久，客户端超时设置为 350s。
 
 use crate::api_validation::validate_generate_request;
 use crate::apimart::generate_apimart_image;

@@ -56,11 +56,30 @@ export function IconBatchImages(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconHourglass(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M7 3h10M7 21h10" />
+      <path d="M7 3v3.5a5 5 0 0 0 1.5 3.5L12 13.5 15.5 10A5 5 0 0 0 17 6.5V3" />
+      <path d="M7 21v-3.5a5 5 0 0 1 1.5-3.5L12 10.5l3.5 3.5A5 5 0 0 1 17 17.5V21" />
+    </svg>
+  );
+}
+
 export function IconDownload(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base} {...props}>
       <path d="M12 3v12m0 0 4-4m-4 4-4-4" />
       <path d="M5 21h14" />
+    </svg>
+  );
+}
+
+export function IconCopy(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="8" y="8" width="11" height="11" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" />
     </svg>
   );
 }

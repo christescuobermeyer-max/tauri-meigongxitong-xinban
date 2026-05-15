@@ -107,7 +107,7 @@ function posterSize(line: "line1" | "line2" | "line3" | "line4" | "line5") {
 }
 
 equal(storefrontSize("line1"), "1536x1024");
-equal(storefrontSize("line2"), "1536x1024");
+equal(storefrontSize("line2"), "1792x768");
 equal(storefrontSize("line3"), "1536x1024");
 equal(storefrontSize("line4"), "16:9");
 equal(storefrontSize("line5"), "16:9");

@@ -1,5 +1,6 @@
 import type { GenerationLine } from "../types";
 import GenerationLineSelect from "./GenerationLineSelect";
+import LineHealthBar from "./LineHealthBar";
 
 interface Props {
   value: GenerationLine;
@@ -9,6 +10,7 @@ interface Props {
 export default function GenerationLineCard({ value, onChange }: Props) {
   return (
     <section className="card generation-line-card">
+      <LineHealthBar />
       <div className="generation-line-card__main">
         <div className="generation-line-card__copy">
           <div className="generation-line-card__title">生图线路</div>
@@ -19,7 +21,7 @@ export default function GenerationLineCard({ value, onChange }: Props) {
         <div className="generation-line-card__notice-row" data-line="line1">
           <span className="generation-line-card__notice-label">线路1</span>
           <span className="generation-line-card__notice-engine">yunwu</span>
-          <span className="generation-line-card__notice-text">线路1已停用，王郡江 杨有淇 王涛 请使用线路5</span>
+          <span className="generation-line-card__notice-text">下午加急使用（成本贵一半）</span>
         </div>
         <div className="generation-line-card__notice-row" data-line="line2">
           <span className="generation-line-card__notice-label">线路2</span>
@@ -39,7 +41,7 @@ export default function GenerationLineCard({ value, onChange }: Props) {
         <div className="generation-line-card__notice-row" data-line="line5">
           <span className="generation-line-card__notice-label">线路5</span>
           <span className="generation-line-card__notice-engine">APIMart</span>
-          <span className="generation-line-card__notice-text">金牌线路</span>
+          <span className="generation-line-card__notice-text">王郡江 杨有淇 王涛 请使用线路5</span>
         </div>
       </div>
     </section>

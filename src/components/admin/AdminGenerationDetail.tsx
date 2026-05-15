@@ -28,6 +28,8 @@ const FILTERS: AssetKindLabel[] = [
   "图片墙",
   "详情页",
   "品牌故事",
+  "数据分析",
+  "巡店话术",
 ];
 const PAGE_SIZE = getAdminGenerationPageSize();
 
@@ -130,7 +132,9 @@ export default function AdminGenerationDetail({
                     {selectedDayStat.p_signboard_count}门 ·{" "}
                     {selectedDayStat.picture_wall_count}墙 ·{" "}
                     {selectedDayStat.detail_page_count}详 ·{" "}
-                    {selectedDayStat.brand_story_count}事
+                    {selectedDayStat.brand_story_count}事 ·{" "}
+                    {selectedDayStat.data_analysis_count ?? 0}析 ·{" "}
+                    {selectedDayStat.patrol_script_count ?? 0}巡
                   </span>
                 </div>
               ) : selectedDate ? (

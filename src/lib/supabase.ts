@@ -27,7 +27,9 @@ export type AssetKindDb =
   | "p_signboard"
   | "picture_wall"
   | "detail_page"
-  | "brand_story";
+  | "brand_story"
+  | "data_analysis"
+  | "patrol_script";
 export type PlatformDb = "meituan" | "taobao";
 export type RoleDb = "user" | "admin";
 
@@ -53,6 +55,12 @@ export interface GenerationLogRow {
   created_at: string;
 }
 
+export interface GenerationTotalRow {
+  user_id: string;
+  total_count: number;
+  updated_at: string;
+}
+
 export interface DailyStatRow {
   user_id: string;
   stat_day: string;
@@ -65,4 +73,6 @@ export interface DailyStatRow {
   picture_wall_count: number;
   detail_page_count: number;
   brand_story_count: number;
+  data_analysis_count: number;
+  patrol_script_count: number;
 }

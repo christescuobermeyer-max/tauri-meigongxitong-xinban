@@ -129,8 +129,6 @@ fn save_jpeg_with_limit(
     path: &Path,
     max_bytes: Option<u64>,
 ) -> Result<(), String> {
-    let mut last_bytes = None;
-
     for quality in jpeg_quality_candidates(max_bytes) {
         let mut buffer = Vec::new();
         let mut encoder = JpegEncoder::new_with_quality(&mut buffer, *quality);
@@ -142,13 +140,13 @@ fn save_jpeg_with_limit(
             std::fs::write(path, buffer).map_err(|e| format!("写入磁盘失败：{e}"))?;
             return Ok(());
         }
-
-        last_bytes = Some(buffer);
     }
 
-    if let Some(buffer) = last_bytes {
-        std::fs::write(path, buffer).map_err(|e| format!("写入磁盘失败：{e}"))?;
-        return Ok(());
+    if let Some(limit) = max_bytes {
+        return Err(format!(
+            "JPEG 图片无法压缩到 {}KB 以内，请降低目标尺寸或更换图片",
+            limit / 1024
+        ));
     }
 
     Err("未能生成 JPEG 图片".into())
@@ -225,5 +223,24 @@ mod tests {
         assert_eq!(result.width, 768);
         assert_eq!(result.height, 768);
         assert!(result.byte_size > 0);
+    }
+
+    #[test]
+    fn save_jpeg_with_limit_errors_when_limit_cannot_be_met() {
+        let image = DynamicImage::ImageRgba8(RgbaImage::from_pixel(
+            64,
+            64,
+            image::Rgba([128, 64, 32, 255]),
+        ));
+        let path = std::env::temp_dir().join(format!(
+            "csgh-jpeg-limit-test-{}.jpg",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&path);
+
+        let result = save_jpeg_with_limit(&image, &path, Some(1));
+
+        assert!(result.is_err());
+        assert!(!path.exists());
     }
 }

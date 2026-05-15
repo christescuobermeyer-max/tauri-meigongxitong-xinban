@@ -246,6 +246,19 @@
   justify-self: start;
 }
 
+.picture-wall-tile__footer {
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: stretch;
+}
+
+.picture-wall-tile__download {
+  width: 100%;
+  justify-content: center;
+  gap: 6px;
+}
+
 @media (max-width: 900px) {
   .picture-wall-split,
   .picture-wall-grid,

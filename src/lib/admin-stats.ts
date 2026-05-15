@@ -43,6 +43,8 @@ export function aggregateDailyStatRows(rows: DailyStatRow[], days: number): Dail
     current.picture_wall_count += row.picture_wall_count;
     current.detail_page_count += row.detail_page_count;
     current.brand_story_count += row.brand_story_count ?? 0;
+    current.data_analysis_count += row.data_analysis_count ?? 0;
+    current.patrol_script_count += row.patrol_script_count ?? 0;
     map.set(row.stat_day, current);
   }
   return [...map.values()]
@@ -74,5 +76,7 @@ function buildEmptyDailyStat(statDay: string): DailyStatRow {
     picture_wall_count: 0,
     detail_page_count: 0,
     brand_story_count: 0,
+    data_analysis_count: 0,
+    patrol_script_count: 0,
   };
 }

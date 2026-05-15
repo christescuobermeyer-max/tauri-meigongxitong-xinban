@@ -81,6 +81,18 @@ export default function Sidebar({
       desc: "店铺品牌文案 + 5 张配图",
     },
     {
+      key: "dataAnalysis",
+      label: "数据分析",
+      icon: <IconImage />,
+      desc: "截图生成专业数据分析图",
+    },
+    {
+      key: "patrolScript",
+      label: "巡店话术",
+      icon: <IconBatchImages />,
+      desc: "50 条话术 → 知识卡片图",
+    },
+    {
       key: "history",
       label: "历史记录",
       icon: <IconHistory />,

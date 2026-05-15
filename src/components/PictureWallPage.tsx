@@ -28,6 +28,7 @@ interface Props {
   busy: boolean;
   onGenerate: () => void;
   onDownload: () => void;
+  onDownloadSingle: (sourceImageId: string) => void;
   onRetry: (sourceImageId: string) => void;
 }
 
@@ -48,6 +49,7 @@ export default function PictureWallPage({
   busy,
   onGenerate,
   onDownload,
+  onDownloadSingle,
   onRetry,
 }: Props) {
   const canGenerate = shopName.trim().length > 0 && images.length === 3 && !busy;
@@ -116,6 +118,7 @@ export default function PictureWallPage({
         downloadStatus={downloadStatus}
         busy={busy}
         onDownload={onDownload}
+        onDownloadSingle={onDownloadSingle}
         onRetry={onRetry}
       />
     </>

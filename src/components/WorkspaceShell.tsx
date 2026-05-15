@@ -36,6 +36,10 @@ export default function WorkspaceShell({ profile, isAdmin, onSignOut, onRefresh 
                     ? "详情页生成"
                     : workspace.tab === "brandStory"
                       ? "品牌故事"
+                      : workspace.tab === "dataAnalysis"
+                        ? "数据分析"
+                      : workspace.tab === "patrolScript"
+                        ? "巡店话术"
                       : workspace.tab === "history"
                         ? "历史记录"
                         : "后台管理";
@@ -59,6 +63,7 @@ export default function WorkspaceShell({ profile, isAdmin, onSignOut, onRefresh 
             <TopBarStatus
               generationLine={workspace.generationLine}
               todayCount={workspace.todayCount}
+              totalCount={workspace.totalCount}
               busy={workspace.busy}
               theme={theme}
               onThemeChange={setTheme}

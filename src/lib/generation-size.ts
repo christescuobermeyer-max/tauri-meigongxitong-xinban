@@ -3,9 +3,11 @@ import type { AssetKind, GenerationLine, PlatformSpec } from "../types";
 const IMAGE_GENERATION_STOREFRONT_SIZE = "1536x1024";
 const DETAIL_PAGE_GENERATION_SIZE = "1024x1536";
 const POCKGO_STOREFRONT_RATIO = "16:9";
+const YUNWU_STOREFRONT_SIZE = "1792x768";
 const YUNWU_POSTER_SIZE = "1792x768";
 
 export function resolveStorefrontGenerationSize(line: GenerationLine = "line1") {
+  if (line === "line2") return YUNWU_STOREFRONT_SIZE;
   return line === "line4" || line === "line5" ? POCKGO_STOREFRONT_RATIO : IMAGE_GENERATION_STOREFRONT_SIZE;
 }
 

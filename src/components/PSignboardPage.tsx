@@ -1,12 +1,14 @@
 import { useState } from "react";
 import type { GenerationItem, GenerationLine, UploadedImage } from "../types";
 import { canGeneratePSignboard } from "../lib/p-signboard-form";
+import { copyGeneratedItemImage } from "../lib/clipboard-image";
 import { getGenerationPreviewUrl } from "../lib/generation-preview";
 import ImageUpload from "./ImageUpload";
 import GenerationStatusBadge from "./GenerationStatusBadge";
 import GenerationLineCard from "./GenerationLineCard";
 import RetryConfirmDialog from "./RetryConfirmDialog";
-import { IconAlert, IconCheck, IconDownload, IconImage, IconRefresh, IconSparkles, IconStore } from "./Icons";
+import { IconAlert, IconCheck, IconCopy, IconDownload, IconImage, IconRefresh, IconSparkles, IconStore } from "./Icons";
+import { useToast } from "./Toast";
 
 interface Props {
   shopName: string;
@@ -40,6 +42,7 @@ export default function PSignboardPage({
   onRetry,
   onDownload,
 }: Props) {
+  const toast = useToast();
   const [retryConfirmOpen, setRetryConfirmOpen] = useState(false);
   const canGenerate = canGeneratePSignboard({
     imageCount: images.length,
@@ -49,22 +52,29 @@ export default function PSignboardPage({
   });
   const previewUrl = getGenerationPreviewUrl(item);
   const isResultBusy = item.status === "queued" || item.status === "running";
-  const isAutoRetrying = item.status === "running" && item.attempt === 2;
   const busyTitle = item.status === "queued"
     ? "等待生成中…"
-    : isAutoRetrying
-      ? "第一次失败，正在第二次重试…"
-      : "正在替换门头文字…";
+    : "正在替换门头文字…";
   const busyHint =
     item.status === "queued"
       ? "前序任务完成后会自动开始"
-      : isAutoRetrying
-        ? "系统已自动重试一次，请继续等待本次结果"
       : "系统会保持原图风格和透视效果";
 
   function handleConfirmRetry() {
     setRetryConfirmOpen(false);
     onRetry();
+  }
+
+  async function handleCopyImage() {
+    try {
+      await copyGeneratedItemImage(item);
+      toast.show("P门头图片已复制到剪贴板", "success");
+    } catch (error: unknown) {
+      toast.show(
+        `复制图片失败：${error instanceof Error ? error.message : String(error)}`,
+        "error"
+      );
+    }
   }
 
   return (
@@ -133,6 +143,16 @@ export default function PSignboardPage({
             >
               <IconRefresh style={{ width: 13, height: 13 }} />
               重试
+            </button>
+            <button
+              className="btn btn--ghost btn--sm"
+              disabled={item.status !== "succeeded" || !item.rawBase64}
+              onClick={handleCopyImage}
+              title="复制图片到剪贴板"
+              type="button"
+            >
+              <IconCopy style={{ width: 13, height: 13 }} />
+              复制图片
             </button>
             <button
               className="btn btn--secondary btn--sm"

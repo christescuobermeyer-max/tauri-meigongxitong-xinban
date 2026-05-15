@@ -14,6 +14,7 @@ mod image_api_response;
 mod image_generation_payload;
 mod image_proc;
 mod image_provider;
+mod line_health;
 mod oss;
 mod pockgo_chat;
 mod pockgo_transport;

@@ -1,4 +1,7 @@
 import { DETAIL_PAGE_EXPORT_SIZE } from "./detail-page";
+import { DATA_ANALYSIS_EXPORT_SIZE } from "./data-analysis";
+import { PATROL_SCRIPT_EXPORT_SIZE } from "./patrol-script";
+import { BRAND_STORY_IMAGE_CONFIGS, BRAND_STORY_MAX_BYTES } from "./brand-story";
 import { getGeneratedAssetExportSpec } from "./generated-asset-files";
 import type { HistoryEntry } from "./history";
 import { PICTURE_WALL_EXPORT_SIZE, PICTURE_WALL_SOURCE_SIZE } from "./picture-wall";
@@ -77,6 +80,56 @@ export async function downloadHistoryEntry(entry: HistoryEntry): Promise<string[
     ];
   }
 
+  if (entry.kind === "data_analysis") {
+    const fileName = `${stem}_数据分析图_${DATA_ANALYSIS_EXPORT_SIZE.w}x${DATA_ANALYSIS_EXPORT_SIZE.h}.png`;
+    const selectedPath = await pickSavePath(fileName);
+    if (!selectedPath) return null;
+    const base64 = await fetchAsBase64(entry.remoteUrl);
+    return [
+      await resizeAndSaveImage({
+        base64_data: base64,
+        target_width: DATA_ANALYSIS_EXPORT_SIZE.w,
+        target_height: DATA_ANALYSIS_EXPORT_SIZE.h,
+        output_path: selectedPath,
+      }),
+    ];
+  }
+
+  if (entry.kind === "patrol_script") {
+    const fileName = `${stem}_巡店话术_${PATROL_SCRIPT_EXPORT_SIZE.w}x${PATROL_SCRIPT_EXPORT_SIZE.h}.png`;
+    const selectedPath = await pickSavePath(fileName);
+    if (!selectedPath) return null;
+    const base64 = await fetchAsBase64(entry.remoteUrl);
+    return [
+      await resizeAndSaveImage({
+        base64_data: base64,
+        target_width: PATROL_SCRIPT_EXPORT_SIZE.w,
+        target_height: PATROL_SCRIPT_EXPORT_SIZE.h,
+        output_path: selectedPath,
+      }),
+    ];
+  }
+
+  if (entry.kind === "brand_story") {
+    const config = resolveBrandStoryHistoryConfig(entry.remoteUrl);
+    const { w, h } = config.exportSize;
+    const fileName = `${stem}_品牌故事_${config.index}_${config.name}_${w}x${h}.jpg`;
+    const selectedPath = await pickSavePath(fileName, [
+      { name: "JPEG 图像", extensions: ["jpg", "jpeg"] },
+    ]);
+    if (!selectedPath) return null;
+    const base64 = await fetchAsBase64(entry.remoteUrl);
+    return [
+      await resizeAndSaveImage({
+        base64_data: base64,
+        target_width: w,
+        target_height: h,
+        output_path: replaceFileExtension(selectedPath, "jpg"),
+        max_bytes: BRAND_STORY_MAX_BYTES,
+      }),
+    ];
+  }
+
   if (entry.kind === "product") {
     const spec = getGeneratedAssetExportSpec(entry.kind, entry.shopName, platform);
     const selectedPath = await pickSavePath(spec.fileName, [
@@ -109,4 +162,13 @@ export async function downloadHistoryEntry(entry: HistoryEntry): Promise<string[
       output_path: selectedPath,
     }),
   ];
+}
+
+function resolveBrandStoryHistoryConfig(remoteUrl: string) {
+  const match = remoteUrl.match(/brand-story-(\d+)/i);
+  const index = match ? Number.parseInt(match[1], 10) : 1;
+  return (
+    BRAND_STORY_IMAGE_CONFIGS.find((config) => config.index === index) ??
+    BRAND_STORY_IMAGE_CONFIGS[0]
+  );
 }

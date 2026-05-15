@@ -37,7 +37,7 @@ create table if not exists public.generation_logs (
   id            uuid primary key default gen_random_uuid(),
   user_id       uuid not null references public.profiles(id) on delete cascade,
   shop_name     text not null,
-  asset_kind    text not null check (asset_kind in ('avatar', 'storefront', 'poster', 'product', 'p_signboard', 'picture_wall', 'detail_page', 'brand_story')),
+  asset_kind    text not null check (asset_kind in ('avatar', 'storefront', 'poster', 'product', 'p_signboard', 'picture_wall', 'detail_page', 'brand_story', 'data_analysis', 'patrol_script')),
   platform      text not null check (platform in ('meituan', 'taobao')),
   generation_line text check (generation_line in ('line1', 'line2', 'line3', 'line4', 'line5')),
   oss_url       text not null,
@@ -53,7 +53,7 @@ alter table public.generation_logs
 
 alter table public.generation_logs
   add constraint generation_logs_asset_kind_check
-  check (asset_kind in ('avatar', 'storefront', 'poster', 'product', 'p_signboard', 'picture_wall', 'detail_page', 'brand_story'));
+  check (asset_kind in ('avatar', 'storefront', 'poster', 'product', 'p_signboard', 'picture_wall', 'detail_page', 'brand_story', 'data_analysis', 'patrol_script'));
 
 alter table public.generation_logs
   drop constraint if exists generation_logs_generation_line_check;
@@ -71,7 +71,50 @@ create index if not exists generation_logs_created_at_idx
 comment on table public.generation_logs is '生图记录，每张图一条';
 
 -- -----------------------------------------------------------------------------
--- 3. 登录日志 login_logs（可选，用于审计）
+-- 3. 永久累计 generation_totals
+--    generation_logs 只保留近 7 天；本表只增不随历史清理减少
+-- -----------------------------------------------------------------------------
+create table if not exists public.generation_totals (
+  user_id     uuid primary key references public.profiles(id) on delete cascade,
+  total_count integer not null default 0 check (total_count >= 0),
+  updated_at  timestamptz not null default now()
+);
+
+comment on table public.generation_totals is '每个用户永久累计成功归档到 OSS 的生图数量';
+comment on column public.generation_totals.total_count is '永久累计值，只在 generation_logs 插入时递增，不随 7 天历史清理递减';
+
+insert into public.generation_totals (user_id, total_count, updated_at)
+select user_id, count(*)::integer as total_count, now()
+from public.generation_logs
+group by user_id
+on conflict (user_id) do update
+  set total_count = greatest(public.generation_totals.total_count, excluded.total_count),
+      updated_at = now();
+
+create or replace function public.increment_generation_total()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.generation_totals (user_id, total_count, updated_at)
+  values (new.user_id, 1, now())
+  on conflict (user_id) do update
+    set total_count = public.generation_totals.total_count + 1,
+        updated_at = now();
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_generation_log_insert_increment_total on public.generation_logs;
+create trigger on_generation_log_insert_increment_total
+  after insert on public.generation_logs
+  for each row execute function public.increment_generation_total();
+
+-- -----------------------------------------------------------------------------
+-- 4. 登录日志 login_logs（可选，用于审计）
 -- -----------------------------------------------------------------------------
 create table if not exists public.login_logs (
   id              uuid primary key default gen_random_uuid(),
@@ -84,7 +127,7 @@ create index if not exists login_logs_user_id_logged_in_at_idx
   on public.login_logs (user_id, logged_in_at desc);
 
 -- -----------------------------------------------------------------------------
--- 4. 辅助函数（SECURITY DEFINER）
+-- 5. 辅助函数（SECURITY DEFINER）
 --    用于打破 RLS 在 profiles 自查时的递归
 -- -----------------------------------------------------------------------------
 create or replace function public.is_admin(uid uuid)
@@ -179,7 +222,7 @@ select cron.schedule(
 );
 
 -- -----------------------------------------------------------------------------
--- 5. 视图：每日生图统计 daily_generation_stats
+-- 6. 视图：每日生图统计 daily_generation_stats
 --    按 Asia/Shanghai 切日，前端可直接 select 出每个用户每天的图数量
 -- -----------------------------------------------------------------------------
 create or replace view public.daily_generation_stats
@@ -195,17 +238,20 @@ select
   count(*) filter (where asset_kind = 'p_signboard')    as p_signboard_count,
   count(*) filter (where asset_kind = 'picture_wall')   as picture_wall_count,
   count(*) filter (where asset_kind = 'detail_page')    as detail_page_count,
-  count(*) filter (where asset_kind = 'brand_story')    as brand_story_count
+  count(*) filter (where asset_kind = 'brand_story')    as brand_story_count,
+  count(*) filter (where asset_kind = 'data_analysis')  as data_analysis_count,
+  count(*) filter (where asset_kind = 'patrol_script')  as patrol_script_count
 from public.generation_logs
 group by user_id, stat_day;
 
 comment on view public.daily_generation_stats is '按用户与日期聚合的生图数量；security_invoker=true 表示沿用调用者的 RLS';
 
 -- -----------------------------------------------------------------------------
--- 6. 行级安全（RLS）
+-- 7. 行级安全（RLS）
 -- -----------------------------------------------------------------------------
 alter table public.profiles        enable row level security;
 alter table public.generation_logs enable row level security;
+alter table public.generation_totals enable row level security;
 alter table public.login_logs      enable row level security;
 
 -- ---- profiles ---------------------------------------------------------------
@@ -252,6 +298,18 @@ create policy "logs: self read"
 
 create policy "logs: admin read"
   on public.generation_logs for select
+  using (public.is_admin(auth.uid()));
+
+-- ---- generation_totals ------------------------------------------------------
+drop policy if exists "totals: self read"  on public.generation_totals;
+drop policy if exists "totals: admin read" on public.generation_totals;
+
+create policy "totals: self read"
+  on public.generation_totals for select
+  using (user_id = auth.uid());
+
+create policy "totals: admin read"
+  on public.generation_totals for select
   using (public.is_admin(auth.uid()));
 
 -- ---- login_logs -------------------------------------------------------------

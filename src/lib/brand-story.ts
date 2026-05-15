@@ -5,13 +5,15 @@ import { safeFileName } from "./utils";
 import type {
   BrandCopy,
   BrandStoryThreadId,
+  AssetSize,
   GenerationItem,
   GenerationLine,
   GenerationStatus,
 } from "../types";
 
-/** 5 张配图统一的下载尺寸（生成模型尺寸按线路兼容，最终拉伸到此尺寸不裁剪） */
+/** 品牌故事默认导出尺寸。第 1 张使用此尺寸，其它配图按各自比例派生。 */
 export const BRAND_STORY_EXPORT_SIZE = { w: 1536, h: 1024 } as const;
+export const BRAND_STORY_MAX_BYTES = 2 * 1024 * 1024;
 
 /**
  * 根据生图线路解析传给后端 generate_image 的 size 字符串。
@@ -22,35 +24,47 @@ export function resolveBrandStorySize(generationLine: GenerationLine): string {
   return generationLine === "line5" ? "3:2" : "1536x1024";
 }
 
-/** 5 张配图的固定配置 — 名称 + prompt 提取函数，尺寸统一 1536×1024 */
+/** 5 张配图的固定配置 — 名称 + 旧项目比例 + 下载目标尺寸 + prompt 提取函数 */
 export const BRAND_STORY_IMAGE_CONFIGS: ReadonlyArray<{
   index: number;
   name: string;
+  aspectRatio: string;
+  exportSize: AssetSize;
   getPrompt: (copy: BrandCopy) => string;
 }> = [
   {
     index: 1,
     name: "主文案配图",
+    aspectRatio: "3:2",
+    exportSize: { w: 1536, h: 1024 },
     getPrompt: (copy) => `${copy.mainSlogan} ${copy.subSlogan}`.trim(),
   },
   {
     index: 2,
     name: "品牌特色配图",
+    aspectRatio: "16:9",
+    exportSize: { w: 1536, h: 864 },
     getPrompt: (copy) => `${copy.featureTitle} ${copy.featureContent}`.trim(),
   },
   {
     index: 3,
     name: "细节1配图",
+    aspectRatio: "4:3",
+    exportSize: { w: 1536, h: 1152 },
     getPrompt: (copy) => copy.details[0]?.content ?? "",
   },
   {
     index: 4,
     name: "细节2配图",
+    aspectRatio: "4:3",
+    exportSize: { w: 1536, h: 1152 },
     getPrompt: (copy) => copy.details[1]?.content ?? "",
   },
   {
     index: 5,
     name: "细节3配图",
+    aspectRatio: "4:3",
+    exportSize: { w: 1536, h: 1152 },
     getPrompt: (copy) => copy.details[2]?.content ?? "",
   },
 ];
@@ -71,6 +85,8 @@ export interface BrandStoryImageEntry {
   /** 1..5 */
   index: number;
   name: string;
+  aspectRatio: string;
+  exportSize: AssetSize;
   item: GenerationItem;
 }
 
@@ -78,6 +94,8 @@ export function buildBrandStoryEntries(status: GenerationStatus = "idle"): Brand
   return BRAND_STORY_IMAGE_CONFIGS.map((config) => ({
     index: config.index,
     name: config.name,
+    aspectRatio: config.aspectRatio,
+    exportSize: config.exportSize,
     item: {
       kind: "brand_story",
       rawBase64: null,
@@ -85,6 +103,15 @@ export function buildBrandStoryEntries(status: GenerationStatus = "idle"): Brand
       status,
     },
   }));
+}
+
+export function getBrandStoryExportSize(entry: Pick<BrandStoryImageEntry, "exportSize">): AssetSize {
+  return entry.exportSize;
+}
+
+export function formatBrandStoryExportSize(entry: Pick<BrandStoryImageEntry, "exportSize">): string {
+  const size = getBrandStoryExportSize(entry);
+  return `${size.w}×${size.h}`;
 }
 
 type EntryUpdate =

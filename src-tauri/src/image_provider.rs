@@ -61,6 +61,18 @@ impl Default for ImageApiLine {
     }
 }
 
+impl ImageApiLine {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            ImageApiLine::Line1 => "line1",
+            ImageApiLine::Line2 => "line2",
+            ImageApiLine::Line3 => "line3",
+            ImageApiLine::Line4 => "line4",
+            ImageApiLine::Line5 => "line5",
+        }
+    }
+}
+
 pub struct ImageProvider {
     pub api_url: &'static str,
     pub edit_api_url: Option<&'static str>,

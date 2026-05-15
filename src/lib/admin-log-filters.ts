@@ -9,7 +9,9 @@ export type AssetKindLabel =
   | "P门头"
   | "图片墙"
   | "详情页"
-  | "品牌故事";
+  | "品牌故事"
+  | "数据分析"
+  | "巡店话术";
 
 export const ASSET_LABEL: Record<string, string> = {
   avatar: "头像",
@@ -20,6 +22,8 @@ export const ASSET_LABEL: Record<string, string> = {
   picture_wall: "图片墙",
   detail_page: "详情页",
   brand_story: "品牌故事",
+  data_analysis: "数据分析",
+  patrol_script: "巡店话术",
 };
 
 export const GENERATION_LINE_LABEL: Record<"line1" | "line2" | "line3" | "line4" | "line5", string> = {

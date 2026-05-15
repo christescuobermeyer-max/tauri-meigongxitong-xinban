@@ -5,6 +5,7 @@ import type { GenerationLine } from "../types";
 interface Props {
   generationLine: GenerationLine;
   todayCount: number;
+  totalCount: number;
   busy: boolean;
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
@@ -29,6 +30,7 @@ const LINE_TONE: Record<GenerationLine, "success" | "warn" | "info" | "gold"> = 
 export default function TopBarStatus({
   generationLine,
   todayCount,
+  totalCount,
   busy,
   theme,
   onThemeChange,
@@ -42,6 +44,9 @@ export default function TopBarStatus({
         title="当前选择的生图线路"
       >
         当前是 <strong>{LINE_LABEL[generationLine]}</strong>
+      </span>
+      <span className="badge" data-tone="accent" title="该账号累计成功归档到 OSS 的图片数">
+        总生图 <strong style={{ marginLeft: 4 }}>{totalCount}</strong> 张
       </span>
       <span className="badge" data-tone="info" title="今日已成功归档到 OSS 的图片数">
         今日已生图 <strong style={{ marginLeft: 4 }}>{todayCount}</strong> 张

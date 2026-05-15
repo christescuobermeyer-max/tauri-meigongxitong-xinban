@@ -1,9 +1,11 @@
 import { useState } from "react";
 import type { GenerationItem } from "../types";
+import { canCopyGeneratedItemImage, copyGeneratedItemImage } from "../lib/clipboard-image";
 import { getGenerationPreviewUrl } from "../lib/generation-preview";
-import { IconAlert, IconDownload, IconImage, IconRefresh } from "./Icons";
+import { IconAlert, IconCopy, IconDownload, IconHourglass, IconImage, IconRefresh } from "./Icons";
 import GenerationStatusBadge from "./GenerationStatusBadge";
 import RetryConfirmDialog from "./RetryConfirmDialog";
+import { useToast } from "./Toast";
 
 interface Props {
   title: string;
@@ -33,25 +35,22 @@ export default function GenerationResultTile({
   onDownload,
   downloadOptions = [],
 }: Props) {
+  const toast = useToast();
   const [retryConfirmOpen, setRetryConfirmOpen] = useState(false);
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
   const busy = item.status === "running" || item.status === "queued";
   const canDownload = item.status === "succeeded";
+  const canCopy = canCopyGeneratedItemImage(item);
   const hasDownloadOptions = downloadOptions.length > 0;
   const previewUrl = getGenerationPreviewUrl(item);
-  const isAutoRetrying = item.status === "running" && item.attempt === 2;
   const busyTitle = item.status === "queued"
     ? "等待生成中…"
-    : isAutoRetrying
-      ? "第一次失败，正在第二次重试…"
-      : "正在生成中…";
+    : "正在生成中…";
   const busyHint =
     item.status === "queued"
       ? compact
         ? "前序图片完成后会自动开始"
         : "前面的图片生成完成后会自动开始"
-      : isAutoRetrying
-        ? "系统已自动重试一次，请继续等待本次结果"
       : compact
         ? "通常需要1-5分钟"
         : "系统单次最长可能需要1-5分钟，请耐心等待";
@@ -72,6 +71,18 @@ export default function GenerationResultTile({
   function handleOptionClick(action: () => void) {
     setDownloadMenuOpen(false);
     action();
+  }
+
+  async function handleCopyImage() {
+    try {
+      await copyGeneratedItemImage(item);
+      toast.show(`${title}图片已复制到剪贴板`, "success");
+    } catch (error: unknown) {
+      toast.show(
+        `复制图片失败：${error instanceof Error ? error.message : String(error)}`,
+        "error"
+      );
+    }
   }
 
   return (
@@ -96,6 +107,16 @@ export default function GenerationResultTile({
           >
             <IconRefresh style={{ width: 13, height: 13 }} />
             重试
+          </button>
+          <button
+            className="btn btn--ghost btn--sm"
+            onClick={handleCopyImage}
+            disabled={!canCopy}
+            title="复制图片到剪贴板"
+            type="button"
+          >
+            <IconCopy style={{ width: 13, height: 13 }} />
+            复制图片
           </button>
           <div className="result-download-menu" data-open={downloadMenuOpen}>
             <button
@@ -131,7 +152,7 @@ export default function GenerationResultTile({
         </div>
       </div>
       <div className="result__body">
-        <div className="result__preview" data-busy={busy}>
+        <div className="result__preview" data-busy={item.status === "running"}>
           {previewUrl ? (
             <img src={previewUrl} alt={title} />
           ) : item.status === "failed" ? (
@@ -143,8 +164,15 @@ export default function GenerationResultTile({
               </span>
             </div>
           ) : busy ? (
-            <div className="result__placeholder">
-              <div className="spinner spinner--lg" />
+            <div
+              className="result__placeholder"
+              data-queued={item.status === "queued" ? "true" : undefined}
+            >
+              {item.status === "queued" ? (
+                <IconHourglass style={{ width: 22, height: 22, color: "var(--fg-faint)" }} />
+              ) : (
+                <div className="spinner spinner--lg" />
+              )}
               <strong>{busyTitle}</strong>
               <span>{busyHint}</span>
             </div>

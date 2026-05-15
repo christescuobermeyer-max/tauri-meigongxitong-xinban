@@ -67,7 +67,11 @@ export function getHistoryTitle(kind: AssetKind): string {
                 ? "详情页"
                 : kind === "brand_story"
                   ? "品牌故事"
-                  : "图片墙";
+                  : kind === "data_analysis"
+                    ? "数据分析"
+                    : kind === "patrol_script"
+                      ? "巡店话术"
+                      : "图片墙";
 }
 
 export function loadHistoryEntries(): HistoryEntry[] {
@@ -151,5 +155,7 @@ function inferHistoryKindFromUrl(remoteUrl: string): AssetKind | null {
   if (value.includes("picture-wall")) return "picture_wall";
   if (value.includes("detail-page")) return "detail_page";
   if (value.includes("brand-story")) return "brand_story";
+  if (value.includes("data-analysis")) return "data_analysis";
+  if (value.includes("patrol-script")) return "patrol_script";
   return null;
 }

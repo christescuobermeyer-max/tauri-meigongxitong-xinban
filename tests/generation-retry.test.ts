@@ -9,25 +9,28 @@ const retryModule = await import(
   }).outputText).toString("base64")}`
 );
 
-let lastAttempt = 0;
+let successAttempts = 0;
 const success = await retryModule.runWithAutoRetry({
   onAttempt: (attempt: number) => {
-    lastAttempt = attempt;
+    successAttempts = attempt;
   },
-  run: async (attempt: number) => {
-    if (attempt === 1) throw new Error("first failed");
+  run: async () => {
     return { value: "ok" };
   },
 });
 
 equal(success.value, "ok");
-equal(success.attempt, 2);
-equal(lastAttempt, 2);
+equal(success.attempt, 1);
+equal(successAttempts, 1);
 
+let failedAttempts = 0;
 let capturedError: unknown;
 try {
   await retryModule.runWithAutoRetry({
-    onAttempt: () => undefined,
+    maxAttempts: 2,
+    onAttempt: (attempt: number) => {
+      failedAttempts = attempt;
+    },
     run: async (attempt: number) => {
       throw new Error(`failed-${attempt}`);
     },
@@ -37,5 +40,27 @@ try {
 }
 
 ok(capturedError instanceof Error);
-equal((capturedError as { attempt?: number }).attempt, 2);
-equal((capturedError as Error).message, "failed-2");
+equal(failedAttempts, 1);
+equal((capturedError as { attempt?: number }).attempt, 1);
+equal((capturedError as Error).message, "failed-1");
+
+let limitedAttempts = 0;
+let limitedError: unknown;
+try {
+  await retryModule.runWithAutoRetry({
+    maxAttempts: 1,
+    onAttempt: (attempt: number) => {
+      limitedAttempts = attempt;
+    },
+    run: async (attempt: number) => {
+      throw new Error(`limited-${attempt}`);
+    },
+  });
+} catch (error: unknown) {
+  limitedError = error;
+}
+
+ok(limitedError instanceof Error);
+equal(limitedAttempts, 1);
+equal((limitedError as { attempt?: number }).attempt, 1);
+equal((limitedError as Error).message, "limited-1");

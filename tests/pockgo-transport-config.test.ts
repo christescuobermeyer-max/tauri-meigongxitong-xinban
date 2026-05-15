@@ -35,11 +35,11 @@ ok(
   "pockgo 兼容传输应使用系统 curl 并显式回传 HTTP 状态码"
 );
 ok(
-  pockgoTransportSource.includes("max-time = 300") &&
-    pockgoTransportSource.includes("timeout(Duration::from_secs(300))"),
-  "线路4单次生成最长超时应为 300 秒"
+  pockgoTransportSource.includes("max-time = 350") &&
+    pockgoTransportSource.includes("timeout(Duration::from_secs(350))"),
+  "线路4单次生成最长超时应为 350 秒"
 );
 ok(
-  httpClientSource.includes("const API_TIMEOUT_SECS: u64 = 300;"),
-  "通用生图 HTTP 客户端单次最长超时应为 300 秒"
+  httpClientSource.includes("const API_TIMEOUT_SECS: u64 = 350;"),
+  "通用生图 HTTP 客户端单次最长超时应为 350 秒"
 );

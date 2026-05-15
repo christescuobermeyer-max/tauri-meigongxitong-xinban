@@ -1,10 +1,14 @@
 import { pickDirectoryPath, pickSavePath, resizeAndSaveImage } from "./tauri";
-import { safeFileName } from "./utils";
-import { BRAND_STORY_EXPORT_SIZE, type BrandStoryImageEntry } from "./brand-story";
+import { replaceFileExtension, safeFileName } from "./utils";
+import {
+  BRAND_STORY_MAX_BYTES,
+  getBrandStoryExportSize,
+  type BrandStoryImageEntry,
+} from "./brand-story";
 
 function buildFileName(shopName: string, entry: BrandStoryImageEntry): string {
-  const { w, h } = BRAND_STORY_EXPORT_SIZE;
-  return `${safeFileName(shopName)}_品牌故事_${entry.index}_${entry.name}_${w}x${h}.png`;
+  const { w, h } = getBrandStoryExportSize(entry);
+  return `${safeFileName(shopName)}_品牌故事_${entry.index}_${entry.name}_${w}x${h}.jpg`;
 }
 
 function joinPath(directoryPath: string, fileName: string): string {
@@ -22,11 +26,13 @@ export async function downloadBrandStoryEntry(
   const fileName = buildFileName(shopName, entry);
   const selectedPath = await pickSavePath(fileName);
   if (!selectedPath) return null;
+  const { w, h } = getBrandStoryExportSize(entry);
   return await resizeAndSaveImage({
     base64_data: entry.item.rawBase64,
-    target_width: BRAND_STORY_EXPORT_SIZE.w,
-    target_height: BRAND_STORY_EXPORT_SIZE.h,
-    output_path: selectedPath,
+    target_width: w,
+    target_height: h,
+    output_path: replaceFileExtension(selectedPath, "jpg"),
+    max_bytes: BRAND_STORY_MAX_BYTES,
   });
 }
 
@@ -44,12 +50,14 @@ export async function downloadBrandStoryEntries(
 
   const savedPaths: string[] = [];
   for (const entry of completed) {
+    const { w, h } = getBrandStoryExportSize(entry);
     savedPaths.push(
       await resizeAndSaveImage({
         base64_data: entry.item.rawBase64!,
-        target_width: BRAND_STORY_EXPORT_SIZE.w,
-        target_height: BRAND_STORY_EXPORT_SIZE.h,
+        target_width: w,
+        target_height: h,
         output_path: joinPath(directoryPath, buildFileName(shopName, entry)),
+        max_bytes: BRAND_STORY_MAX_BYTES,
       })
     );
   }

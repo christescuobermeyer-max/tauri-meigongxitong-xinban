@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { downloadHistoryEntry } from "../lib/history-download";
+import { copyImageUrlToClipboard } from "../lib/clipboard-image";
 import type { HistoryEntry } from "../lib/history";
 import {
   getHistoryPageCount,
@@ -7,7 +8,7 @@ import {
   getPagedHistoryEntries,
 } from "../lib/history-pagination";
 import type { AssetKind } from "../types";
-import { IconDownload } from "./Icons";
+import { IconCopy, IconDownload } from "./Icons";
 import { useToast } from "./Toast";
 
 interface Props {
@@ -28,6 +29,7 @@ export default function HistoryPanel({
   const toast = useToast();
   const [localPage, setLocalPage] = useState(1);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(() => new Set());
+  const [copyingIds, setCopyingIds] = useState<Set<string>>(() => new Set());
   const isControlled = typeof controlledPage === "number" && typeof onPageChange === "function";
   const page = isControlled ? controlledPage : localPage;
   const total = (totalCount != null && totalCount > 0) ? totalCount : entries.length;
@@ -80,6 +82,30 @@ export default function HistoryPanel({
     }
   }
 
+  async function handleCopy(entry: HistoryEntry) {
+    if (copyingIds.has(entry.id)) return;
+    setCopyingIds((prev) => {
+      const next = new Set(prev);
+      next.add(entry.id);
+      return next;
+    });
+    try {
+      await copyImageUrlToClipboard(entry.previewUrl || entry.remoteUrl);
+      toast.show(`${entry.title}图片已复制到剪贴板`, "success");
+    } catch (error: unknown) {
+      toast.show(
+        `复制失败：${error instanceof Error ? error.message : String(error)}`,
+        "error"
+      );
+    } finally {
+      setCopyingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(entry.id);
+        return next;
+      });
+    }
+  }
+
   return (
     <div className="card">
       <div className="card__header">
@@ -117,6 +143,7 @@ export default function HistoryPanel({
             <div className="history-grid history-grid--compact history-grid--five-columns">
               {pageEntries.map((entry) => {
                 const isDownloading = downloadingIds.has(entry.id);
+                const isCopying = copyingIds.has(entry.id);
                 return (
                   <article key={entry.id} className="history-card history-card--compact">
                     <div className="history-card__preview history-card__preview--contain">
@@ -135,6 +162,15 @@ export default function HistoryPanel({
                         {getGenerationLineLabel(entry.kind, entry.generationLine)}
                       </div>
                       <div className="history-card__shop">{entry.shopName}</div>
+                      <button
+                        className="btn btn--ghost btn--sm history-card__download"
+                        type="button"
+                        disabled={isCopying}
+                        onClick={() => handleCopy(entry)}
+                      >
+                        <IconCopy style={{ width: 13, height: 13 }} />
+                        {isCopying ? "复制中…" : "复制"}
+                      </button>
                       <button
                         className="btn btn--secondary btn--sm history-card__download"
                         type="button"

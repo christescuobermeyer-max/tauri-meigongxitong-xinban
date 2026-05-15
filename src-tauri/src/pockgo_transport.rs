@@ -42,7 +42,7 @@ async fn send_pockgo_chat_body(
 ) -> Result<(u16, String), String> {
     let client = reqwest::Client::builder()
         .http1_only()
-        .timeout(Duration::from_secs(300))
+        .timeout(Duration::from_secs(350))
         .connect_timeout(Duration::from_secs(20))
         .build()
         .map_err(|error| format!("初始化线路4 HTTP 客户端失败：{error}"))?;
@@ -123,7 +123,7 @@ fn build_curl_config(api_url: &str, api_key: &str, body_path: &Path) -> String {
         "ignore-content-length".to_string(),
         "request = \"POST\"".to_string(),
         "connect-timeout = 20".to_string(),
-        "max-time = 300".to_string(),
+        "max-time = 350".to_string(),
         format!(
             "header = \"Authorization: Bearer {}\"",
             escape_config_value(api_key)

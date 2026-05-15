@@ -1,12 +1,14 @@
 import { useState } from "react";
 import type { PictureWallEntry } from "../lib/picture-wall";
 import type { PictureWallDownloadProgress } from "../lib/picture-wall-download";
+import { copyGeneratedItemImage } from "../lib/clipboard-image";
 import { getGenerationPreviewUrl } from "../lib/generation-preview";
 import BatchDownloadButton from "./BatchDownloadButton";
-import { IconAlert, IconCheck, IconImage, IconRefresh } from "./Icons";
+import { IconAlert, IconCheck, IconCopy, IconDownload, IconImage, IconRefresh } from "./Icons";
 import GenerationStatusBadge from "./GenerationStatusBadge";
 import MerchantCopyCard from "./MerchantCopyCard";
 import RetryConfirmDialog from "./RetryConfirmDialog";
+import { useToast } from "./Toast";
 
 const PICTURE_WALL_COPY_TEXT =
   "我们为店铺上线了专业设计的图片墙，这是美团平台推荐的核心运营策略之一。数据显示，拥有完整图片墙的店铺在同类竞争中的点击率平均提升32%，顾客停留时间延长28%。这三张统一风格的图片不仅提升了我们的品牌专业形象，更重要的是增强了顾客对食品品质的信任感，有效提高了菜品转化率和客单价。";
@@ -18,6 +20,7 @@ interface Props {
   downloadStatus: (PictureWallDownloadProgress & { active: boolean }) | null;
   busy: boolean;
   onDownload: () => void;
+  onDownloadSingle: (sourceImageId: string) => void;
   onRetry: (sourceImageId: string) => void;
 }
 
@@ -28,6 +31,7 @@ export default function PictureWallResults({
   downloadStatus,
   busy,
   onDownload,
+  onDownloadSingle,
   onRetry,
 }: Props) {
   const canDownload = completedCount > 0 && !busy && !downloadStatus?.active;
@@ -74,7 +78,9 @@ export default function PictureWallResults({
                 entry={entry}
                 index={index}
                 busy={busy}
+                downloading={downloadStatus?.active === true}
                 onRetry={onRetry}
+                onDownloadSingle={onDownloadSingle}
               />
             ))}
           </div>
@@ -89,13 +95,18 @@ function PictureWallTile({
   entry,
   index,
   busy,
+  downloading,
   onRetry,
+  onDownloadSingle,
 }: {
   entry: PictureWallEntry;
   index: number;
   busy: boolean;
+  downloading: boolean;
   onRetry: (sourceImageId: string) => void;
+  onDownloadSingle: (sourceImageId: string) => void;
 }) {
+  const toast = useToast();
   const status = entry.item.status;
   const isTileBusy = status === "queued" || status === "running";
   const errorMessage = getPictureWallErrorMessage(entry.item.errorMessage);
@@ -107,19 +118,26 @@ function PictureWallTile({
     onRetry(entry.sourceImageId);
   }
 
-  const isAutoRetrying = status === "running" && entry.item.attempt === 2;
+  async function handleCopyImage() {
+    try {
+      await copyGeneratedItemImage(entry.item);
+      toast.show(`图片墙第 ${index + 1} 张已复制到剪贴板`, "success");
+    } catch (error: unknown) {
+      toast.show(
+        `复制图片失败：${error instanceof Error ? error.message : String(error)}`,
+        "error"
+      );
+    }
+  }
+
   const busyTitle =
     status === "queued"
       ? "等待生成中…"
-      : isAutoRetrying
-        ? "第一次失败，正在第二次重试…"
-        : "正在生成第 " + (index + 1) + " 张…";
+      : "正在生成第 " + (index + 1) + " 张…";
   const busyHint =
     status === "queued"
       ? "前序图片完成后会自动开始"
-      : isAutoRetrying
-        ? "系统已自动重试一次，请继续等待本次结果"
-        : "系统单次最长可能需要1-5分钟，请耐心等待";
+      : "系统单次最长可能需要1-5分钟，请耐心等待";
 
   return (
     <article className="picture-wall-tile" data-status={status}>
@@ -172,6 +190,30 @@ function PictureWallTile({
           </div>
         )}
       </div>
+      {status === "succeeded" && entry.item.rawBase64 ? (
+        <div className="picture-wall-tile__footer">
+          <button
+            className="btn btn--ghost btn--sm"
+            type="button"
+            disabled={busy || downloading}
+            title="复制图片到剪贴板"
+            onClick={handleCopyImage}
+          >
+            <IconCopy style={{ width: 13, height: 13 }} />
+            复制图片
+          </button>
+          <button
+            className="btn btn--secondary btn--sm picture-wall-tile__download"
+            type="button"
+            disabled={busy || downloading}
+            title="下载本张：高清原图 + 240×330"
+            onClick={() => onDownloadSingle(entry.sourceImageId)}
+          >
+            <IconDownload style={{ width: 13, height: 13 }} />
+            下载本张（高清原图 + 240×330）
+          </button>
+        </div>
+      ) : null}
       <RetryConfirmDialog
         open={retryConfirmOpen}
         title={`重新生成图片墙第 ${index + 1} 张`}
