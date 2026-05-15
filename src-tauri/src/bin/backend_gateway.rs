@@ -134,8 +134,12 @@ async fn generate_image(
     result.map(Json).map_err(GatewayError::bad_gateway)
 }
 
-async fn get_line_health(State(state): State<AppState>) -> Json<LineHealthSnapshot> {
-    Json(state.line_health.snapshot())
+async fn get_line_health(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<LineHealthSnapshot>, GatewayError> {
+    verify_access_token(&state, &headers).await?;
+    Ok(Json(state.line_health.snapshot()))
 }
 
 async fn upload_image_to_oss(

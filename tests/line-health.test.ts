@@ -43,6 +43,12 @@ ok(gatewaySource.includes("/api/line-health"));
 ok(gatewaySource.includes("LineHealthRegistry::new()"));
 ok(/state\s*\.\s*line_health\s*\.\s*record/.test(gatewaySource));
 ok(gatewaySource.includes("Instant::now"));
+// /api/line-health 必须走鉴权
+ok(
+  /async fn get_line_health[\s\S]*?verify_access_token\(&state, &headers\)/.test(
+    gatewaySource,
+  ),
+);
 
 // ---- 前端契约 ----
 ok(lineHealthSource.includes("/api/line-health"));
