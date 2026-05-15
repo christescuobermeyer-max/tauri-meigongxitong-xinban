@@ -29,7 +29,8 @@ const LINE4_API_KEY_ENV_KEYS: [&str; 3] = [
 ];
 
 const LINE3_API_URL: &str = "https://api.vectorengine.ai/v1/images/generations";
-const LINE3_MODEL: &str = "gpt-image-2-all";
+const LINE3_EDIT_API_URL: &str = "https://api.vectorengine.ai/v1/images/edits";
+const LINE3_MODEL: &str = "gpt-image-2";
 const LINE3_API_KEY_ENV_KEYS: [&str; 3] = [
     "VECTORENGINE_IMAGE_2_API_KEY",
     "VECTOR_ENGINE_IMAGE_2_API_KEY",
@@ -98,14 +99,14 @@ pub fn resolve_image_provider(line: ImageApiLine) -> ImageProvider {
         },
         ImageApiLine::Line3 => ImageProvider {
             api_url: LINE3_API_URL,
-            edit_api_url: None,
+            edit_api_url: Some(LINE3_EDIT_API_URL),
             model: LINE3_MODEL,
             log_label: "image-2:line3-vectorengine",
             user_label: "线路3 vectorengine",
             api_key_env_keys: &LINE3_API_KEY_ENV_KEYS,
-            quality: None,
-            format: None,
-            reference_image_json_field: ReferenceImageJsonField::ReferenceImages,
+            quality: Some("high"),
+            format: Some("png"),
+            reference_image_json_field: ReferenceImageJsonField::Image,
         },
         ImageApiLine::Line4 => ImageProvider {
             api_url: LINE4_API_URL,
@@ -172,11 +173,17 @@ mod tests {
             provider.api_url,
             "https://api.vectorengine.ai/v1/images/generations"
         );
-        assert_eq!(provider.model, "gpt-image-2-all");
+        assert_eq!(
+            provider.edit_api_url,
+            Some("https://api.vectorengine.ai/v1/images/edits")
+        );
+        assert_eq!(provider.model, "gpt-image-2");
         assert_eq!(provider.log_label, "image-2:line3-vectorengine");
+        assert_eq!(provider.quality, Some("high"));
+        assert_eq!(provider.format, Some("png"));
         assert_eq!(
             provider.reference_image_json_field,
-            ReferenceImageJsonField::ReferenceImages
+            ReferenceImageJsonField::Image
         );
     }
 

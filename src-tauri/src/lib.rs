@@ -18,6 +18,7 @@ mod oss;
 mod pockgo_chat;
 mod pockgo_transport;
 mod reference_image;
+mod vectorengine_edit;
 mod yunwu_edit;
 
 #[cfg(feature = "tauri-commands")]

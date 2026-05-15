@@ -34,6 +34,8 @@ mod pockgo_chat;
 mod pockgo_transport;
 #[path = "../reference_image.rs"]
 mod reference_image;
+#[path = "../vectorengine_edit.rs"]
+mod vectorengine_edit;
 #[path = "../yunwu_edit.rs"]
 mod yunwu_edit;
 

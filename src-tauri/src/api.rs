@@ -17,6 +17,7 @@ use crate::pockgo_chat::generate_pockgo_chat_image;
 use crate::reference_image::{
     download_image_if_url, log_reference_image_diagnostics, reference_image_type,
 };
+use crate::vectorengine_edit::generate_vectorengine_edit_image;
 use crate::yunwu_edit::generate_yunwu_edit_image;
 use serde::Deserialize;
 
@@ -88,6 +89,25 @@ pub async fn generate_image(req: GenerateRequest) -> Result<String, String> {
         )
         .await?;
         return download_image_if_url(&client, image, "下载线路2编辑远端图片失败").await;
+    }
+
+    if req.api_line == ImageApiLine::Line3 && !req.product_images.is_empty() {
+        let edit_api_url = provider
+            .edit_api_url
+            .ok_or_else(|| "线路3编辑接口未配置".to_string())?;
+        let image = generate_vectorengine_edit_image(
+            &client,
+            edit_api_url,
+            &api_key,
+            provider.model,
+            &req.prompt,
+            &req.size,
+            &req.product_images,
+            provider.quality,
+            provider.format,
+        )
+        .await?;
+        return download_image_if_url(&client, image, "下载线路3编辑远端图片失败").await;
     }
 
     let payload = build_json_payload(&provider, &req);

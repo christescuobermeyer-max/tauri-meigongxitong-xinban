@@ -30,10 +30,6 @@ const imageProviderSource = readFileSync(
   "utf8"
 );
 const apiSource = readFileSync(new URL("../src-tauri/src/api.rs", import.meta.url), "utf8");
-const payloadSource = readFileSync(
-  new URL("../src-tauri/src/image_generation_payload.rs", import.meta.url),
-  "utf8"
-);
 const envExample = readFileSync(new URL("../.env.example", import.meta.url), "utf8");
 const schemaSource = readFileSync(new URL("../supabase/schema.sql", import.meta.url), "utf8");
 
@@ -59,10 +55,24 @@ equal(imageProviderSource.includes("https://api.vectorengine.ai/v1/images/genera
 equal(imageProviderSource.includes('#[serde(rename = "line3")]'), true);
 equal(imageProviderSource.includes("ImageApiLine::Line3"), true);
 equal(imageProviderSource.includes("VECTORENGINE_IMAGE_2_API_KEY"), true);
-equal(imageProviderSource.includes('const LINE3_MODEL: &str = "gpt-image-2-all";'), true);
-ok(imageProviderSource.includes("ReferenceImageJsonField::ReferenceImages"), "线路3应使用 reference_images 字段传参考图");
-ok(payloadSource.includes("reference_images"), "线路3请求体应支持 reference_images 字段，避免 vectorengine 忽略 image 字段");
-ok(!apiSource.includes("req.api_line == ImageApiLine::Line3"), "线路3应通过 provider 配置切换参考图字段，不应走 pockgo chat 分支");
+equal(imageProviderSource.includes('const LINE3_MODEL: &str = "gpt-image-2";'), true);
+ok(
+  imageProviderSource.includes('const LINE3_EDIT_API_URL: &str = "https://api.vectorengine.ai/v1/images/edits";'),
+  "线路3带参考图时应使用 vectorengine 图片编辑接口",
+);
+ok(
+  imageProviderSource.includes("edit_api_url: Some(LINE3_EDIT_API_URL)"),
+  "线路3 provider 应配置 edit_api_url 指向 vectorengine edits",
+);
+ok(
+  imageProviderSource.includes("reference_image_json_field: ReferenceImageJsonField::Image"),
+  "线路3请求体应使用 image 字段（硬切，不再用 reference_images）",
+);
+ok(
+  apiSource.includes("req.api_line == ImageApiLine::Line3") &&
+    apiSource.includes("generate_vectorengine_edit_image"),
+  "线路3 存在参考图时应走独立的 vectorengine multipart 编辑分支",
+);
 ok(apiSource.includes("req.api_line == ImageApiLine::Line4"), "线路4应走 pockgo chat 分支");
 
 equal(envExample.includes("VECTORENGINE_IMAGE_2_API_KEY="), true);
