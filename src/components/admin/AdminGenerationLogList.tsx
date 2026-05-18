@@ -102,9 +102,12 @@ function LogList({
               <span className="badge" data-tone={getGenerationLineTone(log.generation_line)}>
                 {getGenerationLineLabel(log.asset_kind, log.generation_line)}
               </span>
-              <span className="admin__log-time">{formatDateTime(log.created_at)}</span>
             </div>
             <div className="admin__log-shop">{log.shop_name}</div>
+            <div className="admin__log-finished">
+              <span className="admin__log-finished-label">完成时间</span>
+              <span className="admin__log-finished-value">{formatFullDateTime(log.created_at)}</span>
+            </div>
             <a className="admin__log-url" href={log.oss_url} target="_blank" rel="noreferrer">
               {log.oss_url}
             </a>
@@ -163,10 +166,15 @@ export function getGenerationLineLabel(
   return kind === "picture_wall" ? "专用接口" : "线路1";
 }
 
-function formatDateTime(iso: string): string {
+function formatFullDateTime(iso: string): string {
+  if (!iso) return "未知";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return `${date.getMonth() + 1}-${date.getDate()} ${String(date.getHours()).padStart(2, "0")}:${String(
-    date.getMinutes()
-  ).padStart(2, "0")}`;
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  const ss = String(date.getSeconds()).padStart(2, "0");
+  return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
 }
