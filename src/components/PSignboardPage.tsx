@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { GenerationItem, GenerationLine, UploadedImage } from "../types";
 import { canGeneratePSignboard } from "../lib/p-signboard-form";
 import { copyGeneratedItemImage } from "../lib/clipboard-image";
@@ -6,7 +5,6 @@ import { getGenerationPreviewUrl } from "../lib/generation-preview";
 import ImageUpload from "./ImageUpload";
 import GenerationStatusBadge from "./GenerationStatusBadge";
 import GenerationLineCard from "./GenerationLineCard";
-import RetryConfirmDialog from "./RetryConfirmDialog";
 import { IconAlert, IconCheck, IconCopy, IconDownload, IconImage, IconRefresh, IconSparkles, IconStore } from "./Icons";
 import { useToast } from "./Toast";
 
@@ -43,7 +41,6 @@ export default function PSignboardPage({
   onDownload,
 }: Props) {
   const toast = useToast();
-  const [retryConfirmOpen, setRetryConfirmOpen] = useState(false);
   const canGenerate = canGeneratePSignboard({
     imageCount: images.length,
     originalText,
@@ -59,11 +56,6 @@ export default function PSignboardPage({
     item.status === "queued"
       ? "前序任务完成后会自动开始"
       : "系统会保持原图风格和透视效果";
-
-  function handleConfirmRetry() {
-    setRetryConfirmOpen(false);
-    onRetry();
-  }
 
   async function handleCopyImage() {
     try {
@@ -137,7 +129,7 @@ export default function PSignboardPage({
             <button
               className="btn btn--ghost btn--sm"
               disabled={busy}
-              onClick={() => setRetryConfirmOpen(true)}
+              onClick={onRetry}
               title="重新生成"
               type="button"
             >
@@ -197,12 +189,6 @@ export default function PSignboardPage({
             </div>
           ) : null}
         </div>
-        <RetryConfirmDialog
-          open={retryConfirmOpen}
-          title="确认重新生成 P门头"
-          onCancel={() => setRetryConfirmOpen(false)}
-          onConfirm={handleConfirmRetry}
-        />
       </section>
     </div>
   );

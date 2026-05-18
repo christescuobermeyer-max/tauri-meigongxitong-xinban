@@ -4,7 +4,6 @@ import { canCopyGeneratedItemImage, copyGeneratedItemImage } from "../lib/clipbo
 import { getGenerationPreviewUrl } from "../lib/generation-preview";
 import { IconAlert, IconCopy, IconDownload, IconHourglass, IconImage, IconRefresh } from "./Icons";
 import GenerationStatusBadge from "./GenerationStatusBadge";
-import RetryConfirmDialog from "./RetryConfirmDialog";
 import { useToast } from "./Toast";
 
 interface Props {
@@ -36,7 +35,6 @@ export default function GenerationResultTile({
   downloadOptions = [],
 }: Props) {
   const toast = useToast();
-  const [retryConfirmOpen, setRetryConfirmOpen] = useState(false);
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
   const busy = item.status === "running" || item.status === "queued";
   const canDownload = item.status === "succeeded";
@@ -54,11 +52,6 @@ export default function GenerationResultTile({
       : compact
         ? "通常需要1-5分钟"
         : "系统单次最长可能需要1-5分钟，请耐心等待";
-
-  function handleConfirmRetry() {
-    setRetryConfirmOpen(false);
-    onRetry();
-  }
 
   function handleDownloadClick() {
     if (hasDownloadOptions) {
@@ -100,7 +93,7 @@ export default function GenerationResultTile({
           <GenerationStatusBadge status={item.status} elapsedMs={item.elapsedMs} attempt={item.attempt} />
           <button
             className="btn btn--ghost btn--sm"
-            onClick={() => setRetryConfirmOpen(true)}
+            onClick={onRetry}
             disabled={busy}
             title="重新生成"
             type="button"
@@ -184,12 +177,6 @@ export default function GenerationResultTile({
           )}
         </div>
       </div>
-      <RetryConfirmDialog
-        open={retryConfirmOpen}
-        title={`重新生成「${title}」`}
-        onCancel={() => setRetryConfirmOpen(false)}
-        onConfirm={handleConfirmRetry}
-      />
     </div>
   );
 }

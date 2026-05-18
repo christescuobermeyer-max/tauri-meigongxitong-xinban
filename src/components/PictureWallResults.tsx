@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { PictureWallEntry } from "../lib/picture-wall";
 import type { PictureWallDownloadProgress } from "../lib/picture-wall-download";
 import { copyGeneratedItemImage } from "../lib/clipboard-image";
@@ -7,7 +6,6 @@ import BatchDownloadButton from "./BatchDownloadButton";
 import { IconAlert, IconCheck, IconCopy, IconDownload, IconImage, IconRefresh } from "./Icons";
 import GenerationStatusBadge from "./GenerationStatusBadge";
 import MerchantCopyCard from "./MerchantCopyCard";
-import RetryConfirmDialog from "./RetryConfirmDialog";
 import { useToast } from "./Toast";
 
 const PICTURE_WALL_COPY_TEXT =
@@ -111,12 +109,6 @@ function PictureWallTile({
   const isTileBusy = status === "queued" || status === "running";
   const errorMessage = getPictureWallErrorMessage(entry.item.errorMessage);
   const previewUrl = getGenerationPreviewUrl(entry.item);
-  const [retryConfirmOpen, setRetryConfirmOpen] = useState(false);
-
-  function handleConfirmRetry() {
-    setRetryConfirmOpen(false);
-    onRetry(entry.sourceImageId);
-  }
 
   async function handleCopyImage() {
     try {
@@ -159,7 +151,7 @@ function PictureWallTile({
           <button
             className="btn btn--secondary btn--sm picture-wall-tile__retry"
             disabled={busy}
-            onClick={() => setRetryConfirmOpen(true)}
+            onClick={() => onRetry(entry.sourceImageId)}
             type="button"
           >
             <IconRefresh style={{ width: 13, height: 13 }} />
@@ -214,12 +206,6 @@ function PictureWallTile({
           </button>
         </div>
       ) : null}
-      <RetryConfirmDialog
-        open={retryConfirmOpen}
-        title={`重新生成图片墙第 ${index + 1} 张`}
-        onCancel={() => setRetryConfirmOpen(false)}
-        onConfirm={handleConfirmRetry}
-      />
     </article>
   );
 }
