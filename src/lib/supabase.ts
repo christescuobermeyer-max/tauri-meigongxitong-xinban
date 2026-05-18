@@ -53,6 +53,7 @@ export interface GenerationLogRow {
   oss_url: string;
   oss_key: string | null;
   created_at: string;
+  elapsed_ms: number | null;
 }
 
 export interface GenerationTotalRow {

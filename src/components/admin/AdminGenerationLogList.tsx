@@ -108,6 +108,10 @@ function LogList({
               <span className="admin__log-finished-label">完成时间</span>
               <span className="admin__log-finished-value">{formatFullDateTime(log.created_at)}</span>
             </div>
+            <div className="admin__log-finished">
+              <span className="admin__log-finished-label">完成时长</span>
+              <span className="admin__log-finished-value">{formatElapsed(log.elapsed_ms)}</span>
+            </div>
             <a className="admin__log-url" href={log.oss_url} target="_blank" rel="noreferrer">
               {log.oss_url}
             </a>
@@ -164,6 +168,15 @@ export function getGenerationLineLabel(
   if (line === "line4") return "线路4";
   if (line === "line5") return "线路5";
   return kind === "picture_wall" ? "专用接口" : "线路1";
+}
+
+function formatElapsed(ms: number | null): string {
+  if (ms == null || ms <= 0) return "—";
+  const totalSec = Math.round(ms / 1000);
+  if (totalSec < 60) return `${totalSec} 秒`;
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return s === 0 ? `${m} 分钟` : `${m} 分 ${s} 秒`;
 }
 
 function formatFullDateTime(iso: string): string {

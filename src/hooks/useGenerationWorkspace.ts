@@ -164,6 +164,7 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
       platform: platformSnapshot,
       ossUrl: remoteUrl,
       generationLine: recordedLine,
+      elapsedMs: item.elapsedMs ?? null,
     }).then(async (recorded) => {
       if (!recorded) {
         toast.show("云端生图记录写入失败，请刷新历史记录或联系管理员检查数据库配置", "error");
@@ -177,23 +178,52 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     });
   }
 
-  const threePiece = useThreePieceWorkspace({
-    generationLine,
-    onToast: toast.show,
-    onRecordHistory: recordHistory,
-  });
+  const threePieceSlot1 = useThreePieceWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const threePieceSlot2 = useThreePieceWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const threePieceSlot3 = useThreePieceWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const threePieceSlot4 = useThreePieceWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const threePieceSlot5 = useThreePieceWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const threePieceSlots = [threePieceSlot1, threePieceSlot2, threePieceSlot3, threePieceSlot4, threePieceSlot5] as const;
 
-  const productImage = useProductImageWorkspace({
-    generationLine,
-    onToast: toast.show,
-    onRecordHistory: recordHistory,
-  });
+  const productImageSlot1 = useProductImageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const productImageSlot2 = useProductImageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const productImageSlot3 = useProductImageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const productImageSlot4 = useProductImageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const productImageSlot5 = useProductImageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const productImageSlots = [productImageSlot1, productImageSlot2, productImageSlot3, productImageSlot4, productImageSlot5] as const;
 
-  const productBatch = useProductBatchWorkspace({
-    generationLine,
+  const productBatchSlot1 = useProductBatchWorkspace({
+    initialGenerationLine: generationLine,
     onToast: toast.show,
     onRecordHistory: recordHistory,
   });
+  const productBatchSlot2 = useProductBatchWorkspace({
+    initialGenerationLine: generationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
+  const productBatchSlot3 = useProductBatchWorkspace({
+    initialGenerationLine: generationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
+  const productBatchSlot4 = useProductBatchWorkspace({
+    initialGenerationLine: generationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
+  const productBatchSlot5 = useProductBatchWorkspace({
+    initialGenerationLine: generationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
+  const productBatchSlots = [
+    productBatchSlot1,
+    productBatchSlot2,
+    productBatchSlot3,
+    productBatchSlot4,
+    productBatchSlot5,
+  ] as const;
 
   const packageImage = usePackageImageWorkspace({
     generationLine,
@@ -201,11 +231,12 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     onRecordHistory: recordHistory,
   });
 
-  const pictureWall = usePictureWallWorkspace({
-    generationLine,
-    onToast: toast.show,
-    onRecordHistory: recordHistory,
-  });
+  const pictureWallSlot1 = usePictureWallWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const pictureWallSlot2 = usePictureWallWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const pictureWallSlot3 = usePictureWallWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const pictureWallSlot4 = usePictureWallWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const pictureWallSlot5 = usePictureWallWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const pictureWallSlots = [pictureWallSlot1, pictureWallSlot2, pictureWallSlot3, pictureWallSlot4, pictureWallSlot5] as const;
 
   const pSignboard = usePSignboardWorkspace({
     generationLine,
@@ -219,17 +250,19 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     onRecordHistory: recordHistory,
   });
 
-  const detailPage = useDetailPageWorkspace({
-    generationLine,
-    onToast: toast.show,
-    onRecordHistory: recordHistory,
-  });
+  const detailPageSlot1 = useDetailPageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const detailPageSlot2 = useDetailPageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const detailPageSlot3 = useDetailPageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const detailPageSlot4 = useDetailPageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const detailPageSlot5 = useDetailPageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const detailPageSlots = [detailPageSlot1, detailPageSlot2, detailPageSlot3, detailPageSlot4, detailPageSlot5] as const;
 
-  const brandStory = useBrandStoryWorkspace({
-    generationLine,
-    onToast: toast.show,
-    onRecordHistory: recordHistory,
-  });
+  const brandStorySlot1 = useBrandStoryWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const brandStorySlot2 = useBrandStoryWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const brandStorySlot3 = useBrandStoryWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const brandStorySlot4 = useBrandStoryWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const brandStorySlot5 = useBrandStoryWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const brandStorySlots = [brandStorySlot1, brandStorySlot2, brandStorySlot3, brandStorySlot4, brandStorySlot5] as const;
 
   const dataAnalysis = useDataAnalysisWorkspace({
     generationLine,
@@ -272,15 +305,15 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
   }
 
   const busy =
-    threePiece.busy ||
-    productImage.busy ||
-    productBatch.busy ||
+    threePieceSlots.some((slot) => slot.busy) ||
+    productImageSlots.some((slot) => slot.busy) ||
+    productBatchSlots.some((slot) => slot.busy) ||
     packageImage.busy ||
-    pictureWall.busy ||
+    pictureWallSlots.some((slot) => slot.busy) ||
     pSignboard.busy ||
     imageEdit.busy ||
-    detailPage.busy ||
-    brandStory.busy ||
+    detailPageSlots.some((slot) => slot.busy) ||
+    brandStorySlots.some((slot) => slot.busy) ||
     dataAnalysis.busy ||
     patrolScript.busy;
 
@@ -312,15 +345,15 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     historyLoading,
     historyUsesCloud: isSupabaseConfigured,
     setHistoryPage,
-    threePiece,
-    productImage,
-    productBatch,
+    threePieceSlots,
+    productImageSlots,
+    productBatchSlots,
     packageImage,
-    pictureWall,
+    pictureWallSlots,
     pSignboard,
     imageEdit,
-    detailPage,
-    brandStory,
+    detailPageSlots,
+    brandStorySlots,
     dataAnalysis,
     patrolScript,
   };

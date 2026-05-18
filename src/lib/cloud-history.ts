@@ -14,6 +14,7 @@ export interface RecordGenerationLogInput {
   platform: Platform;
   ossUrl: string;
   generationLine?: "line1" | "line2" | "line3" | "line4" | "line5" | null;
+  elapsedMs?: number | null;
 }
 
 export interface GenerationLogsPage {
@@ -34,6 +35,7 @@ export async function recordGenerationLog(
     platform: input.platform,
     generation_line: input.generationLine ?? null,
     oss_url: input.ossUrl,
+    elapsed_ms: typeof input.elapsedMs === "number" && input.elapsedMs > 0 ? input.elapsedMs : null,
   });
   if (error) {
     console.warn("[cloud-history] insert generation_log failed:", error.message);
