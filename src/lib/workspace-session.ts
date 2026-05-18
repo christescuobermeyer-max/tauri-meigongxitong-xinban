@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { getAssetLabel } from "./generation-flow";
 import { getAutoRetryAttempt, runWithAutoRetry } from "./generation-retry";
 import { ensureUploadedImagesOnOss } from "./oss-assets";
-import { generateAsset } from "./workspace-generation";
+import { archiveAssetToOss, generateAssetBase64 } from "./workspace-generation";
 import type {
   AppearanceOptions,
   AssetKind,
@@ -106,12 +106,13 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
   } = options;
   const setter = getSetterByKind(kind, setters);
 
+  let generated: Awaited<ReturnType<typeof generateAssetBase64>> & { attempt: number };
   try {
-    const generated = await runWithAutoRetry({
+    generated = await runWithAutoRetry({
       onAttempt: (attempt) =>
         setter((prev) => ({ ...prev, status: "running", errorMessage: undefined, attempt })),
       run: () =>
-        generateAsset({
+        generateAssetBase64({
           kind,
           shopName,
           productName,
@@ -128,24 +129,6 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
           appearance,
         }),
     });
-    setter({
-      kind,
-      rawBase64: generated.rawBase64,
-      rawDataUrl: generated.rawDataUrl,
-      remoteUrl: generated.remoteUrl,
-      generationLine: generated.generationLine,
-      status: "succeeded",
-      elapsedMs: generated.elapsedMs,
-      attempt: generated.attempt,
-    });
-    return {
-      rawBase64: generated.rawBase64,
-      rawDataUrl: generated.rawDataUrl,
-      remoteUrl: generated.remoteUrl,
-      generationLine: generated.generationLine,
-      elapsedMs: generated.elapsedMs,
-      attempt: generated.attempt,
-    };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     const attempt = getAutoRetryAttempt(error);
@@ -156,6 +139,34 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
       attempt: attempt ?? prev.attempt,
     }));
     onToast(`${getAssetLabel(kind)}生成失败：${message}`, "error");
+    return null;
+  }
+
+  setter({
+    kind,
+    rawBase64: generated.rawBase64,
+    rawDataUrl: generated.rawDataUrl,
+    remoteUrl: "",
+    generationLine: generated.generationLine,
+    status: "succeeded",
+    elapsedMs: generated.elapsedMs,
+    attempt: generated.attempt,
+  });
+
+  try {
+    const remoteUrl = await archiveAssetToOss(kind, shopName, generated.rawBase64);
+    setter((prev) => ({ ...prev, remoteUrl }));
+    return {
+      rawBase64: generated.rawBase64,
+      rawDataUrl: generated.rawDataUrl,
+      remoteUrl,
+      generationLine: generated.generationLine,
+      elapsedMs: generated.elapsedMs,
+      attempt: generated.attempt,
+    };
+  } catch (ossError: unknown) {
+    const message = ossError instanceof Error ? ossError.message : String(ossError);
+    onToast(`${getAssetLabel(kind)}已生成，但归档到云端失败：${message}`, "error");
     return null;
   }
 }

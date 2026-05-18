@@ -21,6 +21,13 @@ export interface GenerateAssetResult {
   attempt?: number;
 }
 
+export interface GenerateAssetBase64Result {
+  rawBase64: string;
+  rawDataUrl: string;
+  generationLine: GenerationLine;
+  elapsedMs: number;
+}
+
 export function getMissingReferenceMessage(kind: AssetKind): string {
   return kind === "storefront"
     ? "请上传至少 1 张产品图，再生成店招"
@@ -29,7 +36,7 @@ export function getMissingReferenceMessage(kind: AssetKind): string {
       : "请上传至少 1 张产品图";
 }
 
-export async function generateAsset(options: {
+export interface GenerateAssetOptions {
   kind: AssetKind;
   shopName: string;
   productName?: string;
@@ -44,7 +51,11 @@ export async function generateAsset(options: {
   promptOverride?: string;
   generationLine: GenerationLine;
   appearance?: AppearanceOptions;
-}): Promise<GenerateAssetResult> {
+}
+
+export async function generateAssetBase64(
+  options: GenerateAssetOptions
+): Promise<GenerateAssetBase64Result> {
   const {
     kind,
     shopName,
@@ -84,24 +95,39 @@ export async function generateAsset(options: {
 
   const referenceImagesForRequest = productImages ?? [];
   const started = Date.now();
-  const generated = {
-    base64_data: await generateImage({
-      prompt,
-      size,
-      product_images: referenceImagesForRequest,
-      api_line: generationLine,
-    }),
-    mime_type: "image/png",
-  };
-
-  const remoteUrl = await archiveGeneratedImage(kind, shopName, generated.base64_data);
+  const base64 = await generateImage({
+    prompt,
+    size,
+    product_images: referenceImagesForRequest,
+    api_line: generationLine,
+  });
 
   return {
-    rawBase64: generated.base64_data,
-    rawDataUrl: `data:${generated.mime_type};base64,${generated.base64_data}`,
-    remoteUrl,
+    rawBase64: base64,
+    rawDataUrl: `data:image/png;base64,${base64}`,
     generationLine,
     elapsedMs: Date.now() - started,
+  };
+}
+
+export async function archiveAssetToOss(
+  kind: AssetKind,
+  shopName: string,
+  rawBase64: string
+): Promise<string> {
+  return archiveGeneratedImage(kind, shopName, rawBase64);
+}
+
+/** @deprecated 使用 generateAssetBase64 + archiveAssetToOss 分离生图与归档时机 */
+export async function generateAsset(options: GenerateAssetOptions): Promise<GenerateAssetResult> {
+  const generated = await generateAssetBase64(options);
+  const remoteUrl = await archiveAssetToOss(options.kind, options.shopName, generated.rawBase64);
+  return {
+    rawBase64: generated.rawBase64,
+    rawDataUrl: generated.rawDataUrl,
+    remoteUrl,
+    generationLine: generated.generationLine,
+    elapsedMs: generated.elapsedMs,
   };
 }
 
