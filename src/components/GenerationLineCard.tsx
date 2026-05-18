@@ -26,7 +26,7 @@ export default function GenerationLineCard({ value, onChange }: Props) {
         <div className="generation-line-card__notice-row" data-line="line2">
           <span className="generation-line-card__notice-label">线路2</span>
           <span className="generation-line-card__notice-engine">yunwu</span>
-          <span className="generation-line-card__notice-text">王清月 袁丽妮 黄兆微 使用</span>
+          <span className="generation-line-card__notice-text">备用线路</span>
         </div>
         <div className="generation-line-card__notice-row" data-line="line3">
           <span className="generation-line-card__notice-label">线路3</span>
@@ -41,7 +41,7 @@ export default function GenerationLineCard({ value, onChange }: Props) {
         <div className="generation-line-card__notice-row" data-line="line5">
           <span className="generation-line-card__notice-label">线路5</span>
           <span className="generation-line-card__notice-engine">APIMart</span>
-          <span className="generation-line-card__notice-text">王郡江 杨有淇 王涛 请使用线路5</span>
+          <span className="generation-line-card__notice-text">下午 14:30-17:30 出不了图，不建议这个时段使用</span>
         </div>
       </div>
     </section>
