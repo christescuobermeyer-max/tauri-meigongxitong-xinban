@@ -5,8 +5,8 @@ use serde_json::Value;
 use std::time::Duration;
 
 const TASK_API_BASE_URL: &str = "https://api.apimart.ai/v1/tasks";
-const INITIAL_WAIT_SECS: u64 = 12;
-const POLL_INTERVAL_SECS: u64 = 4;
+const INITIAL_WAIT_SECS: u64 = 4;
+const POLL_INTERVAL_SECS: u64 = 2;
 const MAX_POLL_ATTEMPTS: usize = 60;
 
 pub async fn submit_apimart_task<T: Serialize + ?Sized>(

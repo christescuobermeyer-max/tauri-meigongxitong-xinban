@@ -8,7 +8,7 @@ import type {
   GenerationLine,
 } from "../types";
 
-const BACKEND_GATEWAY_REQUEST_TIMEOUT_MS = 350_000;
+const BACKEND_GATEWAY_REQUEST_TIMEOUT_MS = 600_000;
 
 function ensureTauriInvoke() {
   if (typeof invoke !== "function") {
@@ -21,7 +21,11 @@ export function getBackendGatewayUrl(): string {
   return (import.meta.env.VITE_BACKEND_GATEWAY_URL ?? "").trim().replace(/\/+$/, "");
 }
 
-export async function callBackendGateway<T>(path: string, body: unknown): Promise<T> {
+export async function callBackendGateway<T>(
+  path: string,
+  body: unknown,
+  options: { timeoutMs?: number } = {}
+): Promise<T> {
   const baseUrl = getBackendGatewayUrl();
   if (!baseUrl) throw new Error("未配置后端网关地址 VITE_BACKEND_GATEWAY_URL");
 
@@ -29,8 +33,9 @@ export async function callBackendGateway<T>(path: string, body: unknown): Promis
   const token = session.data.session?.access_token;
   if (!token) throw new Error("登录态已失效，请重新登录后再试");
 
+  const timeoutMs = options.timeoutMs ?? BACKEND_GATEWAY_REQUEST_TIMEOUT_MS;
   const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), BACKEND_GATEWAY_REQUEST_TIMEOUT_MS);
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(`${baseUrl}${path}`, {
@@ -47,7 +52,7 @@ export async function callBackendGateway<T>(path: string, body: unknown): Promis
     return JSON.parse(text) as T;
   } catch (error: unknown) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("后端网关请求超过 350 秒，请稍后查看历史记录或手动重试");
+      throw new Error(`后端网关请求超过 ${Math.round(timeoutMs / 1000)} 秒，请稍后重试`);
     }
     throw error;
   } finally {
@@ -97,10 +102,15 @@ export interface UploadImageToOssResponse {
 
 /** 调用 Rust 端：把图片上传到 OSS，并返回可访问 URL */
 export async function uploadImageToOss(
-  req: UploadImageToOssRequest
+  req: UploadImageToOssRequest,
+  options: { timeoutMs?: number } = {}
 ): Promise<UploadImageToOssResponse> {
   if (getBackendGatewayUrl()) {
-    return await callBackendGateway<UploadImageToOssResponse>("/api/upload-image-to-oss", req);
+    return await callBackendGateway<UploadImageToOssResponse>(
+      "/api/upload-image-to-oss",
+      req,
+      options
+    );
   }
   return await ensureTauriInvoke()<UploadImageToOssResponse>("upload_image_to_oss", { req });
 }
