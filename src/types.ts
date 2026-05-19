@@ -1,6 +1,6 @@
 export type Platform = "meituan" | "taobao";
 export type AvatarReferenceMode = "category" | "image";
-export type GenerationLine = "line1" | "line2" | "line3" | "line4" | "line5";
+export type GenerationLine = "line1" | "line2" | "line3" | "line4" | "line5" | "line6";
 
 /** 主题色偏好（可选，未选时不影响 prompt） */
 export type ThemeColor = "light" | "dark" | "red" | "yellow" | "orange";

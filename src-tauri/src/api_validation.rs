@@ -25,7 +25,7 @@ fn is_supported_size_for_line(req: &GenerateRequest) -> bool {
             req.size.as_str(),
             "1024x1024" | "1024x1536" | "1536x1024" | "1792x1024" | "16:9" | "21:9" | "3:4"
         ),
-        ImageApiLine::Line2 => matches!(
+        ImageApiLine::Line2 | ImageApiLine::Line6 => matches!(
             req.size.as_str(),
             "1024x1024" | "1024x1536" | "1536x1024" | "1792x768" | "3:4"
         ),

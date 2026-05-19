@@ -43,6 +43,11 @@ export default function GenerationLineCard({ value, onChange }: Props) {
           <span className="generation-line-card__notice-engine">APIMart</span>
           <span className="generation-line-card__notice-text">下午 14:30-17:30 出不了图，不建议这个时段使用</span>
         </div>
+        <div className="generation-line-card__notice-row" data-line="line6">
+          <span className="generation-line-card__notice-label">线路6</span>
+          <span className="generation-line-card__notice-engine">manxiaobai</span>
+          <span className="generation-line-card__notice-text">备用线路</span>
+        </div>
       </div>
     </section>
   );

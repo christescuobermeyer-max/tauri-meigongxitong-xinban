@@ -26,6 +26,7 @@ interface Props {
   entries: ProductBatchEntry[];
   onGenerate: () => void;
   busy: boolean;
+  uploadingOss: boolean;
   elapsed: number;
 }
 
@@ -47,6 +48,7 @@ export default function ProductBatchGeneratePanel({
   entries,
   onGenerate,
   busy,
+  uploadingOss,
   elapsed,
 }: Props) {
   const platformSpec = platform ? getPlatform(platform) : null;
@@ -142,8 +144,21 @@ export default function ProductBatchGeneratePanel({
               onClick={onGenerate}
             >
               <IconSparkles style={{ width: 14, height: 14 }} />
-              {busy ? "制作中…" : "开始制作全店图"}
+              {uploadingOss
+                ? `正在上传素材到 OSS（${images.length + styleImages.length} 张）…`
+                : busy
+                  ? "制作中…"
+                  : "开始制作全店图"}
             </button>
+            {uploadingOss && (
+              <div className="upload-progress-banner" role="status" aria-live="polite">
+                <span className="upload-progress-banner__spinner" aria-hidden="true" />
+                <span>
+                  正在将 {images.length + styleImages.length} 张素材分批并发上传到云端（每批 3
+                  张，失败自动重试），请勿重复点击或关闭页面…
+                </span>
+              </div>
+            )}
             {batchBusy && entries.length > 0 && (
               <ProgressSteps
                 elapsedMs={elapsed}

@@ -54,11 +54,11 @@ ok(!prompt.includes("增长曲线"));
 ok(!prompt.includes("科技蓝"));
 ok(!prompt.includes("墨绿"));
 
-equal(module.resolvePatrolScriptSize("line1"), "1536x1024");
-equal(module.resolvePatrolScriptSize("line2"), "1536x1024");
-equal(module.resolvePatrolScriptSize("line3"), "1536x1024");
-equal(module.resolvePatrolScriptSize("line4"), "16:9");
-equal(module.resolvePatrolScriptSize("line5"), "16:9");
+equal(module.resolvePatrolScriptSize("line1"), "1024x1536");
+equal(module.resolvePatrolScriptSize("line2"), "1024x1536");
+equal(module.resolvePatrolScriptSize("line3"), "1024x1536");
+equal(module.resolvePatrolScriptSize("line4"), "1024x1536");
+equal(module.resolvePatrolScriptSize("line5"), "1024x1536");
 equal(module.PATROL_SCRIPT_EXPORT_SIZE.w, 1024);
 equal(module.PATROL_SCRIPT_EXPORT_SIZE.h, 1536);
 ok(hookSource.includes("target_width: PATROL_SCRIPT_EXPORT_SIZE.w"));

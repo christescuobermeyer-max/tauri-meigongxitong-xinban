@@ -30,4 +30,7 @@ equal(gatewaySource.includes("/api/generate-image"), true);
 equal(gatewaySource.includes("/api/upload-image-to-oss"), true);
 equal(gatewaySource.includes("/api/admin-create-user"), true);
 equal(gatewaySource.includes("verify_access_token"), true);
+equal(gatewaySource.includes("ensure_active_profile"), true);
+equal(gatewaySource.includes("profiles?select=is_active"), true);
+equal(gatewaySource.includes("账号已被停用，请联系管理员"), true);
 equal(gatewaySource.includes("timeout(Duration::from_secs(350))"), true);

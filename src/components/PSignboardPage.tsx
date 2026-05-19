@@ -1,7 +1,7 @@
 import type { GenerationItem, GenerationLine, UploadedImage } from "../types";
 import { canGeneratePSignboard } from "../lib/p-signboard-form";
 import { copyGeneratedItemImage } from "../lib/clipboard-image";
-import { getGenerationPreviewUrl } from "../lib/generation-preview";
+import { getGenerationPreviewUrl, isArchivingToOss } from "../lib/generation-preview";
 import ImageUpload from "./ImageUpload";
 import GenerationStatusBadge from "./GenerationStatusBadge";
 import GenerationLineCard from "./GenerationLineCard";
@@ -173,6 +173,12 @@ export default function PSignboardPage({
                 <div className="spinner spinner--lg" />
                 <strong>{busyTitle}</strong>
                 <span>{busyHint}</span>
+              </div>
+            ) : isArchivingToOss(item) ? (
+              <div className="picture-wall-state">
+                <IconCheck />
+                <strong>图片已生成成功</strong>
+                <span>正在上传 OSS，请耐心等待…</span>
               </div>
             ) : (
               <div className="picture-wall-state">

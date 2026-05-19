@@ -155,6 +155,7 @@ function getGenerationLineTone(line: GenerationLogRow["generation_line"]) {
   if (line === "line3") return "info";
   if (line === "line4") return "warning";
   if (line === "line5") return "info";
+  if (line === "line6") return "info";
   return "success";
 }
 
@@ -167,6 +168,7 @@ export function getGenerationLineLabel(
   if (line === "line3") return "线路3";
   if (line === "line4") return "线路4";
   if (line === "line5") return "线路5";
+  if (line === "line6") return "线路6";
   return kind === "picture_wall" ? "专用接口" : "线路1";
 }
 

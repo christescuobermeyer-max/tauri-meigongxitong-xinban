@@ -13,7 +13,7 @@ export interface RecordGenerationLogInput {
   assetKind: AssetKind;
   platform: Platform;
   ossUrl: string;
-  generationLine?: "line1" | "line2" | "line3" | "line4" | "line5" | null;
+  generationLine?: "line1" | "line2" | "line3" | "line4" | "line5" | "line6" | null;
   elapsedMs?: number | null;
 }
 

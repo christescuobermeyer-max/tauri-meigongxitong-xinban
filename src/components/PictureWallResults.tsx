@@ -1,7 +1,7 @@
 import type { PictureWallEntry } from "../lib/picture-wall";
 import type { PictureWallDownloadProgress } from "../lib/picture-wall-download";
 import { copyGeneratedItemImage } from "../lib/clipboard-image";
-import { getGenerationPreviewUrl } from "../lib/generation-preview";
+import { getGenerationPreviewUrl, isArchivingToOss } from "../lib/generation-preview";
 import BatchDownloadButton from "./BatchDownloadButton";
 import { IconAlert, IconCheck, IconCopy, IconDownload, IconImage, IconRefresh } from "./Icons";
 import GenerationStatusBadge from "./GenerationStatusBadge";
@@ -173,6 +173,12 @@ function PictureWallTile({
             <div className="spinner spinner--lg" />
             <strong>{busyTitle}</strong>
             <span>{busyHint}</span>
+          </div>
+        ) : isArchivingToOss(entry.item) ? (
+          <div className="picture-wall-state">
+            <IconCheck />
+            <strong>图片已生成成功</strong>
+            <span>正在上传 OSS，请耐心等待…</span>
           </div>
         ) : (
           <div className="picture-wall-state">

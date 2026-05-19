@@ -28,6 +28,7 @@ const BRAND_STORY_FIXED_THREAD: BrandStoryThreadId = "thread1";
 
 interface Options {
   generationLine: GenerationLine;
+  setGenerationLine: (line: GenerationLine) => void;
   onToast: (message: string, tone: "error" | "info" | "success") => void;
   onRecordHistory: (
     kind: AssetKind,
@@ -41,6 +42,7 @@ export type BrandStoryPhase = "idle" | "text" | "image" | "done";
 
 export default function useBrandStoryWorkspace({
   generationLine,
+  setGenerationLine,
   onToast,
   onRecordHistory,
 }: Options) {
@@ -217,6 +219,8 @@ export default function useBrandStoryWorkspace({
   }
 
   return {
+    generationLine,
+    setGenerationLine,
     storeName,
     setStoreName,
     category,

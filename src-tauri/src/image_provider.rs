@@ -41,6 +41,12 @@ const LINE5_API_URL: &str = "https://api.apimart.ai/v1/images/generations";
 const LINE5_MODEL: &str = "gpt-image-2";
 const LINE5_API_KEY_ENV_KEYS: [&str; 2] = ["APIMART_IMAGE_2_API_KEY", "IMAGE_2_LINE5_API_KEY"];
 
+const LINE6_API_URL: &str = "https://api.manxiaobai.online/v1/images/generations";
+const LINE6_EDIT_API_URL: &str = "https://api.manxiaobai.online/v1/images/edits";
+const LINE6_MODEL: &str = "gpt-image-2";
+const LINE6_API_KEY_ENV_KEYS: [&str; 2] =
+    ["MANXIAOBAI_IMAGE_2_API_KEY", "IMAGE_2_LINE6_API_KEY"];
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum ImageApiLine {
     #[serde(rename = "line1")]
@@ -53,6 +59,8 @@ pub enum ImageApiLine {
     Line4,
     #[serde(rename = "line5")]
     Line5,
+    #[serde(rename = "line6")]
+    Line6,
 }
 
 impl Default for ImageApiLine {
@@ -69,6 +77,7 @@ impl ImageApiLine {
             ImageApiLine::Line3 => "line3",
             ImageApiLine::Line4 => "line4",
             ImageApiLine::Line5 => "line5",
+            ImageApiLine::Line6 => "line6",
         }
     }
 }
@@ -140,6 +149,17 @@ pub fn resolve_image_provider(line: ImageApiLine) -> ImageProvider {
             api_key_env_keys: &LINE5_API_KEY_ENV_KEYS,
             quality: None,
             format: None,
+            reference_image_json_field: ReferenceImageJsonField::Image,
+        },
+        ImageApiLine::Line6 => ImageProvider {
+            api_url: LINE6_API_URL,
+            edit_api_url: Some(LINE6_EDIT_API_URL),
+            model: LINE6_MODEL,
+            log_label: "image-2:line6-manxiaobai",
+            user_label: "线路6 manxiaobai",
+            api_key_env_keys: &LINE6_API_KEY_ENV_KEYS,
+            quality: Some("high"),
+            format: Some("png"),
             reference_image_json_field: ReferenceImageJsonField::Image,
         },
     }
@@ -223,5 +243,24 @@ mod tests {
         assert_eq!(provider.model, "gpt-image-2");
         assert_eq!(provider.log_label, "image-2:line5-apimart");
         assert_eq!(provider.api_key_env_keys[0], "APIMART_IMAGE_2_API_KEY");
+    }
+
+    #[test]
+    fn line6_uses_manxiaobai_provider() {
+        let provider = resolve_image_provider(ImageApiLine::Line6);
+
+        assert_eq!(
+            provider.api_url,
+            "https://api.manxiaobai.online/v1/images/generations"
+        );
+        assert_eq!(
+            provider.edit_api_url,
+            Some("https://api.manxiaobai.online/v1/images/edits")
+        );
+        assert_eq!(provider.model, "gpt-image-2");
+        assert_eq!(provider.log_label, "image-2:line6-manxiaobai");
+        assert_eq!(provider.api_key_env_keys[0], "MANXIAOBAI_IMAGE_2_API_KEY");
+        assert_eq!(provider.quality, Some("high"));
+        assert_eq!(provider.format, Some("png"));
     }
 }

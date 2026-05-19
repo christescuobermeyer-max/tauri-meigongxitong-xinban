@@ -26,12 +26,16 @@ export const ASSET_LABEL: Record<string, string> = {
   patrol_script: "巡店话术",
 };
 
-export const GENERATION_LINE_LABEL: Record<"line1" | "line2" | "line3" | "line4" | "line5", string> = {
+export const GENERATION_LINE_LABEL: Record<
+  "line1" | "line2" | "line3" | "line4" | "line5" | "line6",
+  string
+> = {
   line1: "线路1",
   line2: "线路2",
   line3: "线路3",
   line4: "线路4",
   line5: "线路5",
+  line6: "线路6",
 };
 
 export interface GenerationLogFilter {

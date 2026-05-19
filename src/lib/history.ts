@@ -9,7 +9,7 @@ export interface HistoryEntry {
   shopName: string;
   remoteUrl: string;
   platform: Platform;
-  generationLine?: "line1" | "line2" | "line3" | "line4" | "line5" | null;
+  generationLine?: "line1" | "line2" | "line3" | "line4" | "line5" | "line6" | null;
   previewUrl?: string;
   createdAt: string;
 }
@@ -117,7 +117,7 @@ function isHistoryEntry(value: unknown): value is HistoryEntry {
     typeof entry.shopName === "string" &&
     typeof entry.remoteUrl === "string" &&
     (entry.platform === "meituan" || entry.platform === "taobao" || typeof entry.platform === "undefined") &&
-    (entry.generationLine === "line1" || entry.generationLine === "line2" || entry.generationLine === "line3" || entry.generationLine === "line4" || entry.generationLine === "line5" || entry.generationLine === null || typeof entry.generationLine === "undefined") &&
+    (entry.generationLine === "line1" || entry.generationLine === "line2" || entry.generationLine === "line3" || entry.generationLine === "line4" || entry.generationLine === "line5" || entry.generationLine === "line6" || entry.generationLine === null || typeof entry.generationLine === "undefined") &&
     (typeof entry.previewUrl === "string" || typeof entry.previewUrl === "undefined") &&
     typeof entry.createdAt === "string"
   );
@@ -143,9 +143,9 @@ function normalizePlatform(platform: PlatformDb | Platform | null | undefined): 
 
 function normalizeGenerationLine(
   kind: AssetKind,
-  line?: "line1" | "line2" | "line3" | "line4" | "line5" | null
-): "line1" | "line2" | "line3" | "line4" | "line5" | null {
-  if (line === "line1" || line === "line2" || line === "line3" || line === "line4" || line === "line5") return line;
+  line?: "line1" | "line2" | "line3" | "line4" | "line5" | "line6" | null
+): "line1" | "line2" | "line3" | "line4" | "line5" | "line6" | null {
+  if (line === "line1" || line === "line2" || line === "line3" || line === "line4" || line === "line5" || line === "line6") return line;
   return kind === "picture_wall" ? null : "line1";
 }
 

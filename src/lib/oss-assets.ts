@@ -32,31 +32,59 @@ const COMPRESSION_BY_KIND: Record<AssetKind, CompressionConfig> = {
   patrol_script: { maxDimension: 1792, quality: 90 },
 };
 
+const UPLOAD_CONCURRENCY = 3;
+const UPLOAD_TIMEOUT_MS = 30_000;
+const UPLOAD_MAX_ATTEMPTS = 3;
+
+async function uploadOneWithRetry(image: UploadedImage): Promise<UploadedImage> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= UPLOAD_MAX_ATTEMPTS; attempt++) {
+    try {
+      const uploaded = await uploadImageToOss(
+        {
+          base64_data: image.productBase64,
+          mime_type: image.mime,
+          folder: "uploads",
+          file_name: image.name,
+        },
+        { timeoutMs: UPLOAD_TIMEOUT_MS }
+      );
+      return { ...image, productOssUrl: uploaded.url };
+    } catch (error) {
+      lastError = error;
+      if (attempt < UPLOAD_MAX_ATTEMPTS) {
+        await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+      }
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(`上传 ${image.name} 到 OSS 失败：${String(lastError)}`);
+}
+
 export async function ensureUploadedImagesOnOss(
   images: UploadedImage[]
 ): Promise<UploadedImage[]> {
-  let changed = false;
+  const pending = images
+    .map((image, index) => ({ image, index }))
+    .filter(({ image }) => !image.productOssUrl);
+  if (pending.length === 0) return images;
 
-  const next = await Promise.all(
-    images.map(async (image) => {
-      if (image.productOssUrl) return image;
-
-      const uploaded = await uploadImageToOss({
-        base64_data: image.productBase64,
-        mime_type: image.mime,
-        folder: "uploads",
-        file_name: image.name,
-      });
-      changed = true;
-
-      return {
-        ...image,
-        productOssUrl: uploaded.url,
-      };
-    })
+  const next = images.slice();
+  let cursor = 0;
+  const workers = Array.from(
+    { length: Math.min(UPLOAD_CONCURRENCY, pending.length) },
+    async () => {
+      while (true) {
+        const slot = cursor++;
+        if (slot >= pending.length) return;
+        const { image, index } = pending[slot];
+        next[index] = await uploadOneWithRetry(image);
+      }
+    }
   );
-
-  return changed ? next : images;
+  await Promise.all(workers);
+  return next;
 }
 
 /**

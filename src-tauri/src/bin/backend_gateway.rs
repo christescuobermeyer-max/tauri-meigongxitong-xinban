@@ -194,10 +194,57 @@ async fn verify_access_token(state: &AppState, headers: &HeaderMap) -> Result<()
         .await
         .map_err(|error| GatewayError::bad_gateway(format!("校验登录态失败：{error}")))?;
 
-    if response.status().is_success() {
+    if !response.status().is_success() {
+        return Err(GatewayError::unauthorized("登录态无效或已过期，请重新登录"));
+    }
+
+    let user_json: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|error| GatewayError::bad_gateway(format!("解析登录态失败：{error}")))?;
+    let user_id = user_json
+        .get("id")
+        .and_then(|value| value.as_str())
+        .ok_or_else(|| GatewayError::unauthorized("登录态无效或已过期，请重新登录"))?;
+
+    ensure_active_profile(state, token, user_id).await
+}
+
+async fn ensure_active_profile(
+    state: &AppState,
+    token: &str,
+    user_id: &str,
+) -> Result<(), GatewayError> {
+    let response = state
+        .client
+        .get(format!(
+            "{}/rest/v1/profiles?select=is_active&id=eq.{}",
+            state.supabase_url, user_id
+        ))
+        .header("apikey", &state.supabase_anon_key)
+        .bearer_auth(token)
+        .send()
+        .await
+        .map_err(|error| GatewayError::bad_gateway(format!("校验账号状态失败：{error}")))?;
+
+    if !response.status().is_success() {
+        return Err(GatewayError::unauthorized("账号状态校验失败，请重新登录"));
+    }
+
+    let rows: Vec<serde_json::Value> = response
+        .json()
+        .await
+        .map_err(|error| GatewayError::bad_gateway(format!("解析账号状态失败：{error}")))?;
+    let is_active = rows
+        .first()
+        .and_then(|row| row.get("is_active"))
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false);
+
+    if is_active {
         Ok(())
     } else {
-        Err(GatewayError::unauthorized("登录态无效或已过期，请重新登录"))
+        Err(GatewayError::unauthorized("账号已被停用，请联系管理员"))
     }
 }
 

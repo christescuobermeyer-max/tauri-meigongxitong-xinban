@@ -20,7 +20,7 @@ pub const GREEN_MAX_MS: u64 = 150_000;
 pub const YELLOW_MAX_MS: u64 = 350_000;
 pub const STALE_AFTER_SECS: u64 = 3600;
 
-const LINES: [&str; 5] = ["line1", "line2", "line3", "line4", "line5"];
+const LINES: [&str; 6] = ["line1", "line2", "line3", "line4", "line5", "line6"];
 
 #[derive(Debug, Clone)]
 struct Sample {

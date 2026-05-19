@@ -23,6 +23,7 @@ const noopSetter: Dispatch<SetStateAction<GenerationItem>> = () => undefined;
 
 interface Options {
   generationLine: GenerationLine;
+  setGenerationLine: (line: GenerationLine) => void;
   onToast: (message: string, tone: "error" | "info" | "success") => void;
   onRecordHistory: (
     kind: AssetKind,
@@ -33,7 +34,7 @@ interface Options {
 }
 
 export default function useProductImageWorkspace(options: Options) {
-  const { generationLine, onToast, onRecordHistory } = options;
+  const { generationLine, setGenerationLine, onToast, onRecordHistory } = options;
   const [shopName, setShopName] = useState("");
   const [productName, setProductName] = useState("");
   const [platform, setPlatform] = useState<Platform | null>(null);
@@ -196,6 +197,8 @@ export default function useProductImageWorkspace(options: Options) {
   }
 
   return {
+    generationLine,
+    setGenerationLine,
     shopName,
     setShopName,
     productName,

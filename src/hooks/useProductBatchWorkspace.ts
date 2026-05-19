@@ -30,6 +30,7 @@ import {
 
 interface Options {
   generationLine: GenerationLine;
+  setGenerationLine: (line: GenerationLine) => void;
   onToast: (message: string, tone: "error" | "info" | "success") => void;
   onRecordHistory: (
     kind: AssetKind,
@@ -43,6 +44,7 @@ const noopSetter: Dispatch<SetStateAction<GenerationItem>> = () => undefined;
 
 export default function useProductBatchWorkspace({
   generationLine,
+  setGenerationLine,
   onToast,
   onRecordHistory,
 }: Options) {
@@ -53,6 +55,7 @@ export default function useProductBatchWorkspace({
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [styleImages, setStyleImages] = useState<UploadedImage[]>([]);
   const [entries, setEntries] = useState<ProductBatchEntry[]>([]);
+  const [uploadingOss, setUploadingOss] = useState(false);
 
   const currentPlatform: PlatformSpec | null = platform ? getPlatform(platform) : null;
 
@@ -60,7 +63,7 @@ export default function useProductBatchWorkspace({
     setEntries((previous) => syncProductBatchEntries(images, previous));
   }, [images]);
 
-  const busy = hasBusyProductBatchEntries(entries);
+  const busy = uploadingOss || hasBusyProductBatchEntries(entries);
   const completedCount = getProductBatchCompletedCount(entries);
 
   function validateInputs() {
@@ -164,6 +167,7 @@ export default function useProductBatchWorkspace({
   }
 
   async function handleGenerate() {
+    if (uploadingOss) return;
     if (!validateInputs() || !platform || !currentPlatform) return;
 
     const snapshot = {
@@ -175,6 +179,9 @@ export default function useProductBatchWorkspace({
       brandStyle,
     };
 
+    setUploadingOss(true);
+    onToast(`正在上传 ${images.length + styleImages.length} 张素材到 OSS，请稍候…`, "info");
+
     let syncedImages: UploadedImage[];
     let syncedStyleImages: UploadedImage[];
     try {
@@ -184,11 +191,13 @@ export default function useProductBatchWorkspace({
         `上传参考图到 OSS 失败：${error instanceof Error ? error.message : String(error)}`,
         "error"
       );
+      setUploadingOss(false);
       return;
     }
+    setUploadingOss(false);
 
     setEntries(buildProductBatchEntries(syncedImages, "queued"));
-    onToast("正在参考设计风格批量制作全店图，请耐心等待…", "info");
+    onToast("素材上传完成，开始批量生成全店图，请耐心等待…", "info");
 
     for (const image of syncedImages) {
       await runBatchItem(image, syncedStyleImages, snapshot);
@@ -196,6 +205,7 @@ export default function useProductBatchWorkspace({
   }
 
   async function retry(sourceImageId: string) {
+    if (uploadingOss) return null;
     if (!platform || !currentPlatform) {
       onToast("请先选择投放平台：美团或淘宝闪购", "error");
       return null;
@@ -219,6 +229,7 @@ export default function useProductBatchWorkspace({
       brandStyle,
     };
 
+    setUploadingOss(true);
     let syncedImages: UploadedImage[];
     let syncedStyleImages: UploadedImage[];
     try {
@@ -228,8 +239,10 @@ export default function useProductBatchWorkspace({
         `上传参考图到 OSS 失败：${error instanceof Error ? error.message : String(error)}`,
         "error"
       );
+      setUploadingOss(false);
       return null;
     }
+    setUploadingOss(false);
 
     const syncedImage = syncedImages.find((item) => item.id === sourceImageId);
     if (!syncedImage) {
@@ -261,6 +274,8 @@ export default function useProductBatchWorkspace({
     setShopName,
     platform,
     setPlatform,
+    generationLine,
+    setGenerationLine,
     currentPlatform,
     themeColor,
     setThemeColor,
@@ -272,6 +287,7 @@ export default function useProductBatchWorkspace({
     setStyleImages,
     entries,
     busy,
+    uploadingOss,
     completedCount,
     handleGenerate,
     retry,

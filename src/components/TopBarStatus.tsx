@@ -17,14 +17,16 @@ const LINE_LABEL: Record<GenerationLine, string> = {
   line3: "线路3",
   line4: "线路4",
   line5: "线路5",
+  line6: "线路6",
 };
 
-const LINE_TONE: Record<GenerationLine, "success" | "warn" | "info" | "gold"> = {
+const LINE_TONE: Record<GenerationLine, "success" | "warn" | "info" | "gold" | "violet"> = {
   line1: "success",
   line2: "success",
   line3: "info",
   line4: "warn",
   line5: "gold",
+  line6: "violet",
 };
 
 export default function TopBarStatus({

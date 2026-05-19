@@ -192,12 +192,16 @@ export default function HistoryPanel({
   );
 }
 
-function getGenerationLineLabel(kind: AssetKind, line?: "line1" | "line2" | "line3" | "line4" | "line5" | null) {
+function getGenerationLineLabel(
+  kind: AssetKind,
+  line?: "line1" | "line2" | "line3" | "line4" | "line5" | "line6" | null,
+) {
   if (line === "line1") return "线路1";
   if (line === "line2") return "线路2";
   if (line === "line3") return "线路3";
   if (line === "line4") return "线路4";
   if (line === "line5") return "线路5";
+  if (line === "line6") return "线路6";
   return kind === "picture_wall" ? "专用接口" : "线路1";
 }
 

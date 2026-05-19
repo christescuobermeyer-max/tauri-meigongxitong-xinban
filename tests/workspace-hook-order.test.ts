@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 
 const source = readFileSync(new URL("../src/hooks/useGenerationWorkspace.ts", import.meta.url), "utf8");
 
-const productBatchIndex = source.indexOf("const productBatchWorkspace = useProductBatchWorkspace");
-const pictureWallIndex = source.indexOf("const pictureWallWorkspace = usePictureWallWorkspace");
-const pSignboardIndex = source.indexOf("const pSignboardWorkspace = usePSignboardWorkspace");
+const productBatchIndex = source.indexOf("productBatchSlot1 = useProductBatchWorkspace");
+const pictureWallIndex = source.indexOf("pictureWallSlot1 = usePictureWallWorkspace");
+const pSignboardIndex = source.indexOf("pSignboard = usePSignboardWorkspace");
 const historyRefreshIndex = source.indexOf('if (tab !== "history" || !isSupabaseConfigured) return;');
 
 ok(productBatchIndex > 0);

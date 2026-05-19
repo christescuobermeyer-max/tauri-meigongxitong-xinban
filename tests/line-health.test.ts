@@ -56,11 +56,14 @@ ok(lineHealthSource.includes("LINE_HEALTH_REQUEST_TIMEOUT_MS = 8000"));
 ok(useLineHealthSource.includes("POLL_INTERVAL_MS = 60_000"));
 ok(barSource.includes("LineHealthBar"));
 ok(barSource.includes("data-tone"));
+ok(barSource.includes("line-health-list"));
+ok(barSource.includes("line-health-row"));
 ok(lineCardSource.includes("<LineHealthBar />"));
 ok(cssSource.includes(".line-health-bar"));
-ok(cssSource.includes('.line-health-chip[data-tone="green"]'));
-ok(cssSource.includes('.line-health-chip[data-tone="yellow"]'));
-ok(cssSource.includes('.line-health-chip[data-tone="red"]'));
+ok(cssSource.includes(".line-health-list"));
+ok(cssSource.includes('.line-health-row[data-tone="green"]'));
+ok(cssSource.includes('.line-health-row[data-tone="yellow"]'));
+ok(cssSource.includes('.line-health-row[data-tone="red"]'));
 
 // ---- 格式化函数单测 ----
 const transpiled = ts.transpileModule(lineHealthSource, {
@@ -89,10 +92,10 @@ equal(mod.formatLastSeen("2026-05-15T11:59:30Z", baseNow), "30 秒前");
 equal(mod.formatLastSeen("2026-05-15T11:55:00Z", baseNow), "5 分钟前");
 equal(mod.formatLastSeen("2026-05-15T09:00:00Z", baseNow), "3 小时前");
 
-// emptyLineHealthMap 5 条线路全 unknown
+// emptyLineHealthMap 6 条线路全 unknown
 const empty = mod.emptyLineHealthMap();
-equal(Object.keys(empty).length, 5);
-for (const line of ["line1", "line2", "line3", "line4", "line5"]) {
+equal(Object.keys(empty).length, 6);
+for (const line of ["line1", "line2", "line3", "line4", "line5", "line6"]) {
   equal(empty[line].status, "unknown");
   equal(empty[line].latency_ms, null);
   equal(empty[line].sample_count, 0);

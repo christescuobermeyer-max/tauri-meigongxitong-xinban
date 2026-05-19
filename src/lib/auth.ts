@@ -17,12 +17,10 @@ export async function signInWithEmail(
 
   const profile = await loadProfile(data.user.id);
   if (!profile) {
+    await supabase.auth.signOut();
     throw new Error("登录成功但未在 profiles 表中找到记录，请联系管理员");
   }
-  if (!profile.is_active) {
-    await supabase.auth.signOut();
-    throw new Error("账号已被停用，请联系管理员");
-  }
+  await assertActiveProfile(profile);
 
   await recordLogin();
   return { profile };
@@ -46,7 +44,20 @@ export async function getCurrentProfile(): Promise<ProfileRow | null> {
   const { data: sessionData } = await supabase.auth.getSession();
   const userId = sessionData.session?.user.id;
   if (!userId) return null;
-  return loadProfile(userId);
+  const profile = await loadProfile(userId);
+  if (!profile) {
+    await supabase.auth.signOut();
+    return null;
+  }
+  await assertActiveProfile(profile);
+  return profile;
+}
+
+async function assertActiveProfile(profile: ProfileRow): Promise<void> {
+  if (!profile.is_active) {
+    await supabase.auth.signOut();
+    throw new Error("账号已被停用，请联系管理员");
+  }
 }
 
 async function recordLogin(): Promise<void> {

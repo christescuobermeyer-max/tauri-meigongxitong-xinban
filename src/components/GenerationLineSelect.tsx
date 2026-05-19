@@ -6,6 +6,7 @@ const LINES: Array<{ id: GenerationLine; label: string }> = [
   { id: "line3", label: "线路3" },
   { id: "line4", label: "线路4" },
   { id: "line5", label: "线路5" },
+  { id: "line6", label: "线路6" },
 ];
 
 interface Props {

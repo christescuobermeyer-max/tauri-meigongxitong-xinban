@@ -21,6 +21,7 @@ const DETAIL_PAGE_PLATFORM: Platform = "meituan";
 
 interface Options {
   generationLine: GenerationLine;
+  setGenerationLine: (line: GenerationLine) => void;
   onToast: (message: string, tone: "error" | "info" | "success") => void;
   onRecordHistory: (
     kind: AssetKind,
@@ -32,6 +33,7 @@ interface Options {
 
 export default function useDetailPageWorkspace({
   generationLine,
+  setGenerationLine,
   onToast,
   onRecordHistory,
 }: Options) {
@@ -158,6 +160,8 @@ export default function useDetailPageWorkspace({
   }
 
   return {
+    generationLine,
+    setGenerationLine,
     shopName,
     setShopName,
     images,

@@ -28,7 +28,7 @@ const EMPTY_ENTRY: LineHealthEntry = {
   last_success: null,
 };
 
-const LINES: GenerationLine[] = ["line1", "line2", "line3", "line4", "line5"];
+const LINES: GenerationLine[] = ["line1", "line2", "line3", "line4", "line5", "line6"];
 
 export function emptyLineHealthMap(): Record<GenerationLine, LineHealthEntry> {
   return Object.fromEntries(LINES.map((line) => [line, EMPTY_ENTRY])) as Record<

@@ -49,7 +49,7 @@ export interface GenerationLogRow {
   shop_name: string;
   asset_kind: AssetKindDb;
   platform: PlatformDb;
-  generation_line: "line1" | "line2" | "line3" | "line4" | "line5" | null;
+  generation_line: "line1" | "line2" | "line3" | "line4" | "line5" | "line6" | null;
   oss_url: string;
   oss_key: string | null;
   created_at: string;

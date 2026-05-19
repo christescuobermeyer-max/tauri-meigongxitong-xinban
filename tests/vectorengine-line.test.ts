@@ -33,7 +33,7 @@ const apiSource = readFileSync(new URL("../src-tauri/src/api.rs", import.meta.ur
 const envExample = readFileSync(new URL("../.env.example", import.meta.url), "utf8");
 const schemaSource = readFileSync(new URL("../supabase/schema.sql", import.meta.url), "utf8");
 
-equal(typesSource.includes('export type GenerationLine = "line1" | "line2" | "line3" | "line4" | "line5";'), true);
+equal(typesSource.includes('export type GenerationLine = "line1" | "line2" | "line3" | "line4" | "line5" | "line6";'), true);
 equal(selectSource.includes("segmented__meta"), false);
 equal(lineCardSource.includes("generation-line-card__hint"), false);
 equal(lineCardSource.includes("generation-line-card__notice-engine"), true);
@@ -41,7 +41,7 @@ equal(lineCardSource.includes("yunwu"), true);
 equal(lineCardSource.includes("pockgo"), true);
 equal(lineCardSource.includes("vectorengine"), true);
 equal(tauriSource.includes("线路4为 pockgo"), true);
-equal(supabaseSource.includes('"line1" | "line2" | "line3" | "line4" | "line5" | null'), true);
+equal(supabaseSource.includes('"line1" | "line2" | "line3" | "line4" | "line5" | "line6" | null'), true);
 equal(historySource.includes('if (line === "line3") return "线路3";'), true);
 equal(historySource.includes('if (line === "line4") return "线路4";'), true);
 equal(adminLogListSource.includes('if (line === "line3") return "线路3";'), true);
@@ -76,4 +76,4 @@ ok(
 ok(apiSource.includes("req.api_line == ImageApiLine::Line4"), "线路4应走 pockgo chat 分支");
 
 equal(envExample.includes("VECTORENGINE_IMAGE_2_API_KEY="), true);
-ok(schemaSource.includes("generation_line in ('line1', 'line2', 'line3', 'line4', 'line5')"));
+ok(schemaSource.includes("generation_line in ('line1', 'line2', 'line3', 'line4', 'line5', 'line6')"));

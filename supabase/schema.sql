@@ -39,7 +39,7 @@ create table if not exists public.generation_logs (
   shop_name     text not null,
   asset_kind    text not null check (asset_kind in ('avatar', 'storefront', 'poster', 'product', 'p_signboard', 'picture_wall', 'detail_page', 'brand_story', 'data_analysis', 'patrol_script')),
   platform      text not null check (platform in ('meituan', 'taobao')),
-  generation_line text check (generation_line in ('line1', 'line2', 'line3', 'line4', 'line5')),
+  generation_line text check (generation_line in ('line1', 'line2', 'line3', 'line4', 'line5', 'line6')),
   oss_url       text not null,
   oss_key       text,
   created_at    timestamptz not null default now()
@@ -60,7 +60,7 @@ alter table public.generation_logs
 
 alter table public.generation_logs
   add constraint generation_logs_generation_line_check
-  check (generation_line in ('line1', 'line2', 'line3', 'line4', 'line5'));
+  check (generation_line in ('line1', 'line2', 'line3', 'line4', 'line5', 'line6'));
 
 create index if not exists generation_logs_user_id_created_at_idx
   on public.generation_logs (user_id, created_at desc);

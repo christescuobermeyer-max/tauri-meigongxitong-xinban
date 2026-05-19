@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { GenerationItem } from "../types";
 import { canCopyGeneratedItemImage, copyGeneratedItemImage } from "../lib/clipboard-image";
-import { getGenerationPreviewUrl } from "../lib/generation-preview";
-import { IconAlert, IconCopy, IconDownload, IconHourglass, IconImage, IconRefresh } from "./Icons";
+import { getGenerationPreviewUrl, isArchivingToOss } from "../lib/generation-preview";
+import { IconAlert, IconCheck, IconCopy, IconDownload, IconHourglass, IconImage, IconRefresh } from "./Icons";
 import GenerationStatusBadge from "./GenerationStatusBadge";
 import { useToast } from "./Toast";
 
@@ -168,6 +168,12 @@ export default function GenerationResultTile({
               )}
               <strong>{busyTitle}</strong>
               <span>{busyHint}</span>
+            </div>
+          ) : isArchivingToOss(item) ? (
+            <div className="result__placeholder">
+              <IconCheck style={{ width: 22, height: 22, color: "var(--success)" }} />
+              <strong>图片已生成成功</strong>
+              <span>正在上传 OSS，请耐心等待…</span>
             </div>
           ) : (
             <div className="result__placeholder">

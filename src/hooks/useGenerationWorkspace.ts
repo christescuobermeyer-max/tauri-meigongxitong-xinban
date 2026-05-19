@@ -178,42 +178,47 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     });
   }
 
-  const threePieceSlot1 = useThreePieceWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const threePieceSlot2 = useThreePieceWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const threePieceSlot3 = useThreePieceWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const threePieceSlot4 = useThreePieceWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const threePieceSlot5 = useThreePieceWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const threePieceSlot1 = useThreePieceWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const threePieceSlot2 = useThreePieceWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const threePieceSlot3 = useThreePieceWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const threePieceSlot4 = useThreePieceWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const threePieceSlot5 = useThreePieceWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const threePieceSlots = [threePieceSlot1, threePieceSlot2, threePieceSlot3, threePieceSlot4, threePieceSlot5] as const;
 
-  const productImageSlot1 = useProductImageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const productImageSlot2 = useProductImageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const productImageSlot3 = useProductImageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const productImageSlot4 = useProductImageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const productImageSlot5 = useProductImageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const productImageSlot1 = useProductImageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const productImageSlot2 = useProductImageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const productImageSlot3 = useProductImageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const productImageSlot4 = useProductImageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const productImageSlot5 = useProductImageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const productImageSlots = [productImageSlot1, productImageSlot2, productImageSlot3, productImageSlot4, productImageSlot5] as const;
 
   const productBatchSlot1 = useProductBatchWorkspace({
-    initialGenerationLine: generationLine,
+    generationLine,
+    setGenerationLine,
     onToast: toast.show,
     onRecordHistory: recordHistory,
   });
   const productBatchSlot2 = useProductBatchWorkspace({
-    initialGenerationLine: generationLine,
+    generationLine,
+    setGenerationLine,
     onToast: toast.show,
     onRecordHistory: recordHistory,
   });
   const productBatchSlot3 = useProductBatchWorkspace({
-    initialGenerationLine: generationLine,
+    generationLine,
+    setGenerationLine,
     onToast: toast.show,
     onRecordHistory: recordHistory,
   });
   const productBatchSlot4 = useProductBatchWorkspace({
-    initialGenerationLine: generationLine,
+    generationLine,
+    setGenerationLine,
     onToast: toast.show,
     onRecordHistory: recordHistory,
   });
   const productBatchSlot5 = useProductBatchWorkspace({
-    initialGenerationLine: generationLine,
+    generationLine,
+    setGenerationLine,
     onToast: toast.show,
     onRecordHistory: recordHistory,
   });
@@ -231,11 +236,11 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     onRecordHistory: recordHistory,
   });
 
-  const pictureWallSlot1 = usePictureWallWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const pictureWallSlot2 = usePictureWallWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const pictureWallSlot3 = usePictureWallWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const pictureWallSlot4 = usePictureWallWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const pictureWallSlot5 = usePictureWallWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const pictureWallSlot1 = usePictureWallWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const pictureWallSlot2 = usePictureWallWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const pictureWallSlot3 = usePictureWallWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const pictureWallSlot4 = usePictureWallWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const pictureWallSlot5 = usePictureWallWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const pictureWallSlots = [pictureWallSlot1, pictureWallSlot2, pictureWallSlot3, pictureWallSlot4, pictureWallSlot5] as const;
 
   const pSignboard = usePSignboardWorkspace({
@@ -250,18 +255,18 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     onRecordHistory: recordHistory,
   });
 
-  const detailPageSlot1 = useDetailPageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const detailPageSlot2 = useDetailPageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const detailPageSlot3 = useDetailPageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const detailPageSlot4 = useDetailPageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const detailPageSlot5 = useDetailPageWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const detailPageSlot1 = useDetailPageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const detailPageSlot2 = useDetailPageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const detailPageSlot3 = useDetailPageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const detailPageSlot4 = useDetailPageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const detailPageSlot5 = useDetailPageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const detailPageSlots = [detailPageSlot1, detailPageSlot2, detailPageSlot3, detailPageSlot4, detailPageSlot5] as const;
 
-  const brandStorySlot1 = useBrandStoryWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const brandStorySlot2 = useBrandStoryWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const brandStorySlot3 = useBrandStoryWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const brandStorySlot4 = useBrandStoryWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const brandStorySlot5 = useBrandStoryWorkspace({ initialGenerationLine: generationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const brandStorySlot1 = useBrandStoryWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const brandStorySlot2 = useBrandStoryWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const brandStorySlot3 = useBrandStoryWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const brandStorySlot4 = useBrandStoryWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const brandStorySlot5 = useBrandStoryWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const brandStorySlots = [brandStorySlot1, brandStorySlot2, brandStorySlot3, brandStorySlot4, brandStorySlot5] as const;
 
   const dataAnalysis = useDataAnalysisWorkspace({

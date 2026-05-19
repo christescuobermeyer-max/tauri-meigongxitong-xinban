@@ -13,6 +13,7 @@ use crate::http_client::{build_api_client, format_reqwest_error};
 use crate::image_api_response::extract_image_from_response_body;
 use crate::image_generation_payload::build_json_payload;
 use crate::image_provider::{resolve_image_provider, ImageApiLine};
+use crate::manxiaobai_edit::generate_manxiaobai_edit_image;
 use crate::pockgo_chat::generate_pockgo_chat_image;
 use crate::reference_image::{
     download_image_if_url, log_reference_image_diagnostics, reference_image_type,
@@ -108,6 +109,25 @@ pub async fn generate_image(req: GenerateRequest) -> Result<String, String> {
         )
         .await?;
         return download_image_if_url(&client, image, "下载线路3编辑远端图片失败").await;
+    }
+
+    if req.api_line == ImageApiLine::Line6 && !req.product_images.is_empty() {
+        let edit_api_url = provider
+            .edit_api_url
+            .ok_or_else(|| "线路6编辑接口未配置".to_string())?;
+        let image = generate_manxiaobai_edit_image(
+            &client,
+            edit_api_url,
+            &api_key,
+            provider.model,
+            &req.prompt,
+            &req.size,
+            &req.product_images,
+            provider.quality,
+            provider.format,
+        )
+        .await?;
+        return download_image_if_url(&client, image, "下载线路6编辑远端图片失败").await;
     }
 
     let payload = build_json_payload(&provider, &req);

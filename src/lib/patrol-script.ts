@@ -21,6 +21,6 @@ export function buildPatrolScriptPrompt(
 ${trimmedScript}`;
 }
 
-export function resolvePatrolScriptSize(line: GenerationLine): string {
-  return line === "line4" || line === "line5" ? "16:9" : "1536x1024";
+export function resolvePatrolScriptSize(_line: GenerationLine): string {
+  return "1024x1536";
 }
