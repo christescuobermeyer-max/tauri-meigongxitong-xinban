@@ -28,6 +28,8 @@ mod image_generation_payload;
 mod image_provider;
 #[path = "../line_health.rs"]
 mod line_health;
+#[path = "../manxiaobai_edit.rs"]
+mod manxiaobai_edit;
 #[path = "../oss.rs"]
 mod oss;
 #[path = "../pockgo_chat.rs"]
