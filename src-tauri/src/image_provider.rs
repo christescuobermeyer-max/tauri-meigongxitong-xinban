@@ -43,7 +43,7 @@ const LINE5_API_KEY_ENV_KEYS: [&str; 2] = ["APIMART_IMAGE_2_API_KEY", "IMAGE_2_L
 
 const LINE6_API_URL: &str = "https://api.manxiaobai.online/v1/images/generations";
 const LINE6_EDIT_API_URL: &str = "https://api.manxiaobai.online/v1/images/edits";
-const LINE6_MODEL: &str = "codex-gpt-image-2";
+const LINE6_MODEL: &str = "gpt-image-2";
 const LINE6_API_KEY_ENV_KEYS: [&str; 2] =
     ["MANXIAOBAI_IMAGE_2_API_KEY", "IMAGE_2_LINE6_API_KEY"];
 
@@ -257,7 +257,7 @@ mod tests {
             provider.edit_api_url,
             Some("https://api.manxiaobai.online/v1/images/edits")
         );
-        assert_eq!(provider.model, "codex-gpt-image-2");
+        assert_eq!(provider.model, "gpt-image-2");
         assert_eq!(provider.log_label, "image-2:line6-manxiaobai");
         assert_eq!(provider.api_key_env_keys[0], "MANXIAOBAI_IMAGE_2_API_KEY");
         assert_eq!(provider.quality, Some("high"));
