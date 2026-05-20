@@ -47,11 +47,11 @@ export default function GenerationResultTile({
   const busyHint =
     item.status === "queued"
       ? compact
-        ? "前序图片完成后会自动开始"
-        : "前面的图片生成完成后会自动开始"
+        ? "线路满载会自动排队"
+        : "线路满载时系统会按提交顺序排队，请耐心等候"
       : compact
-        ? "通常需要1-5分钟"
-        : "系统单次最长可能需要1-5分钟，请耐心等待";
+        ? "含排队通常需要1-5分钟"
+        : "系统会自动分配空闲线路；满载时按提交顺序排队，请耐心等待";
 
   function handleDownloadClick() {
     if (hasDownloadOptions) {

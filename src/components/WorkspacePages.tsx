@@ -1,13 +1,13 @@
 import AdminPage from "./AdminPage";
-import DataAnalysisPage from "./DataAnalysisPage";
 import HistoryPanel from "./HistoryPanel";
-import ImageEditPage from "./ImageEditPage";
-import PatrolScriptPage from "./PatrolScriptPage";
-import PSignboardPage from "./PSignboardPage";
 import BrandStoryWorkspacePage from "./workspace/BrandStoryWorkspacePage";
+import DataAnalysisWorkspacePage from "./workspace/DataAnalysisWorkspacePage";
 import DetailPageWorkspacePage from "./workspace/DetailPageWorkspacePage";
+import ImageEditWorkspacePage from "./workspace/ImageEditWorkspacePage";
 import PackageImageWorkspacePage from "./workspace/PackageImageWorkspacePage";
+import PatrolScriptWorkspacePage from "./workspace/PatrolScriptWorkspacePage";
 import PictureWallWorkspacePage from "./workspace/PictureWallWorkspacePage";
+import PSignboardWorkspacePage from "./workspace/PSignboardWorkspacePage";
 import ProductBatchWorkspacePage from "./workspace/ProductBatchWorkspacePage";
 import ProductImageWorkspacePage from "./workspace/ProductImageWorkspacePage";
 import ThreePieceWorkspacePage from "./workspace/ThreePieceWorkspacePage";
@@ -58,7 +58,7 @@ export default function WorkspacePages({ workspace }: Props) {
     return (
       <div className="page">
         <PackageImageWorkspacePage
-          packageImage={workspace.packageImage}
+          slots={workspace.packageImageSlots}
           elapsed={workspace.elapsed}
           globalBusy={workspace.busy}
         />
@@ -78,46 +78,22 @@ export default function WorkspacePages({ workspace }: Props) {
   }
 
   if (workspace.tab === "pSignboard") {
-    const ps = workspace.pSignboard;
     return (
       <div className="page page--single picture-wall-page">
-        <PSignboardPage
-          shopName={ps.shopName}
-          images={ps.images}
-          setImages={ps.setImages}
-          originalText={ps.originalText}
-          setOriginalText={ps.setOriginalText}
-          newText={ps.newText}
-          setNewText={ps.setNewText}
-          item={ps.item}
-          busy={ps.busy}
-          submitDisabled={workspace.busy || ps.busy}
-          onGenerate={ps.handleGenerate}
-          onRetry={ps.handleGenerate}
-          onDownload={ps.handleDownload}
+        <PSignboardWorkspacePage
+          slots={workspace.pSignboardSlots}
+          globalBusy={workspace.busy}
         />
       </div>
     );
   }
 
   if (workspace.tab === "imageEdit") {
-    const ie = workspace.imageEdit;
     return (
       <div className="page image-edit-page">
-        <ImageEditPage
-          shopName={ie.shopName}
-          setShopName={ie.setShopName}
-          platform={ie.platform}
-          setPlatform={ie.setPlatform}
-          currentPlatform={ie.currentPlatform}
-          entries={ie.entries}
-          busy={ie.busy}
-          submitDisabled={workspace.busy || ie.busy}
-          setImages={ie.setImages}
-          setReferenceImages={ie.setReferenceImages}
-          setInstruction={ie.setInstruction}
-          onGenerate={ie.generate}
-          onDownload={ie.download}
+        <ImageEditWorkspacePage
+          slots={workspace.imageEditSlots}
+          globalBusy={workspace.busy}
         />
       </div>
     );
@@ -146,42 +122,22 @@ export default function WorkspacePages({ workspace }: Props) {
   }
 
   if (workspace.tab === "dataAnalysis") {
-    const da = workspace.dataAnalysis;
     return (
       <div className="page picture-wall-page">
-        <DataAnalysisPage
-          storeName={da.storeName}
-          setStoreName={da.setStoreName}
-          images={da.images}
-          setImages={da.setImages}
-          item={da.item}
-          busy={da.busy}
-          submitDisabled={workspace.busy || da.busy}
-          onGenerate={da.handleGenerate}
-          onRetry={da.handleRetry}
-          onDownload={da.handleDownload}
+        <DataAnalysisWorkspacePage
+          slots={workspace.dataAnalysisSlots}
+          globalBusy={workspace.busy}
         />
       </div>
     );
   }
 
   if (workspace.tab === "patrolScript") {
-    const ps = workspace.patrolScript;
     return (
       <div className="page picture-wall-page">
-        <PatrolScriptPage
-          storeName={ps.storeName}
-          setStoreName={ps.setStoreName}
-          scriptId={ps.scriptId}
-          setScriptId={ps.setScriptId}
-          selectedScript={ps.selectedScript}
-          item={ps.item}
-          busy={ps.busy}
-          submitDisabled={workspace.busy || ps.busy}
-          onGenerate={ps.handleGenerate}
-          onRetry={ps.handleRetry}
-          onCopyScript={ps.handleCopyScript}
-          onDownload={ps.handleDownload}
+        <PatrolScriptWorkspacePage
+          slots={workspace.patrolScriptSlots}
+          globalBusy={workspace.busy}
         />
       </div>
     );

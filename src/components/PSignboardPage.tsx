@@ -52,8 +52,8 @@ export default function PSignboardPage({
     : "正在替换门头文字…";
   const busyHint =
     item.status === "queued"
-      ? "前序任务完成后会自动开始"
-      : "系统会保持原图风格和透视效果";
+      ? "线路满载时系统会按提交顺序排队，请耐心等候"
+      : "系统会自动分配空闲线路；满载时按提交顺序排队，请耐心等待";
 
   async function handleCopyImage() {
     try {

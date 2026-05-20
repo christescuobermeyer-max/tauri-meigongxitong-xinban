@@ -9,6 +9,10 @@ const limiter = readFileSync(
   new URL("../src-tauri/src/gateway_limiter.rs", import.meta.url),
   "utf8",
 );
+const queue = readFileSync(
+  new URL("../src-tauri/src/gateway_queue.rs", import.meta.url),
+  "utf8",
+);
 const workspacePages = readFileSync(
   new URL("../src/components/WorkspacePages.tsx", import.meta.url),
   "utf8",
@@ -37,8 +41,10 @@ const pageSources = new Map(
 );
 
 ok(gateway.includes("acquire_generation_permit"), "网关生图前必须获取限流许可");
-ok(gateway.includes("StatusCode::TOO_MANY_REQUESTS"), "超限应返回 429");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 9)'), "默认全局并发上限应为 9");
+ok(gateway.includes("acquire_generation_permit(&state, req.api_line, &req.size).await"), "网关应等待服务端队列许可，而不是满载立即失败");
+ok(gateway.includes("GatewayGenerationQueue"), "网关应使用服务端 FIFO 队列协调并发");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 17)'), "默认全局并发上限应为 17");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE1_LIMIT", 2)'), "line1 默认上限应为 2");
 ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE2_LIMIT", 3)'), "line2 默认上限应为 3");
 ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE3_LIMIT", 3)'), "line3 默认上限应为 3");
 ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE4_LIMIT", 3)'), "line4 默认上限应为 3");
@@ -46,8 +52,12 @@ ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE5_LIMIT", 3)'), "lin
 ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE6_LIMIT", 3)'), "line6 默认上限应为 3");
 
 ok(limiter.includes("release_frees_capacity_for_next_request"), "限流器应覆盖释放容量");
-ok(limiter.includes("enforces_global_limit_of_nine_active_generations"), "限流器应覆盖全局 9 并发");
+ok(limiter.includes("enforces_global_limit_of_seventeen_active_generations"), "限流器应覆盖全局 17 并发");
 ok(limiter.includes("enforces_line_specific_limits"), "限流器应覆盖线路上限");
+ok(queue.includes("waits_for_capacity_in_fifo_order_when_all_lines_are_full"), "服务端队列应覆盖满载后按提交顺序释放");
+ok(queue.includes("VecDeque"), "服务端队列应保留 FIFO 等待顺序");
+ok(queue.includes("Notify"), "服务端队列应在容量释放后唤醒等待请求");
+ok(queue.includes("notify_waiters"), "服务端队列应主动通知等待请求重新检查容量");
 
 for (const page of [
   "ThreePieceWorkspacePage",
@@ -64,17 +74,15 @@ for (const page of [
   );
 }
 
-for (const { tab, page, variable } of [
-  { tab: "pSignboard", page: "PSignboardPage", variable: "ps" },
-  { tab: "imageEdit", page: "ImageEditPage", variable: "ie" },
-  { tab: "dataAnalysis", page: "DataAnalysisPage", variable: "da" },
-  { tab: "patrolScript", page: "PatrolScriptPage", variable: "ps" },
+for (const page of [
+  "PSignboardWorkspacePage",
+  "ImageEditWorkspacePage",
+  "DataAnalysisWorkspacePage",
+  "PatrolScriptWorkspacePage",
 ]) {
   ok(
-    new RegExp(
-      `workspace\\.tab === "${tab}"[\\s\\S]*<${page}[\\s\\S]*submitDisabled=\\{workspace\\.busy \\|\\| ${variable}\\.busy\\}`
-    ).test(workspacePages),
-    `${page} 应把同机全局忙态传给提交禁用态`
+    new RegExp(`<${page}[\\s\\S]*globalBusy=\\{workspace\\.busy\\}`).test(workspacePages),
+    `${page} 应接收 workspace.busy 作为全局忙态`
   );
 }
 

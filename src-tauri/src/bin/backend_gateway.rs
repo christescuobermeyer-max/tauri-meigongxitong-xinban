@@ -18,6 +18,8 @@ mod brand_story_clients;
 mod env_config;
 #[path = "../gateway_limiter.rs"]
 mod gateway_limiter;
+#[path = "../gateway_queue.rs"]
+mod gateway_queue;
 #[path = "../gemini_response.rs"]
 mod gemini_response;
 #[path = "../http_client.rs"]
@@ -57,12 +59,13 @@ use std::{
     collections::HashMap,
     env,
     net::SocketAddr,
-    sync::{Arc, Mutex},
+    sync::Arc,
     time::{Duration, Instant},
 };
 use tower_http::cors::{Any, CorsLayer};
 
 use gateway_limiter::{generation_size_for_line, GatewayLimiter};
+use gateway_queue::{GatewayGenerationQueue, QueuedGenerationPermit};
 use image_provider::ImageApiLine;
 use line_health::{LineHealthRegistry, LineHealthSnapshot};
 
@@ -72,7 +75,7 @@ struct AppState {
     supabase_url: String,
     supabase_anon_key: String,
     line_health: Arc<LineHealthRegistry>,
-    limiter: Arc<Mutex<GatewayLimiter>>,
+    generation_queue: Arc<GatewayGenerationQueue>,
 }
 
 #[derive(Serialize)]
@@ -139,7 +142,7 @@ async fn generate_image(
     Json(mut req): Json<api::GenerateRequest>,
 ) -> Result<Json<GenerateImageResponse>, GatewayError> {
     verify_access_token(&state, &headers).await?;
-    let permit = acquire_generation_permit(&state, req.api_line, &req.size)?;
+    let permit = acquire_generation_permit(&state, req.api_line, &req.size).await?;
     req.api_line = permit.line;
     let line = req.api_line.as_str();
     req.size = generation_size_for_line(line, &req.size)
@@ -306,12 +309,17 @@ fn build_state() -> Result<AppState, String> {
         .build()
         .map_err(|error| format!("初始化后端网关 HTTP 客户端失败：{error}"))?;
 
+    let line_health = Arc::new(LineHealthRegistry::new());
+
     Ok(AppState {
         client,
         supabase_url,
         supabase_anon_key,
-        line_health: Arc::new(LineHealthRegistry::new()),
-        limiter: Arc::new(Mutex::new(build_generation_limiter())),
+        line_health: Arc::clone(&line_health),
+        generation_queue: Arc::new(GatewayGenerationQueue::new(
+            build_generation_limiter(),
+            line_health,
+        )),
     })
 }
 
@@ -331,81 +339,66 @@ fn gateway_addr() -> Result<SocketAddr, String> {
 }
 
 struct GenerationPermit {
-    limiter: Arc<Mutex<GatewayLimiter>>,
+    _permit: Option<QueuedGenerationPermit>,
     line: ImageApiLine,
 }
 
 impl Drop for GenerationPermit {
     fn drop(&mut self) {
-        let mut limiter = self.limiter.lock().expect("gateway limiter mutex poisoned");
-        limiter.release(self.line.as_str());
+        self._permit.take();
     }
 }
 
-fn acquire_generation_permit(
+async fn acquire_generation_permit(
     state: &AppState,
     requested_line: ImageApiLine,
     size: &str,
 ) -> Result<GenerationPermit, GatewayError> {
     if requested_line == ImageApiLine::Line1 {
-        return acquire_manual_generation_permit(state, requested_line);
+        return acquire_manual_generation_permit(state, requested_line).await;
     }
 
-    acquire_auto_generation_permit(state, size)
+    acquire_auto_generation_permit(state, size).await
 }
 
-fn acquire_auto_generation_permit(
+async fn acquire_auto_generation_permit(
     state: &AppState,
     size: &str,
 ) -> Result<GenerationPermit, GatewayError> {
-    let health = state.line_health.snapshot();
-    let mut limiter = state
-        .limiter
-        .lock()
-        .expect("gateway limiter mutex poisoned");
-    let decision = limiter.try_acquire_auto(size, &health);
-    let Some(line) = decision.line else {
-        return Err(GatewayError::too_many_requests(
-            decision
-                .reason
-                .unwrap_or_else(|| "当前没有可用生图线路，请稍后重新提交".to_string()),
-        ));
-    };
+    let queued = state
+        .generation_queue
+        .acquire_auto(size)
+        .await
+        .map_err(GatewayError::too_many_requests)?;
+    let line = queued.line().to_string();
     Ok(GenerationPermit {
-        limiter: Arc::clone(&state.limiter),
-        line: ImageApiLine::from_str(line).ok_or_else(|| {
+        _permit: Some(queued),
+        line: ImageApiLine::from_str(&line).ok_or_else(|| {
             GatewayError::bad_gateway(format!("网关自动分配到了未知线路：{line}"))
         })?,
     })
 }
 
-fn acquire_manual_generation_permit(
+async fn acquire_manual_generation_permit(
     state: &AppState,
     line: ImageApiLine,
 ) -> Result<GenerationPermit, GatewayError> {
-    let mut limiter = state
-        .limiter
-        .lock()
-        .expect("gateway limiter mutex poisoned");
-    let decision = limiter.try_acquire(line.as_str());
-    if !decision.allowed {
-        return Err(GatewayError::too_many_requests(
-            decision
-                .reason
-                .unwrap_or_else(|| "当前生图请求较多，请稍后再试".to_string()),
-        ));
-    }
+    let queued = state
+        .generation_queue
+        .acquire_line(line.as_str())
+        .await
+        .map_err(GatewayError::too_many_requests)?;
     Ok(GenerationPermit {
-        limiter: Arc::clone(&state.limiter),
+        _permit: Some(queued),
         line,
     })
 }
 
 fn build_generation_limiter() -> GatewayLimiter {
     GatewayLimiter::new(
-        read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 9),
+        read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 17),
         HashMap::from([
-            ("line1", read_limit_env("GATEWAY_GENERATION_LINE1_LIMIT", 0)),
+            ("line1", read_limit_env("GATEWAY_GENERATION_LINE1_LIMIT", 2)),
             ("line2", read_limit_env("GATEWAY_GENERATION_LINE2_LIMIT", 3)),
             ("line3", read_limit_env("GATEWAY_GENERATION_LINE3_LIMIT", 3)),
             ("line4", read_limit_env("GATEWAY_GENERATION_LINE4_LIMIT", 3)),

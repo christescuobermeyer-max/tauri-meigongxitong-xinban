@@ -128,8 +128,8 @@ function PictureWallTile({
       : "正在生成第 " + (index + 1) + " 张…";
   const busyHint =
     status === "queued"
-      ? "前序图片完成后会自动开始"
-      : "系统单次最长可能需要1-5分钟，请耐心等待";
+      ? "线路满载时系统会按提交顺序排队，请耐心等候"
+      : "系统会自动分配空闲线路；满载时按提交顺序排队，请耐心等待";
 
   return (
     <article className="picture-wall-tile" data-status={status}>

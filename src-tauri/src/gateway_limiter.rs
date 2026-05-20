@@ -2,7 +2,7 @@ use crate::line_health::{LineHealthSnapshot, LineHealthStatus};
 use std::borrow::Cow;
 use std::collections::HashMap;
 
-const AUTO_GENERATION_LINES: [&str; 5] = ["line2", "line3", "line4", "line5", "line6"];
+const AUTO_GENERATION_LINES: [&str; 6] = ["line2", "line3", "line4", "line5", "line6", "line1"];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LimitDecision {
@@ -156,6 +156,28 @@ impl GatewayLimiter {
         candidates.first().map(|candidate| candidate.0)
     }
 
+    pub fn has_auto_candidate(&self, size: &str, health: &LineHealthSnapshot) -> bool {
+        if self.global_limit == 0 {
+            return false;
+        }
+
+        AUTO_GENERATION_LINES.iter().copied().any(|line| {
+            let line_limit = self.line_limits.get(line).copied().unwrap_or(1);
+            if line_limit == 0 || !supports_generation_size(line, size) {
+                return false;
+            }
+            let entry = health.lines.get(line);
+            let status = entry
+                .map(|entry| entry.status)
+                .unwrap_or(LineHealthStatus::Unknown);
+            status != LineHealthStatus::Red
+        })
+    }
+
+    pub fn can_queue_line(&self, line: &str) -> bool {
+        self.global_limit > 0 && self.line_limits.get(line).copied().unwrap_or(1) > 0
+    }
+
     pub fn release(&mut self, line: &str) {
         self.active_global = self.active_global.saturating_sub(1);
         let current = self.active_by_line.get(line).copied().unwrap_or(0);
@@ -256,8 +278,9 @@ mod tests {
 
     fn default_limiter() -> GatewayLimiter {
         GatewayLimiter::new(
-            9,
+            17,
             HashMap::from([
+                ("line1", 2),
                 ("line2", 3),
                 ("line3", 3),
                 ("line4", 3),
@@ -268,9 +291,11 @@ mod tests {
     }
 
     #[test]
-    fn enforces_global_limit_of_nine_active_generations() {
+    fn enforces_global_limit_of_seventeen_active_generations() {
         let mut limiter = default_limiter();
 
+        assert!(limiter.try_acquire("line1").allowed);
+        assert!(limiter.try_acquire("line1").allowed);
         assert!(limiter.try_acquire("line2").allowed);
         assert!(limiter.try_acquire("line2").allowed);
         assert!(limiter.try_acquire("line2").allowed);
@@ -280,12 +305,18 @@ mod tests {
         assert!(limiter.try_acquire("line5").allowed);
         assert!(limiter.try_acquire("line5").allowed);
         assert!(limiter.try_acquire("line5").allowed);
+        assert!(limiter.try_acquire("line6").allowed);
+        assert!(limiter.try_acquire("line6").allowed);
+        assert!(limiter.try_acquire("line6").allowed);
+        assert!(limiter.try_acquire("line4").allowed);
+        assert!(limiter.try_acquire("line4").allowed);
+        assert!(limiter.try_acquire("line4").allowed);
 
-        let rejected = limiter.try_acquire("line4");
+        let rejected = limiter.try_acquire("line3");
         assert!(!rejected.allowed);
         assert_eq!(
             rejected.reason.as_deref(),
-            Some("当前生图请求较多，已达到全局并发上限 9，请稍后再试")
+            Some("当前生图请求较多，已达到全局并发上限 17，请稍后再试")
         );
     }
 
@@ -353,8 +384,14 @@ mod tests {
         let mut limiter = default_limiter();
         let health = LineHealthRegistry::new().snapshot();
 
-        assert_eq!(limiter.try_acquire_auto("16:9", &health).line, Some("line2"));
-        assert_eq!(limiter.try_acquire_auto("16:9", &health).line, Some("line3"));
+        assert_eq!(
+            limiter.try_acquire_auto("16:9", &health).line,
+            Some("line2")
+        );
+        assert_eq!(
+            limiter.try_acquire_auto("16:9", &health).line,
+            Some("line3")
+        );
 
         let routed = limiter.try_acquire_auto("16:9", &health);
         assert_eq!(routed.line, Some("line4"));
