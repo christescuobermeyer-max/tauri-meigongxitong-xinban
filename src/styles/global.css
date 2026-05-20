@@ -2012,6 +2012,17 @@ input, textarea { outline: none; }
   font-variant-numeric: tabular-nums;
 }
 
+.concurrency-notice {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 168, 92, 0.32);
+  background: rgba(255, 168, 92, 0.1);
+  color: var(--fg);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .upload-progress-banner {
   margin-top: 10px;
   display: flex;

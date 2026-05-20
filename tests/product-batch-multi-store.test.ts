@@ -39,7 +39,7 @@ ok(workspaceSource.includes("productBatchSlot3 = useProductBatchWorkspace"));
 ok(workspaceSource.includes("productBatchSlot4 = useProductBatchWorkspace"));
 ok(workspaceSource.includes("productBatchSlot5 = useProductBatchWorkspace"));
 ok(
-  workspaceSource.includes("productBatchSlots.some((slot) => slot.busy)"),
+  workspaceSource.includes("countBusySlots(productBatchSlots)"),
   "全局 busy 应聚合 5 个 slot",
 );
 

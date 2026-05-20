@@ -76,6 +76,9 @@ const hookSource = readFileSync(
 );
 equal(hookSource.includes('buildProductBatchEntries(syncedImages, "queued")'), true);
 equal(hookSource.includes("syncProductBatchEntries(images, previous)"), true);
+equal(hookSource.includes("for (const image of syncedImages)"), true);
+equal(hookSource.includes("await runBatchItem(image, syncedStyleImages, snapshot)"), true);
+equal(hookSource.includes("return await runBatchItem(syncedImage, syncedStyleImages, snapshot)"), true);
 equal(hookSource.includes("downloadAll"), true);
 equal(hookSource.includes("downloadProductBatchItems"), true);
 
@@ -88,11 +91,11 @@ equal(panelSource.includes("onBatchDownload"), true);
 equal(panelSource.includes("批量下载"), true);
 equal(panelSource.includes("disabled={completedCount === 0 || !platform}"), true);
 
-const workspacePagesSource = readFileSync(
-  new URL("../src/components/WorkspacePages.tsx", import.meta.url),
+const productBatchWorkspaceSource = readFileSync(
+  new URL("../src/components/workspace/ProductBatchWorkspacePage.tsx", import.meta.url),
   "utf8"
 );
-equal(workspacePagesSource.includes("onBatchDownload={workspace.handleDownloadProductBatchAll}"), true);
+equal(productBatchWorkspaceSource.includes("onBatchDownload={slot.downloadAll}"), true);
 
 const panelStyleSource = readFileSync(
   new URL("../src/styles/product-result-panel.css", import.meta.url),

@@ -17,14 +17,24 @@ interface Props {
   workspace: GenerationWorkspace;
 }
 
+function CapacityNotice({ workspace }: Props) {
+  if (!workspace.generationCapacityFull) return null;
+  return (
+    <div className="concurrency-notice" role="status" aria-live="polite">
+      当前账号已有 {workspace.activeGenerationTaskCount}/{workspace.generationTaskLimit} 个任务进行中，请等待一个任务完成后再提交新的生图。
+    </div>
+  );
+}
+
 export default function WorkspacePages({ workspace }: Props) {
   if (workspace.tab === "avatarStorefront") {
     return (
       <div className="page">
+        <CapacityNotice workspace={workspace} />
         <ThreePieceWorkspacePage
           slots={workspace.threePieceSlots}
           elapsed={workspace.elapsed}
-          globalBusy={workspace.busy}
+          globalBusy={workspace.generationCapacityFull}
         />
       </div>
     );
@@ -33,10 +43,11 @@ export default function WorkspacePages({ workspace }: Props) {
   if (workspace.tab === "productImage") {
     return (
       <div className="page">
+        <CapacityNotice workspace={workspace} />
         <ProductImageWorkspacePage
           slots={workspace.productImageSlots}
           elapsed={workspace.elapsed}
-          globalBusy={workspace.busy}
+          globalBusy={workspace.generationCapacityFull}
         />
       </div>
     );
@@ -45,10 +56,11 @@ export default function WorkspacePages({ workspace }: Props) {
   if (workspace.tab === "productBatch") {
     return (
       <div className="page">
+        <CapacityNotice workspace={workspace} />
         <ProductBatchWorkspacePage
           slots={workspace.productBatchSlots}
           elapsed={workspace.elapsed}
-          globalBusy={workspace.busy}
+          globalBusy={workspace.generationCapacityFull}
         />
       </div>
     );
@@ -57,10 +69,11 @@ export default function WorkspacePages({ workspace }: Props) {
   if (workspace.tab === "packageImage") {
     return (
       <div className="page">
+        <CapacityNotice workspace={workspace} />
         <PackageImageWorkspacePage
           slots={workspace.packageImageSlots}
           elapsed={workspace.elapsed}
-          globalBusy={workspace.busy}
+          globalBusy={workspace.generationCapacityFull}
         />
       </div>
     );
@@ -69,9 +82,10 @@ export default function WorkspacePages({ workspace }: Props) {
   if (workspace.tab === "pictureWall") {
     return (
       <div className="page picture-wall-page">
+        <CapacityNotice workspace={workspace} />
         <PictureWallWorkspacePage
           slots={workspace.pictureWallSlots}
-          globalBusy={workspace.busy}
+          globalBusy={workspace.generationCapacityFull}
         />
       </div>
     );
@@ -80,9 +94,10 @@ export default function WorkspacePages({ workspace }: Props) {
   if (workspace.tab === "pSignboard") {
     return (
       <div className="page page--single picture-wall-page">
+        <CapacityNotice workspace={workspace} />
         <PSignboardWorkspacePage
           slots={workspace.pSignboardSlots}
-          globalBusy={workspace.busy}
+          globalBusy={workspace.generationCapacityFull}
         />
       </div>
     );
@@ -91,9 +106,10 @@ export default function WorkspacePages({ workspace }: Props) {
   if (workspace.tab === "imageEdit") {
     return (
       <div className="page image-edit-page">
+        <CapacityNotice workspace={workspace} />
         <ImageEditWorkspacePage
           slots={workspace.imageEditSlots}
-          globalBusy={workspace.busy}
+          globalBusy={workspace.generationCapacityFull}
         />
       </div>
     );
@@ -102,9 +118,10 @@ export default function WorkspacePages({ workspace }: Props) {
   if (workspace.tab === "detailPage") {
     return (
       <div className="page picture-wall-page">
+        <CapacityNotice workspace={workspace} />
         <DetailPageWorkspacePage
           slots={workspace.detailPageSlots}
-          globalBusy={workspace.busy}
+          globalBusy={workspace.generationCapacityFull}
         />
       </div>
     );
@@ -113,9 +130,10 @@ export default function WorkspacePages({ workspace }: Props) {
   if (workspace.tab === "brandStory") {
     return (
       <div className="page brand-story-page">
+        <CapacityNotice workspace={workspace} />
         <BrandStoryWorkspacePage
           slots={workspace.brandStorySlots}
-          globalBusy={workspace.busy}
+          globalBusy={workspace.generationCapacityFull}
         />
       </div>
     );
@@ -124,9 +142,10 @@ export default function WorkspacePages({ workspace }: Props) {
   if (workspace.tab === "dataAnalysis") {
     return (
       <div className="page picture-wall-page">
+        <CapacityNotice workspace={workspace} />
         <DataAnalysisWorkspacePage
           slots={workspace.dataAnalysisSlots}
-          globalBusy={workspace.busy}
+          globalBusy={workspace.generationCapacityFull}
         />
       </div>
     );
@@ -135,9 +154,10 @@ export default function WorkspacePages({ workspace }: Props) {
   if (workspace.tab === "patrolScript") {
     return (
       <div className="page picture-wall-page">
+        <CapacityNotice workspace={workspace} />
         <PatrolScriptWorkspacePage
           slots={workspace.patrolScriptSlots}
-          globalBusy={workspace.busy}
+          globalBusy={workspace.generationCapacityFull}
         />
       </div>
     );

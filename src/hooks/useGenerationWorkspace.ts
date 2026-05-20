@@ -36,6 +36,8 @@ import type {
   Platform,
 } from "../types";
 
+const FRONTEND_GENERATION_USER_LIMIT = 3;
+
 export type WorkspaceTab =
   | "avatarStorefront"
   | "productImage"
@@ -53,6 +55,14 @@ export type WorkspaceTab =
 
 interface WorkspaceOptions {
   userId: string;
+}
+
+interface BusySlot {
+  busy: boolean;
+}
+
+function countBusySlots(slots: readonly BusySlot[]) {
+  return slots.filter((slot) => slot.busy).length;
 }
 
 export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
@@ -438,18 +448,21 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     setHistoryLoading(false);
   }
 
-  const busy =
-    threePieceSlots.some((slot) => slot.busy) ||
-    productImageSlots.some((slot) => slot.busy) ||
-    productBatchSlots.some((slot) => slot.busy) ||
-    packageImageSlots.some((slot) => slot.busy) ||
-    pictureWallSlots.some((slot) => slot.busy) ||
-    pSignboardSlots.some((slot) => slot.busy) ||
-    imageEditSlots.some((slot) => slot.busy) ||
-    detailPageSlots.some((slot) => slot.busy) ||
-    brandStorySlots.some((slot) => slot.busy) ||
-    dataAnalysisSlots.some((slot) => slot.busy) ||
-    patrolScriptSlots.some((slot) => slot.busy);
+  const activeGenerationTaskCount =
+    countBusySlots(threePieceSlots) +
+    countBusySlots(productImageSlots) +
+    countBusySlots(productBatchSlots) +
+    countBusySlots(packageImageSlots) +
+    countBusySlots(pictureWallSlots) +
+    countBusySlots(pSignboardSlots) +
+    countBusySlots(imageEditSlots) +
+    countBusySlots(detailPageSlots) +
+    countBusySlots(brandStorySlots) +
+    countBusySlots(dataAnalysisSlots) +
+    countBusySlots(patrolScriptSlots);
+  const generationTaskLimit = FRONTEND_GENERATION_USER_LIMIT;
+  const generationCapacityFull = activeGenerationTaskCount >= generationTaskLimit;
+  const busy = activeGenerationTaskCount > 0;
 
   useEffect(() => {
     if (!busy) {
@@ -472,6 +485,9 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     todayCount,
     totalCount,
     busy,
+    activeGenerationTaskCount,
+    generationTaskLimit,
+    generationCapacityFull,
     elapsed,
     historyEntries,
     historyPage,
