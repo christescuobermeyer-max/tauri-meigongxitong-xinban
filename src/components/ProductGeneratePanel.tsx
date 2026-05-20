@@ -31,6 +31,7 @@ interface Props {
   setImages: (imgs: UploadedImage[]) => void;
   onGenerate: () => void;
   busy: boolean;
+  submitDisabled?: boolean;
   elapsed: number;
   product: GenerationItem;
 }
@@ -52,12 +53,13 @@ export default function ProductGeneratePanel({
   setImages,
   onGenerate,
   busy,
+  submitDisabled = busy,
   elapsed,
   product,
 }: Props) {
   const platformSpec = platform ? getPlatform(platform) : null;
   const canSubmit =
-    Boolean(platform) && shopName.trim().length > 0 && productName.trim().length > 0 && images.length > 0 && !busy;
+    Boolean(platform) && shopName.trim().length > 0 && productName.trim().length > 0 && images.length > 0 && !submitDisabled;
   const source = platformSpec?.product.source;
   const target = platformSpec?.product.export;
   const fileHint = platformSpec?.product.maxBytes

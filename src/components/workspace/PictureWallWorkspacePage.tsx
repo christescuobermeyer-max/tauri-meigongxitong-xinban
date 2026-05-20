@@ -5,11 +5,12 @@ import MultiStoreTabs from "./MultiStoreTabs";
 
 interface Props {
   slots: GenerationWorkspace["pictureWallSlots"];
+  globalBusy?: boolean;
 }
 
 const TAB_LABELS = ["店铺1", "店铺2", "店铺3", "店铺4", "店铺5"];
 
-export default function PictureWallWorkspacePage({ slots }: Props) {
+export default function PictureWallWorkspacePage({ slots, globalBusy = false }: Props) {
   const [active, setActive] = useState(0);
   const pw = slots[active];
   const tabs = slots.map((slot, index) => ({
@@ -44,6 +45,7 @@ export default function PictureWallWorkspacePage({ slots }: Props) {
         completedCount={pw.completedCount}
         downloadStatus={pw.downloadStatus}
         busy={pw.busy}
+        submitDisabled={globalBusy || pw.busy}
         onGenerate={pw.handleGenerate}
         onDownload={pw.handleDownload}
         onDownloadSingle={pw.handleDownloadSingle}

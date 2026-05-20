@@ -26,6 +26,7 @@ interface Props {
   entries: ProductBatchEntry[];
   onGenerate: () => void;
   busy: boolean;
+  submitDisabled?: boolean;
   uploadingOss: boolean;
   elapsed: number;
 }
@@ -48,12 +49,13 @@ export default function ProductBatchGeneratePanel({
   entries,
   onGenerate,
   busy,
+  submitDisabled = busy,
   uploadingOss,
   elapsed,
 }: Props) {
   const platformSpec = platform ? getPlatform(platform) : null;
   const batchBusy = entries.some((entry) => entry.item.status === "queued" || entry.item.status === "running");
-  const canSubmit = Boolean(platform) && shopName.trim().length > 0 && images.length > 0 && styleImages.length > 0 && !busy;
+  const canSubmit = Boolean(platform) && shopName.trim().length > 0 && images.length > 0 && styleImages.length > 0 && !submitDisabled;
   const source = platformSpec?.product.source;
   const target = platformSpec?.product.export;
   const fileHint = platformSpec?.product.maxBytes

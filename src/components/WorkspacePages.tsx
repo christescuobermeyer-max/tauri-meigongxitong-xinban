@@ -21,7 +21,11 @@ export default function WorkspacePages({ workspace }: Props) {
   if (workspace.tab === "avatarStorefront") {
     return (
       <div className="page">
-        <ThreePieceWorkspacePage slots={workspace.threePieceSlots} elapsed={workspace.elapsed} />
+        <ThreePieceWorkspacePage
+          slots={workspace.threePieceSlots}
+          elapsed={workspace.elapsed}
+          globalBusy={workspace.busy}
+        />
       </div>
     );
   }
@@ -29,7 +33,11 @@ export default function WorkspacePages({ workspace }: Props) {
   if (workspace.tab === "productImage") {
     return (
       <div className="page">
-        <ProductImageWorkspacePage slots={workspace.productImageSlots} elapsed={workspace.elapsed} />
+        <ProductImageWorkspacePage
+          slots={workspace.productImageSlots}
+          elapsed={workspace.elapsed}
+          globalBusy={workspace.busy}
+        />
       </div>
     );
   }
@@ -40,6 +48,7 @@ export default function WorkspacePages({ workspace }: Props) {
         <ProductBatchWorkspacePage
           slots={workspace.productBatchSlots}
           elapsed={workspace.elapsed}
+          globalBusy={workspace.busy}
         />
       </div>
     );
@@ -53,6 +62,7 @@ export default function WorkspacePages({ workspace }: Props) {
           generationLine={workspace.generationLine}
           setGenerationLine={workspace.setGenerationLine}
           elapsed={workspace.elapsed}
+          globalBusy={workspace.busy}
         />
       </div>
     );
@@ -61,7 +71,10 @@ export default function WorkspacePages({ workspace }: Props) {
   if (workspace.tab === "pictureWall") {
     return (
       <div className="page picture-wall-page">
-        <PictureWallWorkspacePage slots={workspace.pictureWallSlots} />
+        <PictureWallWorkspacePage
+          slots={workspace.pictureWallSlots}
+          globalBusy={workspace.busy}
+        />
       </div>
     );
   }
@@ -82,6 +95,7 @@ export default function WorkspacePages({ workspace }: Props) {
           setGenerationLine={workspace.setGenerationLine}
           item={ps.item}
           busy={ps.busy}
+          submitDisabled={workspace.busy || ps.busy}
           onGenerate={ps.handleGenerate}
           onRetry={ps.handleGenerate}
           onDownload={ps.handleDownload}
@@ -104,6 +118,7 @@ export default function WorkspacePages({ workspace }: Props) {
           setGenerationLine={workspace.setGenerationLine}
           entries={ie.entries}
           busy={ie.busy}
+          submitDisabled={workspace.busy || ie.busy}
           setImages={ie.setImages}
           setReferenceImages={ie.setReferenceImages}
           setInstruction={ie.setInstruction}
@@ -117,7 +132,10 @@ export default function WorkspacePages({ workspace }: Props) {
   if (workspace.tab === "detailPage") {
     return (
       <div className="page picture-wall-page">
-        <DetailPageWorkspacePage slots={workspace.detailPageSlots} />
+        <DetailPageWorkspacePage
+          slots={workspace.detailPageSlots}
+          globalBusy={workspace.busy}
+        />
       </div>
     );
   }
@@ -125,7 +143,10 @@ export default function WorkspacePages({ workspace }: Props) {
   if (workspace.tab === "brandStory") {
     return (
       <div className="page brand-story-page">
-        <BrandStoryWorkspacePage slots={workspace.brandStorySlots} />
+        <BrandStoryWorkspacePage
+          slots={workspace.brandStorySlots}
+          globalBusy={workspace.busy}
+        />
       </div>
     );
   }
@@ -143,6 +164,7 @@ export default function WorkspacePages({ workspace }: Props) {
           setGenerationLine={workspace.setGenerationLine}
           item={da.item}
           busy={da.busy}
+          submitDisabled={workspace.busy || da.busy}
           onGenerate={da.handleGenerate}
           onRetry={da.handleRetry}
           onDownload={da.handleDownload}
@@ -165,6 +187,7 @@ export default function WorkspacePages({ workspace }: Props) {
           setGenerationLine={workspace.setGenerationLine}
           item={ps.item}
           busy={ps.busy}
+          submitDisabled={workspace.busy || ps.busy}
           onGenerate={ps.handleGenerate}
           onRetry={ps.handleRetry}
           onCopyScript={ps.handleCopyScript}

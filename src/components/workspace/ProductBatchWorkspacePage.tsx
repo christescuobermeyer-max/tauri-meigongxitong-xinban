@@ -6,11 +6,12 @@ import ProductBatchResultPanel from "../ProductBatchResultPanel";
 interface Props {
   slots: GenerationWorkspace["productBatchSlots"];
   elapsed: number;
+  globalBusy?: boolean;
 }
 
 const TAB_LABELS = ["店铺1", "店铺2", "店铺3", "店铺4", "店铺5"] as const;
 
-export default function ProductBatchWorkspacePage({ slots, elapsed }: Props) {
+export default function ProductBatchWorkspacePage({ slots, elapsed, globalBusy = false }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const slot = slots[activeIndex];
 
@@ -59,6 +60,7 @@ export default function ProductBatchWorkspacePage({ slots, elapsed }: Props) {
         entries={slot.entries}
         onGenerate={slot.handleGenerate}
         busy={slot.busy}
+        submitDisabled={globalBusy || slot.busy}
         uploadingOss={slot.uploadingOss}
         elapsed={elapsed}
       />

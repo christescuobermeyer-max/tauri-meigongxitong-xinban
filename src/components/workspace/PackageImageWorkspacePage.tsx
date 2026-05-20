@@ -7,6 +7,7 @@ interface Props {
   generationLine: GenerationLine;
   setGenerationLine: (line: GenerationLine) => void;
   elapsed: number;
+  globalBusy?: boolean;
 }
 
 export default function PackageImageWorkspacePage({
@@ -14,6 +15,7 @@ export default function PackageImageWorkspacePage({
   generationLine,
   setGenerationLine,
   elapsed,
+  globalBusy = false,
 }: Props) {
   return (
     <PackageImagePage
@@ -31,6 +33,7 @@ export default function PackageImageWorkspacePage({
       productNames={packageImage.productNames}
       item={packageImage.item}
       busy={packageImage.busy}
+      submitDisabled={globalBusy || packageImage.busy}
       elapsed={elapsed}
       onGenerate={packageImage.handleGenerate}
       onRetry={packageImage.retry}

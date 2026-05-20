@@ -29,6 +29,7 @@ interface Props {
   setImages: (imgs: UploadedImage[]) => void;
   onGenerate: () => void;
   busy: boolean;
+  submitDisabled?: boolean;
   elapsed: number;
   avatar: GenerationItem;
   storefront: GenerationItem;
@@ -52,6 +53,7 @@ export default function GeneratePanel(props: Props) {
     setImages,
     onGenerate,
     busy,
+    submitDisabled = busy,
     elapsed,
     avatar,
     storefront,
@@ -59,7 +61,7 @@ export default function GeneratePanel(props: Props) {
   } = props;
   const canSubmit =
     getAvatarGenerationErrorMessage({ shopName, mode: avatarMode, category: avatarCategory, images }) === null &&
-    !busy;
+    !submitDisabled;
 
   return (
     <div className="panel-stack">

@@ -22,6 +22,7 @@ interface Props {
   productNames: string[];
   item: GenerationItem;
   busy: boolean;
+  submitDisabled?: boolean;
   elapsed: number;
   onGenerate: () => void;
   onRetry: () => void;
@@ -43,6 +44,7 @@ export default function PackageImagePage({
   productNames,
   item,
   busy,
+  submitDisabled = busy,
   elapsed,
   onGenerate,
   onRetry,
@@ -51,7 +53,7 @@ export default function PackageImagePage({
   const platformSpec = platform ? getPlatform(platform) : null;
   const source = platformSpec?.product.source;
   const target = platformSpec?.product.export;
-  const canSubmit = Boolean(platform) && styleImages.length > 0 && images.length > 0 && !busy;
+  const canSubmit = Boolean(platform) && styleImages.length > 0 && images.length > 0 && !submitDisabled;
   const fileHint = platformSpec?.product.maxBytes
     ? ` · JPG 不超过 ${Math.floor(platformSpec.product.maxBytes / 1024)}KB`
     : "";

@@ -16,6 +16,7 @@ interface Props {
   setGenerationLine: (line: GenerationLine) => void;
   item: GenerationItem;
   busy: boolean;
+  submitDisabled?: boolean;
   onGenerate: () => void;
   onRetry: () => void;
   onCopyScript: (script: PatrolScript) => void;
@@ -32,6 +33,7 @@ export default function PatrolScriptPage({
   setGenerationLine,
   item,
   busy,
+  submitDisabled = busy,
   onGenerate,
   onRetry,
   onCopyScript,
@@ -51,7 +53,7 @@ export default function PatrolScriptPage({
     });
   }, [search]);
 
-  const canGenerate = Boolean(storeName.trim()) && Boolean(selectedScript) && !busy;
+  const canGenerate = Boolean(storeName.trim()) && Boolean(selectedScript) && !submitDisabled;
 
   return (
     <>

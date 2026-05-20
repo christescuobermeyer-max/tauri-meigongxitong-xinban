@@ -15,6 +15,7 @@ interface Props {
   referenceImages: UploadedImage[];
   instruction: string;
   busy: boolean;
+  submitDisabled?: boolean;
   onImagesChange: (images: UploadedImage[]) => void;
   onReferenceImagesChange: (images: UploadedImage[]) => void;
   onInstructionChange: (value: string) => void;
@@ -28,6 +29,7 @@ export default function ImageEditInputCard({
   referenceImages,
   instruction,
   busy,
+  submitDisabled = busy,
   onImagesChange,
   onReferenceImagesChange,
   onInstructionChange,
@@ -37,7 +39,7 @@ export default function ImageEditInputCard({
   const spec = platform ? getImageEditSpec(kind, platform) : null;
   const sourceMaxCount = getImageEditSourceMaxCount(kind);
   const sourceCountText = kind === "product" ? "1-4 张" : "1 张";
-  const canGenerate = Boolean(platform) && images.length > 0 && instruction.trim().length > 0 && !busy;
+  const canGenerate = Boolean(platform) && images.length > 0 && instruction.trim().length > 0 && !submitDisabled;
 
   return (
     <div className="image-edit-form">

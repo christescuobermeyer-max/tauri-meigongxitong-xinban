@@ -5,11 +5,12 @@ import MultiStoreTabs from "./MultiStoreTabs";
 
 interface Props {
   slots: GenerationWorkspace["brandStorySlots"];
+  globalBusy?: boolean;
 }
 
 const TAB_LABELS = ["店铺1", "店铺2", "店铺3", "店铺4", "店铺5"];
 
-export default function BrandStoryWorkspacePage({ slots }: Props) {
+export default function BrandStoryWorkspacePage({ slots, globalBusy = false }: Props) {
   const [active, setActive] = useState(0);
   const bs = slots[active];
   const tabs = slots.map((slot, index) => ({
@@ -32,6 +33,7 @@ export default function BrandStoryWorkspacePage({ slots }: Props) {
         copy={bs.copy}
         entries={bs.entries}
         busy={bs.busy}
+        submitDisabled={globalBusy || bs.busy}
         textBusy={bs.textBusy}
         imagesBusy={bs.imagesBusy}
         phase={bs.phase}

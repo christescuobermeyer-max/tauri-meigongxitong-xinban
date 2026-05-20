@@ -20,6 +20,7 @@ interface Props {
   setGenerationLine: (line: GenerationLine) => void;
   item: GenerationItem;
   busy: boolean;
+  submitDisabled?: boolean;
   onGenerate: () => void;
   onRetry: () => void;
   onDownload: () => void;
@@ -36,6 +37,7 @@ export default function PSignboardPage({
   setGenerationLine,
   item,
   busy,
+  submitDisabled = busy,
   onGenerate,
   onRetry,
   onDownload,
@@ -45,7 +47,7 @@ export default function PSignboardPage({
     imageCount: images.length,
     originalText,
     newText,
-    busy,
+    busy: submitDisabled,
   });
   const previewUrl = getGenerationPreviewUrl(item);
   const isResultBusy = item.status === "queued" || item.status === "running";

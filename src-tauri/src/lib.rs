@@ -8,6 +8,7 @@ mod apimart_reference;
 mod apimart_task;
 mod brand_story;
 mod brand_story_clients;
+mod gateway_limiter;
 mod gemini_response;
 mod http_client;
 mod image_api_response;

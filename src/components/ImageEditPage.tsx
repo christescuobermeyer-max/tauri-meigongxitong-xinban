@@ -24,6 +24,7 @@ interface Props {
   setGenerationLine: (line: GenerationLine) => void;
   entries: Record<ImageEditKind, Entry>;
   busy: boolean;
+  submitDisabled?: boolean;
   setImages: (kind: ImageEditKind, images: UploadedImage[]) => void;
   setReferenceImages: (kind: ImageEditKind, images: UploadedImage[]) => void;
   setInstruction: (kind: ImageEditKind, value: string) => void;
@@ -41,6 +42,7 @@ export default function ImageEditPage({
   setGenerationLine,
   entries,
   busy,
+  submitDisabled = busy,
   setImages,
   setReferenceImages,
   setInstruction,
@@ -88,6 +90,7 @@ export default function ImageEditPage({
               referenceImages={activeEntry.referenceImages}
               instruction={activeEntry.instruction}
               busy={busy}
+              submitDisabled={submitDisabled}
               onImagesChange={(images) => setImages(activeKind, images)}
               onReferenceImagesChange={(images) => setReferenceImages(activeKind, images)}
               onInstructionChange={(value) => setInstruction(activeKind, value)}

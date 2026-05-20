@@ -106,18 +106,24 @@ export default function useThreePieceWorkspace(options: Options) {
       brandStyle,
     };
 
+    queueGenerationItems(getAvatarStorefrontPosterSequence(), setters);
+    onToast("正在上传参考图到 OSS，随后会依次生成三件套…", "info");
+
     let syncedImages: UploadedImage[];
     try {
       syncedImages = await syncImagesToOss();
     } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      for (const kind of getAvatarStorefrontPosterSequence()) {
+        markFailedItem(kind, `参考图上传失败：${message}`, setters);
+      }
       onToast(
-        `上传参考图到 OSS 失败：${error instanceof Error ? error.message : String(error)}`,
+        `上传参考图到 OSS 失败：${message}`,
         "error"
       );
       return;
     }
 
-    queueGenerationItems(getAvatarStorefrontPosterSequence(), setters);
     onToast("先生成头像，再生成店招，最后生成海报，请耐心等待…", "info");
 
     const baseOptions = {

@@ -7,11 +7,12 @@ import MultiStoreTabs from "./MultiStoreTabs";
 interface Props {
   slots: GenerationWorkspace["productImageSlots"];
   elapsed: number;
+  globalBusy?: boolean;
 }
 
 const TAB_LABELS = ["店铺1", "店铺2", "店铺3", "店铺4", "店铺5"];
 
-export default function ProductImageWorkspacePage({ slots, elapsed }: Props) {
+export default function ProductImageWorkspacePage({ slots, elapsed, globalBusy = false }: Props) {
   const [active, setActive] = useState(0);
   const pi = slots[active];
   const tabs = slots.map((slot, index) => ({
@@ -41,6 +42,7 @@ export default function ProductImageWorkspacePage({ slots, elapsed }: Props) {
         setImages={pi.setImages}
         onGenerate={pi.handleGenerate}
         busy={pi.busy}
+        submitDisabled={globalBusy || pi.busy}
         elapsed={elapsed}
         product={pi.product}
       />

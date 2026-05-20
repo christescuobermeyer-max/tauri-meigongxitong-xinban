@@ -9,6 +9,7 @@ use std::{
 };
 
 const DOWNLOAD_URL_EXPIRE_SECONDS: i64 = 60 * 60 * 24 * 7;
+const PUT_URL_EXPIRE_SECONDS: i64 = 600;
 const UPLOAD_FOLDERS: [&str; 2] = ["uploads", "generated"];
 
 #[derive(Debug, Deserialize)]
@@ -61,6 +62,75 @@ pub async fn upload_image_to_oss(
         key,
         url: signed_url,
     })
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PresignOssUrlsRequest {
+    pub folder: String,
+    pub file_name: Option<String>,
+    pub mime_type: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PresignOssUrlsResponse {
+    pub key: String,
+    pub put_url: String,
+    pub get_url: String,
+    pub content_type: String,
+    pub put_expires_in_seconds: i64,
+}
+
+/// 同时签发上传 URL（短期）与下载 URL（7 天）。
+///
+/// 客户端拿到 put_url 后直接 PUT 到 OSS，绕开网关；get_url 写库用于历史展示。
+/// 上传时客户端必须用 `content_type` 字段返回的值作为 `Content-Type`，否则签名校验会失败。
+#[cfg_attr(feature = "tauri-commands", tauri::command)]
+pub async fn presign_oss_urls(
+    req: PresignOssUrlsRequest,
+) -> Result<PresignOssUrlsResponse, String> {
+    if !UPLOAD_FOLDERS.contains(&req.folder.as_str()) {
+        return Err(format!(
+            "不支持的 OSS 目录：{}，仅支持 {}",
+            req.folder,
+            UPLOAD_FOLDERS.join(" / ")
+        ));
+    }
+    let content_type = normalize_presign_mime_type(req.mime_type.as_deref());
+    let key = build_object_key(&req.folder, req.file_name.as_deref(), &content_type);
+    let oss = build_oss_client()?;
+
+    let put_url = oss.sign_upload_url(
+        &key,
+        &RequestBuilder::new()
+            .with_content_type(&content_type)
+            .with_expire(PUT_URL_EXPIRE_SECONDS),
+    );
+    let get_url = oss.sign_download_url(
+        &key,
+        &RequestBuilder::new().with_expire(DOWNLOAD_URL_EXPIRE_SECONDS),
+    );
+
+    eprintln!(
+        "[oss-presign] folder={} key={} mime={} put_expire={}s",
+        req.folder, key, content_type, PUT_URL_EXPIRE_SECONDS
+    );
+
+    Ok(PresignOssUrlsResponse {
+        key,
+        put_url,
+        get_url,
+        content_type,
+        put_expires_in_seconds: PUT_URL_EXPIRE_SECONDS,
+    })
+}
+
+fn normalize_presign_mime_type(mime_type: Option<&str>) -> String {
+    let normalized = mime_type.unwrap_or("").trim().to_ascii_lowercase();
+    match normalized.as_str() {
+        "image/png" | "image/jpeg" | "image/webp" => normalized,
+        "image/jpg" => "image/jpeg".to_string(),
+        _ => "image/jpeg".to_string(),
+    }
 }
 
 fn validate_upload_request(req: &UploadImageToOssRequest) -> Result<(), String> {

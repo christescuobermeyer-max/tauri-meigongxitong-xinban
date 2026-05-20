@@ -16,6 +16,8 @@ mod brand_story;
 mod brand_story_clients;
 #[path = "../env_config.rs"]
 mod env_config;
+#[path = "../gateway_limiter.rs"]
+mod gateway_limiter;
 #[path = "../gemini_response.rs"]
 mod gemini_response;
 #[path = "../http_client.rs"]
@@ -52,13 +54,15 @@ use axum::{
 };
 use serde::Serialize;
 use std::{
+    collections::HashMap,
     env,
     net::SocketAddr,
-    sync::Arc,
+    sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
 use tower_http::cors::{Any, CorsLayer};
 
+use gateway_limiter::GatewayLimiter;
 use line_health::{LineHealthRegistry, LineHealthSnapshot};
 
 #[derive(Clone)]
@@ -67,6 +71,7 @@ struct AppState {
     supabase_url: String,
     supabase_anon_key: String,
     line_health: Arc<LineHealthRegistry>,
+    limiter: Arc<Mutex<GatewayLimiter>>,
 }
 
 #[derive(Serialize)]
@@ -91,6 +96,7 @@ async fn main() -> Result<(), String> {
         .route("/api/generate-image", post(generate_image))
         .route("/api/line-health", get(get_line_health))
         .route("/api/upload-image-to-oss", post(upload_image_to_oss))
+        .route("/api/oss-presigned-urls", post(oss_presigned_urls))
         .route("/api/admin-create-user", post(admin_create_user))
         .route(
             "/api/brand-story-generate-text",
@@ -127,12 +133,11 @@ async fn generate_image(
 ) -> Result<Json<String>, GatewayError> {
     verify_access_token(&state, &headers).await?;
     let line = req.api_line.as_str();
+    let _permit = acquire_generation_permit(&state, line)?;
     let started = Instant::now();
     let result = api::generate_image(req).await;
     let latency_ms = started.elapsed().as_millis() as u64;
-    state
-        .line_health
-        .record(line, latency_ms, result.is_ok());
+    state.line_health.record(line, latency_ms, result.is_ok());
     result.map(Json).map_err(GatewayError::bad_gateway)
 }
 
@@ -151,6 +156,18 @@ async fn upload_image_to_oss(
 ) -> Result<Json<oss::UploadImageToOssResponse>, GatewayError> {
     verify_access_token(&state, &headers).await?;
     oss::upload_image_to_oss(req)
+        .await
+        .map(Json)
+        .map_err(GatewayError::bad_gateway)
+}
+
+async fn oss_presigned_urls(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<oss::PresignOssUrlsRequest>,
+) -> Result<Json<oss::PresignOssUrlsResponse>, GatewayError> {
+    verify_access_token(&state, &headers).await?;
+    oss::presign_oss_urls(req)
         .await
         .map(Json)
         .map_err(GatewayError::bad_gateway)
@@ -180,8 +197,7 @@ async fn brand_story_generate_text(
         .map_err(GatewayError::bad_gateway)
 }
 
-async fn brand_story_thread_availability(
-) -> Json<brand_story::BrandStoryThreadAvailability> {
+async fn brand_story_thread_availability() -> Json<brand_story::BrandStoryThreadAvailability> {
     Json(brand_story::brand_story_thread_availability())
 }
 
@@ -277,6 +293,7 @@ fn build_state() -> Result<AppState, String> {
         supabase_url,
         supabase_anon_key,
         line_health: Arc::new(LineHealthRegistry::new()),
+        limiter: Arc::new(Mutex::new(build_generation_limiter())),
     })
 }
 
@@ -293,6 +310,61 @@ fn gateway_addr() -> Result<SocketAddr, String> {
     format!("{host}:{port}")
         .parse()
         .map_err(|error| format!("后端网关监听地址不合法：{error}"))
+}
+
+struct GenerationPermit {
+    limiter: Arc<Mutex<GatewayLimiter>>,
+    line: String,
+}
+
+impl Drop for GenerationPermit {
+    fn drop(&mut self) {
+        let mut limiter = self.limiter.lock().expect("gateway limiter mutex poisoned");
+        limiter.release(&self.line);
+    }
+}
+
+fn acquire_generation_permit(
+    state: &AppState,
+    line: &str,
+) -> Result<GenerationPermit, GatewayError> {
+    let mut limiter = state
+        .limiter
+        .lock()
+        .expect("gateway limiter mutex poisoned");
+    let decision = limiter.try_acquire(line);
+    if !decision.allowed {
+        return Err(GatewayError::too_many_requests(
+            decision
+                .reason
+                .unwrap_or_else(|| "当前生图请求较多，请稍后再试".to_string()),
+        ));
+    }
+    Ok(GenerationPermit {
+        limiter: Arc::clone(&state.limiter),
+        line: line.to_string(),
+    })
+}
+
+fn build_generation_limiter() -> GatewayLimiter {
+    GatewayLimiter::new(
+        read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 3),
+        HashMap::from([
+            ("line1", read_limit_env("GATEWAY_GENERATION_LINE1_LIMIT", 0)),
+            ("line2", read_limit_env("GATEWAY_GENERATION_LINE2_LIMIT", 1)),
+            ("line3", read_limit_env("GATEWAY_GENERATION_LINE3_LIMIT", 1)),
+            ("line4", read_limit_env("GATEWAY_GENERATION_LINE4_LIMIT", 0)),
+            ("line5", read_limit_env("GATEWAY_GENERATION_LINE5_LIMIT", 2)),
+            ("line6", read_limit_env("GATEWAY_GENERATION_LINE6_LIMIT", 1)),
+        ]),
+    )
+}
+
+fn read_limit_env(name: &str, default: usize) -> usize {
+    env::var(name)
+        .ok()
+        .and_then(|value| value.trim().parse::<usize>().ok())
+        .unwrap_or(default)
 }
 
 struct GatewayError {
@@ -318,6 +390,13 @@ impl GatewayError {
     fn bad_gateway(message: impl Into<String>) -> Self {
         Self {
             status: StatusCode::BAD_GATEWAY,
+            message: message.into(),
+        }
+    }
+
+    fn too_many_requests(message: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::TOO_MANY_REQUESTS,
             message: message.into(),
         }
     }

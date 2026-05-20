@@ -16,6 +16,7 @@ interface Props {
   entries: DetailPageEntry[];
   completedCount: number;
   busy: boolean;
+  submitDisabled?: boolean;
   onGenerate: () => void;
   onRetry: (pageIndex: number) => void;
   onDownload: () => void;
@@ -32,12 +33,13 @@ export default function DetailPagePage({
   entries,
   completedCount,
   busy,
+  submitDisabled = busy,
   onGenerate,
   onRetry,
   onDownload,
   onDownloadItem,
 }: Props) {
-  const canGenerate = shopName.trim().length > 0 && images.length === 1 && !busy;
+  const canGenerate = shopName.trim().length > 0 && images.length === 1 && !submitDisabled;
 
   return (
     <>

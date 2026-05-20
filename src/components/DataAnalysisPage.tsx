@@ -15,6 +15,7 @@ interface Props {
   setGenerationLine: (line: GenerationLine) => void;
   item: GenerationItem;
   busy: boolean;
+  submitDisabled?: boolean;
   onGenerate: () => void;
   onRetry: () => void;
   onDownload: () => void;
@@ -29,11 +30,12 @@ export default function DataAnalysisPage({
   setGenerationLine,
   item,
   busy,
+  submitDisabled = busy,
   onGenerate,
   onRetry,
   onDownload,
 }: Props) {
-  const canGenerate = Boolean(storeName.trim()) && images.length === 1 && !busy;
+  const canGenerate = Boolean(storeName.trim()) && images.length === 1 && !submitDisabled;
 
   return (
     <>

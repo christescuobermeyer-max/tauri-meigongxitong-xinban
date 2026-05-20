@@ -26,6 +26,7 @@ interface Props {
   completedCount: number;
   downloadStatus: (PictureWallDownloadProgress & { active: boolean }) | null;
   busy: boolean;
+  submitDisabled?: boolean;
   onGenerate: () => void;
   onDownload: () => void;
   onDownloadSingle: (sourceImageId: string) => void;
@@ -47,12 +48,13 @@ export default function PictureWallPage({
   completedCount,
   downloadStatus,
   busy,
+  submitDisabled = busy,
   onGenerate,
   onDownload,
   onDownloadSingle,
   onRetry,
 }: Props) {
-  const canGenerate = shopName.trim().length > 0 && images.length === 3 && !busy;
+  const canGenerate = shopName.trim().length > 0 && images.length === 3 && !submitDisabled;
   const failedCount = entries.filter((entry) => entry.item.status === "failed").length;
   const generateLabel = failedCount > 0 ? `补生成失败图片（${failedCount}张）` : "生成图片墙";
 

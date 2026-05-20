@@ -115,6 +115,37 @@ export async function uploadImageToOss(
   return await ensureTauriInvoke()<UploadImageToOssResponse>("upload_image_to_oss", { req });
 }
 
+export interface PresignOssUrlsRequest {
+  folder: "uploads" | "generated";
+  file_name?: string;
+  mime_type?: string;
+}
+
+export interface PresignOssUrlsResponse {
+  key: string;
+  put_url: string;
+  get_url: string;
+  content_type: string;
+  put_expires_in_seconds: number;
+}
+
+/**
+ * 向网关请求一对 OSS 签名 URL：
+ * - put_url：短期（10 分钟）授权客户端直接 PUT，绕开网关
+ * - get_url：7 天用于后续展示，等同今天写入 generation_logs 的 URL
+ *
+ * 仅在配置了网关 URL 时可用；本地 Tauri 直接调用模式没有这条路径。
+ */
+export async function requestOssPresignedUrls(
+  req: PresignOssUrlsRequest
+): Promise<PresignOssUrlsResponse> {
+  return await callBackendGateway<PresignOssUrlsResponse>(
+    "/api/oss-presigned-urls",
+    req,
+    { timeoutMs: 15_000 }
+  );
+}
+
 export interface ResizeAndSaveRequest {
   base64_data: string;
   target_width: number;

@@ -14,6 +14,7 @@ interface Props {
   copy: BrandCopy | null;
   entries: BrandStoryImageEntry[];
   busy: boolean;
+  submitDisabled?: boolean;
   textBusy: boolean;
   imagesBusy: boolean;
   phase: "idle" | "text" | "image" | "done";
@@ -35,6 +36,7 @@ export default function BrandStoryPage({
   copy,
   entries,
   busy,
+  submitDisabled = busy,
   textBusy,
   imagesBusy,
   phase,
@@ -50,7 +52,7 @@ export default function BrandStoryPage({
     trimmed.length >= 2 &&
     trimmed.length <= 20 &&
     category.trim().length > 0 &&
-    !busy;
+    !submitDisabled;
 
   return (
     <>

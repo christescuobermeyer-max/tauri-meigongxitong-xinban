@@ -4,12 +4,14 @@ import ts from "typescript";
 
 const source = readFileSync(new URL("../src/lib/oss-assets.ts", import.meta.url), "utf8")
   .replace(
-    'import { uploadImageToOss } from "./tauri";',
+    /import \{[^}]*\} from "\.\/tauri";/,
     `const calls = [];
 async function uploadImageToOss(req) {
   calls.push(req);
   return { url: "https://oss.example.com/" + req.file_name, key: req.file_name };
 }
+function getBackendGatewayUrl() { return ""; }
+async function requestOssPresignedUrls() { throw new Error("not used in this test"); }
 export function __getCalls() { return calls; }`
   )
   .replace(
