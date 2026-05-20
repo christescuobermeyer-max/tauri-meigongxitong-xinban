@@ -29,8 +29,8 @@ function buildGenerationPayload() {
 `
   )
   .replace(
-    'import { generateImage } from "./tauri";',
-    'async function generateImage() { return "generated-base64"; }'
+    'import { generateImageWithLine } from "./tauri";',
+    'async function generateImageWithLine() { return { image: "generated-base64", generationLine: "line2" }; }'
   )
   .replace(/import type \{[\s\S]*?\} from "\.\.\/types";/, "");
 

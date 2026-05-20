@@ -2,10 +2,6 @@ import { equal, ok } from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const typesSource = readFileSync(new URL("../src/types.ts", import.meta.url), "utf8");
-const selectSource = readFileSync(
-  new URL("../src/components/GenerationLineSelect.tsx", import.meta.url),
-  "utf8"
-);
 const lineCardSource = readFileSync(
   new URL("../src/components/GenerationLineCard.tsx", import.meta.url),
   "utf8"
@@ -34,12 +30,9 @@ const envExample = readFileSync(new URL("../.env.example", import.meta.url), "ut
 const schemaSource = readFileSync(new URL("../supabase/schema.sql", import.meta.url), "utf8");
 
 equal(typesSource.includes('export type GenerationLine = "line1" | "line2" | "line3" | "line4" | "line5" | "line6";'), true);
-equal(selectSource.includes("segmented__meta"), false);
+equal(lineCardSource.includes("GenerationLineSelect"), false);
+equal(lineCardSource.includes("<LineHealthBar />"), true);
 equal(lineCardSource.includes("generation-line-card__hint"), false);
-equal(lineCardSource.includes("generation-line-card__notice-engine"), true);
-equal(lineCardSource.includes("yunwu"), true);
-equal(lineCardSource.includes("pockgo"), true);
-equal(lineCardSource.includes("vectorengine"), true);
 equal(tauriSource.includes("线路4为 pockgo"), true);
 equal(supabaseSource.includes('"line1" | "line2" | "line3" | "line4" | "line5" | "line6" | null'), true);
 equal(historySource.includes('if (line === "line3") return "线路3";'), true);

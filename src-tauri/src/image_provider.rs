@@ -49,6 +49,8 @@ const LINE6_API_KEY_ENV_KEYS: [&str; 2] =
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum ImageApiLine {
+    #[serde(rename = "auto")]
+    Auto,
     #[serde(rename = "line1")]
     Line1,
     #[serde(rename = "line2")]
@@ -65,19 +67,33 @@ pub enum ImageApiLine {
 
 impl Default for ImageApiLine {
     fn default() -> Self {
-        Self::Line1
+        Self::Auto
     }
 }
 
 impl ImageApiLine {
     pub fn as_str(self) -> &'static str {
         match self {
+            ImageApiLine::Auto => "auto",
             ImageApiLine::Line1 => "line1",
             ImageApiLine::Line2 => "line2",
             ImageApiLine::Line3 => "line3",
             ImageApiLine::Line4 => "line4",
             ImageApiLine::Line5 => "line5",
             ImageApiLine::Line6 => "line6",
+        }
+    }
+
+    pub fn from_str(value: &str) -> Option<Self> {
+        match value {
+            "auto" => Some(ImageApiLine::Auto),
+            "line1" => Some(ImageApiLine::Line1),
+            "line2" => Some(ImageApiLine::Line2),
+            "line3" => Some(ImageApiLine::Line3),
+            "line4" => Some(ImageApiLine::Line4),
+            "line5" => Some(ImageApiLine::Line5),
+            "line6" => Some(ImageApiLine::Line6),
+            _ => None,
         }
     }
 }
@@ -96,6 +112,7 @@ pub struct ImageProvider {
 
 pub fn resolve_image_provider(line: ImageApiLine) -> ImageProvider {
     match line {
+        ImageApiLine::Auto => panic!("auto image line must be resolved by backend gateway"),
         ImageApiLine::Line1 => ImageProvider {
             api_url: LINE1_API_URL,
             edit_api_url: None,

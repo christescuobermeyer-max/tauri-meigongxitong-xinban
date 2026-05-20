@@ -62,7 +62,8 @@ use std::{
 };
 use tower_http::cors::{Any, CorsLayer};
 
-use gateway_limiter::GatewayLimiter;
+use gateway_limiter::{generation_size_for_line, GatewayLimiter};
+use image_provider::ImageApiLine;
 use line_health::{LineHealthRegistry, LineHealthSnapshot};
 
 #[derive(Clone)]
@@ -83,6 +84,12 @@ struct HealthResponse {
 #[derive(Serialize)]
 struct ErrorResponse {
     error: String,
+}
+
+#[derive(Serialize)]
+struct GenerateImageResponse {
+    image: String,
+    generation_line: String,
 }
 
 #[tokio::main]
@@ -129,16 +136,27 @@ async fn health() -> Json<HealthResponse> {
 async fn generate_image(
     State(state): State<AppState>,
     headers: HeaderMap,
-    Json(req): Json<api::GenerateRequest>,
-) -> Result<Json<String>, GatewayError> {
+    Json(mut req): Json<api::GenerateRequest>,
+) -> Result<Json<GenerateImageResponse>, GatewayError> {
     verify_access_token(&state, &headers).await?;
+    let permit = acquire_generation_permit(&state, req.api_line, &req.size)?;
+    req.api_line = permit.line;
     let line = req.api_line.as_str();
-    let _permit = acquire_generation_permit(&state, line)?;
+    req.size = generation_size_for_line(line, &req.size)
+        .ok_or_else(|| GatewayError::bad_request(format!("{line} 不支持尺寸：{}", req.size)))?
+        .into_owned();
     let started = Instant::now();
     let result = api::generate_image(req).await;
     let latency_ms = started.elapsed().as_millis() as u64;
     state.line_health.record(line, latency_ms, result.is_ok());
-    result.map(Json).map_err(GatewayError::bad_gateway)
+    result
+        .map(|image| {
+            Json(GenerateImageResponse {
+                image,
+                generation_line: line.to_string(),
+            })
+        })
+        .map_err(GatewayError::bad_gateway)
 }
 
 async fn get_line_health(
@@ -314,25 +332,62 @@ fn gateway_addr() -> Result<SocketAddr, String> {
 
 struct GenerationPermit {
     limiter: Arc<Mutex<GatewayLimiter>>,
-    line: String,
+    line: ImageApiLine,
 }
 
 impl Drop for GenerationPermit {
     fn drop(&mut self) {
         let mut limiter = self.limiter.lock().expect("gateway limiter mutex poisoned");
-        limiter.release(&self.line);
+        limiter.release(self.line.as_str());
     }
 }
 
 fn acquire_generation_permit(
     state: &AppState,
-    line: &str,
+    requested_line: ImageApiLine,
+    size: &str,
+) -> Result<GenerationPermit, GatewayError> {
+    if requested_line == ImageApiLine::Line1 {
+        return acquire_manual_generation_permit(state, requested_line);
+    }
+
+    acquire_auto_generation_permit(state, size)
+}
+
+fn acquire_auto_generation_permit(
+    state: &AppState,
+    size: &str,
+) -> Result<GenerationPermit, GatewayError> {
+    let health = state.line_health.snapshot();
+    let mut limiter = state
+        .limiter
+        .lock()
+        .expect("gateway limiter mutex poisoned");
+    let decision = limiter.try_acquire_auto(size, &health);
+    let Some(line) = decision.line else {
+        return Err(GatewayError::too_many_requests(
+            decision
+                .reason
+                .unwrap_or_else(|| "当前没有可用生图线路，请稍后重新提交".to_string()),
+        ));
+    };
+    Ok(GenerationPermit {
+        limiter: Arc::clone(&state.limiter),
+        line: ImageApiLine::from_str(line).ok_or_else(|| {
+            GatewayError::bad_gateway(format!("网关自动分配到了未知线路：{line}"))
+        })?,
+    })
+}
+
+fn acquire_manual_generation_permit(
+    state: &AppState,
+    line: ImageApiLine,
 ) -> Result<GenerationPermit, GatewayError> {
     let mut limiter = state
         .limiter
         .lock()
         .expect("gateway limiter mutex poisoned");
-    let decision = limiter.try_acquire(line);
+    let decision = limiter.try_acquire(line.as_str());
     if !decision.allowed {
         return Err(GatewayError::too_many_requests(
             decision
@@ -342,20 +397,20 @@ fn acquire_generation_permit(
     }
     Ok(GenerationPermit {
         limiter: Arc::clone(&state.limiter),
-        line: line.to_string(),
+        line,
     })
 }
 
 fn build_generation_limiter() -> GatewayLimiter {
     GatewayLimiter::new(
-        read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 3),
+        read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 6),
         HashMap::from([
             ("line1", read_limit_env("GATEWAY_GENERATION_LINE1_LIMIT", 0)),
-            ("line2", read_limit_env("GATEWAY_GENERATION_LINE2_LIMIT", 1)),
-            ("line3", read_limit_env("GATEWAY_GENERATION_LINE3_LIMIT", 1)),
-            ("line4", read_limit_env("GATEWAY_GENERATION_LINE4_LIMIT", 0)),
+            ("line2", read_limit_env("GATEWAY_GENERATION_LINE2_LIMIT", 2)),
+            ("line3", read_limit_env("GATEWAY_GENERATION_LINE3_LIMIT", 2)),
+            ("line4", read_limit_env("GATEWAY_GENERATION_LINE4_LIMIT", 2)),
             ("line5", read_limit_env("GATEWAY_GENERATION_LINE5_LIMIT", 2)),
-            ("line6", read_limit_env("GATEWAY_GENERATION_LINE6_LIMIT", 1)),
+            ("line6", read_limit_env("GATEWAY_GENERATION_LINE6_LIMIT", 2)),
         ]),
     )
 }

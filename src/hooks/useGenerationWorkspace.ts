@@ -28,7 +28,6 @@ import {
   saveHistoryEntries,
   type HistoryEntry,
 } from "../lib/history";
-import { loadLinePreference, saveLinePreference } from "../lib/line-preferences";
 import { isSupabaseConfigured } from "../lib/supabase";
 import type {
   AssetKind,
@@ -61,13 +60,8 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
   const [tab, setTab] = useState<WorkspaceTab>("avatarStorefront");
   const [todayCount, setTodayCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
-  const [generationLine, setGenerationLine] = useState<GenerationLine>(
-    () => loadLinePreference(userId) ?? "line5"
-  );
-
-  useEffect(() => {
-    saveLinePreference(userId, generationLine);
-  }, [userId, generationLine]);
+  const generationLine: GenerationLine = "line5";
+  const setGenerationLine = (_line: GenerationLine) => undefined;
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
   const [historyPage, setHistoryPage] = useState(1);
   const [historyTotalCount, setHistoryTotalCount] = useState(0);

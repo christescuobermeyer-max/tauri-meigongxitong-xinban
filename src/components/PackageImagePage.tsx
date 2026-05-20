@@ -1,5 +1,5 @@
 import { getPlatform } from "../lib/platforms";
-import type { GenerationItem, GenerationLine, Platform, PlatformSpec, UploadedImage } from "../types";
+import type { GenerationItem, Platform, PlatformSpec, UploadedImage } from "../types";
 import GenerationLineCard from "./GenerationLineCard";
 import GenerationResultTile from "./GenerationResultTile";
 import ImageUpload from "./ImageUpload";
@@ -13,8 +13,6 @@ interface Props {
   platform: Platform | null;
   setPlatform: (value: Platform) => void;
   currentPlatform: PlatformSpec | null;
-  generationLine: GenerationLine;
-  setGenerationLine: (line: GenerationLine) => void;
   images: UploadedImage[];
   setImages: (images: UploadedImage[]) => void;
   styleImages: UploadedImage[];
@@ -35,8 +33,6 @@ export default function PackageImagePage({
   platform,
   setPlatform,
   currentPlatform,
-  generationLine,
-  setGenerationLine,
   images,
   setImages,
   styleImages,
@@ -61,7 +57,7 @@ export default function PackageImagePage({
   return (
     <>
       <div className="panel-stack">
-        <GenerationLineCard value={generationLine} onChange={setGenerationLine} />
+        <GenerationLineCard />
         <section className="card">
           <div className="card__header">
             <div className="card__heading">

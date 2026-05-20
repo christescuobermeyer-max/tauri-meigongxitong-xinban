@@ -9,7 +9,6 @@ function read(path: string) {
 }
 
 const typesSource = read("src/types.ts");
-const selectSource = read("src/components/GenerationLineSelect.tsx");
 const cardSource = read("src/components/GenerationLineCard.tsx");
 const topbarSource = read("src/components/TopBarStatus.tsx");
 const supabaseSource = read("src/lib/supabase.ts");
@@ -29,15 +28,9 @@ const validationSource = read("src-tauri/src/api_validation.rs");
 
 // ---- 前端 ----
 ok(typesSource.includes('"line6"'), "前端 GenerationLine 类型应包含线路6");
-ok(
-  selectSource.includes('{ id: "line6", label: "线路6" }'),
-  "线路切换应展示线路6"
-);
-ok(cardSource.includes('data-line="line6"'), "生图线路卡片应展示线路6说明");
-ok(cardSource.includes("manxiaobai"), "线路6说明应标注 manxiaobai");
-ok(cardSource.includes("备用线路"), "线路6应标注备用");
-ok(topbarSource.includes('line6: "线路6"'), "顶部栏应支持线路6 label");
-ok(topbarSource.includes('line6: "violet"'), "顶部栏 line6 应用 violet 调");
+ok(!cardSource.includes("GenerationLineSelect"), "生图线路卡片不应展示手动线路切换");
+ok(cardSource.includes("<LineHealthBar />"), "生图线路卡片应保留线路状态");
+ok(topbarSource.includes("自动分配线路"), "顶部栏应显示自动分配线路");
 ok(supabaseSource.includes('"line6"'), "云端 generation_logs 类型应允许 line6");
 ok(historySource.includes('"line6"'), "本地历史记录类型应允许 line6");
 ok(historyPanelSource.includes('"线路6"'), "历史面板应显示线路6");

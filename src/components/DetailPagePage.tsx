@@ -1,6 +1,6 @@
 import type { DetailPageEntry } from "../lib/detail-page";
 import { DETAIL_PAGE_EXPORT_SIZE, DETAIL_PAGE_GENERATION_SIZE } from "../lib/detail-page";
-import type { GenerationLine, UploadedImage } from "../types";
+import type { UploadedImage } from "../types";
 import GenerationLineCard from "./GenerationLineCard";
 import ImageUpload from "./ImageUpload";
 import { IconSparkles } from "./Icons";
@@ -11,8 +11,6 @@ interface Props {
   setShopName: (value: string) => void;
   images: UploadedImage[];
   setImages: (images: UploadedImage[]) => void;
-  generationLine: GenerationLine;
-  setGenerationLine: (line: GenerationLine) => void;
   entries: DetailPageEntry[];
   completedCount: number;
   busy: boolean;
@@ -28,8 +26,6 @@ export default function DetailPagePage({
   setShopName,
   images,
   setImages,
-  generationLine,
-  setGenerationLine,
   entries,
   completedCount,
   busy,
@@ -44,7 +40,7 @@ export default function DetailPagePage({
   return (
     <>
       <div className="panel-stack">
-        <GenerationLineCard value={generationLine} onChange={setGenerationLine} />
+        <GenerationLineCard />
         <section className="card">
           <div className="card__header">
             <div className="card__heading">

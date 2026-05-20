@@ -77,15 +77,49 @@ export interface GenerateImageRequest {
   /** 参考图列表：支持不含 data: 前缀的 base64，也支持可访问 URL；可为空 */
   product_images: string[];
   /** 线路1为 yunwu，线路2为 yunwu，线路3为 vectorengine，线路4为 pockgo，线路5为 APIMart */
-  api_line?: GenerationLine;
+  api_line?: GenerationLine | "auto";
+}
+
+export interface GenerateImageResponse {
+  image: string;
+  generation_line?: GenerationLine;
 }
 
 /** 调用 Rust 端的 image-2 生图（已设置 350s 超时） */
 export async function generateImage(req: GenerateImageRequest): Promise<string> {
+  return (await generateImageWithLine(req)).image;
+}
+
+export async function generateImageWithLine(req: GenerateImageRequest): Promise<{
+  image: string;
+  generationLine: GenerationLine;
+}> {
   if (getBackendGatewayUrl()) {
-    return await callBackendGateway<string>("/api/generate-image", req);
+    const response = await callBackendGateway<string | GenerateImageResponse>(
+      "/api/generate-image",
+      req
+    );
+    if (typeof response === "string") {
+      return {
+        image: response,
+        generationLine: normalizeGeneratedLine(req.api_line),
+      };
+    }
+    return {
+      image: response.image,
+      generationLine: response.generation_line ?? normalizeGeneratedLine(req.api_line),
+    };
   }
-  return await ensureTauriInvoke()<string>("generate_image", { req });
+  const localReq = req.api_line === "auto" ? { ...req, api_line: normalizeGeneratedLine(req.api_line) } : req;
+  const image = await ensureTauriInvoke()<string>("generate_image", { req: localReq });
+  return {
+    image,
+    generationLine: normalizeGeneratedLine(req.api_line),
+  };
+}
+
+function normalizeGeneratedLine(line: GenerateImageRequest["api_line"]): GenerationLine {
+  return line && line !== "auto" ? line : "line5";
 }
 
 export interface UploadImageToOssRequest {

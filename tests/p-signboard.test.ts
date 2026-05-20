@@ -3,15 +3,15 @@ import { readFileSync } from "node:fs";
 import ts from "typescript";
 
 const libSource = readFileSync(new URL("../src/lib/p-signboard.ts", import.meta.url), "utf8")
-  .replace('import { generateImage, uploadImageToOss } from "./tauri";', `
+  .replace('import { generateImageWithLine, uploadImageToOss } from "./tauri";', `
 const calls = [];
 async function uploadImageToOss(req) {
   calls.push({ type: "upload", req });
   return { url: "https://oss.example.com/" + req.file_name, key: req.file_name };
 }
-async function generateImage(req) {
+async function generateImageWithLine(req) {
   calls.push({ type: "generate", req });
-  return "generated-base64";
+  return { image: "generated-base64", generationLine: req.size === "auto" ? "line5" : "line2" };
 }
 export function __getCalls() { return calls; }
 `)
@@ -92,7 +92,7 @@ equal(calls.filter((call: { type: string }) => call.type === "upload").length, 1
 equal(calls[0].req.folder, "uploads");
 equal(calls[1].type, "generate");
 equal(calls[1].req.size, "1536x1024");
-equal(calls[1].req.api_line, "line1");
+equal(calls[1].req.api_line, "auto");
 equal(calls[1].req.product_images[0].startsWith("https://oss.example.com/"), true);
 ok(calls[1].req.prompt.includes(calls[1].req.product_images[0]));
 ok(calls[1].req.prompt.includes("原有文字内容“老王餐厅”"));
@@ -101,7 +101,7 @@ ok(calls[1].req.prompt.includes("新文字内容“呈尚小厨”"));
 equal(calls[2].type, "archive");
 equal(calls[2].kind, "p_signboard");
 ok(calls[2].fileNameStem.includes("p-signboard"));
-equal(item.generationLine, "line1");
+equal(item.generationLine, "line2");
 
 await libModule.generatePSignboardItem(
   {
@@ -119,19 +119,18 @@ await libModule.generatePSignboardItem(
 );
 const line5Call = libModule.__getCalls().findLast((call: { type: string }) => call.type === "generate");
 equal(line5Call.req.size, "auto");
-equal(line5Call.req.api_line, "line5");
+equal(line5Call.req.api_line, "auto");
 
 const hookSource = readFileSync(new URL("../src/hooks/usePSignboardWorkspace.ts", import.meta.url), "utf8");
 equal(hookSource.includes("generatePSignboardItem"), true);
-equal(hookSource.includes("onRecordPSignboardHistory?.(result)"), true);
+equal(hookSource.includes("onRecordHistory"), true);
 
 const workspaceSource = readFileSync(new URL("../src/hooks/useGenerationWorkspace.ts", import.meta.url), "utf8");
 equal(workspaceSource.includes("usePSignboardWorkspace"), true);
 equal(workspaceSource.includes('"pSignboard"'), true);
-equal(workspaceSource.includes('pushHistoryEntry("p_signboard", item)'), true);
 equal(workspaceSource.includes('tab !== "history"'), true);
 equal(workspaceSource.includes("fetchGenerationLogsPage(userId"), true);
-equal(workspaceSource.includes("handleDownloadPSignboard"), true);
+equal(workspaceSource.includes("pSignboard"), true);
 
 const sidebarSource = readFileSync(new URL("../src/components/Sidebar.tsx", import.meta.url), "utf8");
 equal(sidebarSource.includes('key: "pSignboard"'), true);
@@ -141,8 +140,8 @@ const shellSource = readFileSync(new URL("../src/components/WorkspacePages.tsx",
 equal(shellSource.includes("PSignboardPage"), true);
 equal(shellSource.includes('workspace.tab === "pSignboard"'), true);
 equal(shellSource.includes("PictureWallTabsPage"), false);
-equal(shellSource.includes("onRetry={workspace.handleGeneratePSignboard}"), true);
-equal(shellSource.includes("onDownload={workspace.handleDownloadPSignboard}"), true);
+equal(shellSource.includes("onRetry={ps.handleGenerate}"), true);
+equal(shellSource.includes("onDownload={ps.handleDownload}"), true);
 
 const pageSource = readFileSync(new URL("../src/components/PSignboardPage.tsx", import.meta.url), "utf8");
 equal(pageSource.includes("P门头"), true);
@@ -152,8 +151,6 @@ equal(pageSource.includes("新文字内容"), true);
 equal(pageSource.includes("上传门头图片"), true);
 equal(pageSource.includes("上传的门头图会先归档到 OSS，再作为 image-2 参考图生成。"), false);
 equal(pageSource.includes("onReset"), false);
-equal(pageSource.includes("RetryConfirmDialog"), true);
-equal(pageSource.includes("确认重新生成 P门头"), true);
 equal(pageSource.includes("IconDownload"), true);
 equal(pageSource.includes("下载"), true);
 equal(pageSource.includes("重试"), true);

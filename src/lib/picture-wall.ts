@@ -1,4 +1,4 @@
-import { generateImage, uploadImageToOss } from "./tauri";
+import { generateImageWithLine, uploadImageToOss } from "./tauri";
 import { compressAndArchiveGenerated } from "./oss-assets";
 import { runWithAutoRetry } from "./generation-retry";
 import { safeFileName } from "./utils";
@@ -178,14 +178,18 @@ export async function generatePictureWallItem(
   const productOssUrl = await resolvePictureWallProductOssUrl(sourceImage, shopName);
   const generated = await runWithAutoRetry({
     onAttempt: (attempt) => options.onAttempt?.(attempt),
-    run: async () => ({
-      rawBase64: await generateImage({
+    run: async () => {
+      const response = await generateImageWithLine({
         prompt: buildPictureWallPrompt(shopName, sourceImage.productName, productOssUrl, options.appearance ?? {}),
         size: resolvePictureWallGenerationSize(generationLine),
         product_images: [productOssUrl],
-        api_line: generationLine,
-      }),
-    }),
+        api_line: "auto",
+      });
+      return {
+        rawBase64: response.image,
+        generationLine: response.generationLine,
+      };
+    },
   });
   const archive = await archivePictureWallResult(generated.rawBase64, shopName, sourceImage.id);
   return {
@@ -193,7 +197,7 @@ export async function generatePictureWallItem(
     rawBase64: generated.rawBase64,
     rawDataUrl: `data:image/png;base64,${generated.rawBase64}`,
     remoteUrl: archive,
-    generationLine,
+    generationLine: generated.generationLine,
     status: "succeeded" as const,
     attempt: generated.attempt,
   };

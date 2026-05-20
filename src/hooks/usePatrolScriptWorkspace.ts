@@ -9,7 +9,7 @@ import {
   resolvePatrolScriptSize,
 } from "../lib/patrol-script";
 import { PATROL_SCRIPTS, type PatrolScript } from "../lib/patrol-scripts";
-import { generateImage, pickSavePath, resizeAndSaveImage } from "../lib/tauri";
+import { generateImageWithLine, pickSavePath, resizeAndSaveImage } from "../lib/tauri";
 import { safeFileName } from "../lib/utils";
 import type { AssetKind, GenerationItem, GenerationLine, Platform } from "../types";
 
@@ -108,13 +108,16 @@ export default function usePatrolScriptWorkspace({
             attempt,
           })),
         run: async () => {
-          const rawBase64 = await generateImage({
+          const response = await generateImageWithLine({
             prompt: buildPatrolScriptPrompt(snapshot.storeName, snapshot.script.content),
             size: resolvePatrolScriptSize(snapshot.generationLine),
             product_images: [],
-            api_line: snapshot.generationLine,
+            api_line: "auto",
           });
-          return { rawBase64 };
+          return {
+            rawBase64: response.image,
+            generationLine: response.generationLine,
+          };
         },
       });
       const remoteUrl = await compressAndArchiveGenerated(
@@ -128,7 +131,7 @@ export default function usePatrolScriptWorkspace({
         rawDataUrl: `data:image/png;base64,${result.rawBase64}`,
         remoteUrl,
         status: "succeeded",
-        generationLine: snapshot.generationLine,
+        generationLine: result.generationLine,
         elapsedMs: Date.now() - started,
         attempt: result.attempt,
       };

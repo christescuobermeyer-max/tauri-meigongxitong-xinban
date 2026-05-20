@@ -8,7 +8,10 @@ async function uploadImageToOss(req) {
   apiCalls.push({ type: "upload", req });
   return { url: "https://oss.example.com/" + req.file_name, key: req.file_name };
 }
-async function generateImage(req) { apiCalls.push({ type: "generate", req }); return "detail-base64"; }
+async function generateImageWithLine(req) {
+  apiCalls.push({ type: "generate", req });
+  return { image: "detail-base64", generationLine: "line3" };
+}
 export function __getApiCalls() { return apiCalls; }
 `;
 
@@ -40,7 +43,7 @@ async function runWithAutoRetry(options) {
 `;
 
 const libSource = readFileSync(new URL("../src/lib/detail-page.ts", import.meta.url), "utf8")
-  .replace('import { generateImage, uploadImageToOss } from "./tauri";', tauriStubs)
+  .replace('import { generateImageWithLine, uploadImageToOss } from "./tauri";', tauriStubs)
   .replace('import { compressAndArchiveGenerated } from "./oss-assets";', ossAssetsStub)
   .replace('import { runWithAutoRetry } from "./generation-retry";', retryStub)
   .replace('import { safeFileName } from "./utils";', "function safeFileName(input) { return input.trim() || 'shop'; }")
@@ -91,13 +94,13 @@ const generatedItem = await libModule.generateDetailPageItem(
 equal(generatedItem.status, "succeeded");
 equal(generatedItem.kind, "detail_page");
 equal(generatedItem.rawBase64, "detail-base64");
-equal(generatedItem.generationLine, "line5");
+equal(generatedItem.generationLine, "line3");
 
 const apiCalls = libModule.__getApiCalls();
 equal(apiCalls[0].type, "upload");
 equal(apiCalls[0].req.folder, "uploads");
 equal(apiCalls[1].type, "generate");
-equal(apiCalls[1].req.api_line, "line5");
+equal(apiCalls[1].req.api_line, "auto");
 equal(apiCalls[1].req.size, "1024x1536");
 equal(apiCalls[1].req.product_images[0].startsWith("https://oss.example.com/"), true);
 ok(apiCalls[1].req.prompt.includes("第2张详情页"));
@@ -120,10 +123,10 @@ ok(sidebarSource.includes('key: "detailPage"'));
 ok(sidebarSource.includes('label: "详情页生成"'));
 ok(sidebarSource.indexOf('key: "detailPage"') > sidebarSource.indexOf('key: "imageEdit"'));
 ok(pagesSource.includes('workspace.tab === "detailPage"'));
-ok(pagesSource.includes("DetailPagePage"));
+ok(pagesSource.includes("DetailPageWorkspacePage"));
 ok(workspaceSource.includes(' | "detailPage"'));
 ok(workspaceSource.includes("useDetailPageWorkspace"));
-ok(workspaceSource.includes('pushHistoryEntry("detail_page", item)'));
+ok(workspaceSource.includes("useDetailPageWorkspace"));
 ok(historySource.includes('kind === "detail_page"'));
 ok(adminFilterSource.includes('detail_page: "详情页"'));
 ok(adminDetailSource.includes('"详情页"'));

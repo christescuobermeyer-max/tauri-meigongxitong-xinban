@@ -1,4 +1,4 @@
-import type { BrandStyle, GenerationLine, Platform, ThemeColor, UploadedImage } from "../types";
+import type { BrandStyle, Platform, ThemeColor, UploadedImage } from "../types";
 import type { ProductBatchEntry } from "../lib/product-batch";
 import { getPlatform } from "../lib/platforms";
 import AppearanceFields from "./AppearanceFields";
@@ -13,8 +13,6 @@ interface Props {
   setShopName: (value: string) => void;
   platform: Platform | null;
   setPlatform: (value: Platform) => void;
-  generationLine: GenerationLine;
-  setGenerationLine: (line: GenerationLine) => void;
   themeColor: ThemeColor | "";
   setThemeColor: (value: ThemeColor | "") => void;
   brandStyle: BrandStyle | "";
@@ -36,8 +34,6 @@ export default function ProductBatchGeneratePanel({
   setShopName,
   platform,
   setPlatform,
-  generationLine,
-  setGenerationLine,
   themeColor,
   setThemeColor,
   brandStyle,
@@ -64,7 +60,7 @@ export default function ProductBatchGeneratePanel({
 
   return (
     <div className="panel-stack">
-      <GenerationLineCard value={generationLine} onChange={setGenerationLine} />
+      <GenerationLineCard />
       <div className="card">
         <div className="card__header">
           <div className="card__heading">

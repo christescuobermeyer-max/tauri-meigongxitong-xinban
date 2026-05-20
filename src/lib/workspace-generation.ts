@@ -1,6 +1,6 @@
 import { archiveGeneratedImage } from "./oss-assets";
 import { buildGenerationPayload } from "./generation-flow";
-import { generateImage } from "./tauri";
+import { generateImageWithLine } from "./tauri";
 import type {
   AppearanceOptions,
   AssetKind,
@@ -95,17 +95,17 @@ export async function generateAssetBase64(
 
   const referenceImagesForRequest = productImages ?? [];
   const started = Date.now();
-  const base64 = await generateImage({
+  const generated = await generateImageWithLine({
     prompt,
     size,
     product_images: referenceImagesForRequest,
-    api_line: generationLine,
+    api_line: "auto",
   });
 
   return {
-    rawBase64: base64,
-    rawDataUrl: `data:image/png;base64,${base64}`,
-    generationLine,
+    rawBase64: generated.image,
+    rawDataUrl: `data:image/png;base64,${generated.image}`,
+    generationLine: generated.generationLine,
     elapsedMs: Date.now() - started,
   };
 }

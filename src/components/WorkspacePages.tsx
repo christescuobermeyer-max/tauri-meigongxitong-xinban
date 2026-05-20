@@ -59,8 +59,6 @@ export default function WorkspacePages({ workspace }: Props) {
       <div className="page">
         <PackageImageWorkspacePage
           packageImage={workspace.packageImage}
-          generationLine={workspace.generationLine}
-          setGenerationLine={workspace.setGenerationLine}
           elapsed={workspace.elapsed}
           globalBusy={workspace.busy}
         />
@@ -91,8 +89,6 @@ export default function WorkspacePages({ workspace }: Props) {
           setOriginalText={ps.setOriginalText}
           newText={ps.newText}
           setNewText={ps.setNewText}
-          generationLine={workspace.generationLine}
-          setGenerationLine={workspace.setGenerationLine}
           item={ps.item}
           busy={ps.busy}
           submitDisabled={workspace.busy || ps.busy}
@@ -114,8 +110,6 @@ export default function WorkspacePages({ workspace }: Props) {
           platform={ie.platform}
           setPlatform={ie.setPlatform}
           currentPlatform={ie.currentPlatform}
-          generationLine={workspace.generationLine}
-          setGenerationLine={workspace.setGenerationLine}
           entries={ie.entries}
           busy={ie.busy}
           submitDisabled={workspace.busy || ie.busy}
@@ -160,8 +154,6 @@ export default function WorkspacePages({ workspace }: Props) {
           setStoreName={da.setStoreName}
           images={da.images}
           setImages={da.setImages}
-          generationLine={workspace.generationLine}
-          setGenerationLine={workspace.setGenerationLine}
           item={da.item}
           busy={da.busy}
           submitDisabled={workspace.busy || da.busy}
@@ -183,8 +175,6 @@ export default function WorkspacePages({ workspace }: Props) {
           scriptId={ps.scriptId}
           setScriptId={ps.setScriptId}
           selectedScript={ps.selectedScript}
-          generationLine={workspace.generationLine}
-          setGenerationLine={workspace.setGenerationLine}
           item={ps.item}
           busy={ps.busy}
           submitDisabled={workspace.busy || ps.busy}

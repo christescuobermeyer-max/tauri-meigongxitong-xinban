@@ -10,7 +10,6 @@ function read(path: string) {
 }
 
 const typesSource = read("src/types.ts");
-const selectSource = read("src/components/GenerationLineSelect.tsx");
 const cardSource = read("src/components/GenerationLineCard.tsx");
 const topbarSource = read("src/components/TopBarStatus.tsx");
 const supabaseSource = read("src/lib/supabase.ts");
@@ -30,10 +29,9 @@ const apimartCombinedSource = [
 const envExample = read(".env.example");
 
 ok(typesSource.includes('"line5"'), "前端 GenerationLine 类型应包含线路5");
-ok(selectSource.includes('{ id: "line5", label: "线路5" }'), "线路切换应展示线路5");
-ok(cardSource.includes('data-line="line5"'), "生图线路卡片应展示线路5说明");
-ok(cardSource.includes("APIMart"), "线路5说明应标注 APIMart");
-ok(topbarSource.includes('line5: "线路5"'), "顶部当前线路提醒应支持线路5");
+ok(!cardSource.includes("GenerationLineSelect"), "生图线路卡片不应展示手动线路切换");
+ok(cardSource.includes("<LineHealthBar />"), "生图线路卡片应保留线路状态");
+ok(topbarSource.includes("自动分配线路"), "顶部应显示自动分配线路");
 
 ok(supabaseSource.includes('"line5"'), "云端生图记录类型应允许线路5");
 ok(historySource.includes('"line5"'), "历史记录规范化应保留线路5");
@@ -90,7 +88,10 @@ async function uploadImageToOss(req) {
   calls.push({ type: "upload", req });
   return { url: "https://oss.example.com/" + req.file_name, key: req.file_name };
 }
-async function generateImage(req) { calls.push({ type: "generate", req }); return "abc"; }
+async function generateImageWithLine(req) {
+  calls.push({ type: "generate", req });
+  return { image: "abc", generationLine: "line5" };
+}
 async function compressAndArchiveGenerated(kind, rawBase64, fileNameStem) {
   calls.push({ type: "archive", kind, fileNameStem });
   return "https://oss.example.com/" + fileNameStem + ".jpg";
@@ -99,7 +100,7 @@ export function __getCalls() { return calls; }
 `;
 
 const pictureWallSource = read("src/lib/picture-wall.ts")
-  .replace('import { generateImage, uploadImageToOss } from "./tauri";', tauriStubs)
+  .replace('import { generateImageWithLine, uploadImageToOss } from "./tauri";', tauriStubs)
   .replace('import { compressAndArchiveGenerated } from "./oss-assets";', "")
   .replace(
     'import { runWithAutoRetry } from "./generation-retry";',
@@ -131,3 +132,4 @@ await pictureWallModule.generatePictureWallItem(
 
 const generateCall = pictureWallModule.__getCalls().find((call: { type: string }) => call.type === "generate");
 equal(generateCall.req.size, "3:4");
+equal(generateCall.req.api_line, "auto");

@@ -17,6 +17,7 @@ pub fn validate_generate_request(req: &GenerateRequest) -> Result<(), String> {
 
 fn is_supported_size_for_line(req: &GenerateRequest) -> bool {
     match req.api_line {
+        ImageApiLine::Auto => false,
         ImageApiLine::Line5 => matches!(
             req.size.as_str(),
             "1:1" | "16:9" | "21:9" | "4:3" | "3:4" | "3:2" | "2:3" | "1024x1536" | "auto"
@@ -133,12 +134,12 @@ mod tests {
     }
 
     #[test]
-    fn default_to_line1_when_api_line_is_missing() {
+    fn default_to_auto_when_api_line_is_missing() {
         let req: GenerateRequest =
             serde_json::from_str(r#"{"prompt":"测试","size":"1024x1024","product_images":[]}"#)
                 .unwrap();
 
-        assert_eq!(req.api_line, ImageApiLine::Line1);
+        assert_eq!(req.api_line, ImageApiLine::Auto);
     }
 
     #[test]

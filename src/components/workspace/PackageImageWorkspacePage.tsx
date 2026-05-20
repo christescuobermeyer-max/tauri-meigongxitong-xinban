@@ -1,19 +1,14 @@
-import type { GenerationLine } from "../../types";
 import type { GenerationWorkspace } from "../../hooks/useGenerationWorkspace";
 import PackageImagePage from "../PackageImagePage";
 
 interface Props {
   packageImage: GenerationWorkspace["packageImage"];
-  generationLine: GenerationLine;
-  setGenerationLine: (line: GenerationLine) => void;
   elapsed: number;
   globalBusy?: boolean;
 }
 
 export default function PackageImageWorkspacePage({
   packageImage,
-  generationLine,
-  setGenerationLine,
   elapsed,
   globalBusy = false,
 }: Props) {
@@ -24,8 +19,6 @@ export default function PackageImageWorkspacePage({
       platform={packageImage.platform}
       setPlatform={packageImage.setPlatform}
       currentPlatform={packageImage.currentPlatform}
-      generationLine={generationLine}
-      setGenerationLine={setGenerationLine}
       images={packageImage.images}
       setImages={packageImage.setImages}
       styleImages={packageImage.styleImages}

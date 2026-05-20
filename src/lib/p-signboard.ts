@@ -1,4 +1,4 @@
-import { generateImage, uploadImageToOss } from "./tauri";
+import { generateImageWithLine, uploadImageToOss } from "./tauri";
 import { compressAndArchiveGenerated } from "./oss-assets";
 import { resolvePSignboardGenerationSize } from "./generation-size";
 import { runWithAutoRetry } from "./generation-retry";
@@ -35,14 +35,18 @@ export async function generatePSignboardItem(
   const started = Date.now();
   const generated = await runWithAutoRetry({
     onAttempt: (attempt) => options.onAttempt?.(attempt),
-    run: async () => ({
-      rawBase64: await generateImage({
+    run: async () => {
+      const response = await generateImageWithLine({
         prompt: buildPSignboardPrompt(sourceUpload.url, options.originalText, options.newText),
         size: resolvePSignboardGenerationSize(generationLine),
         product_images: [sourceUpload.url],
-        api_line: generationLine,
-      }),
-    }),
+        api_line: "auto",
+      });
+      return {
+        rawBase64: response.image,
+        generationLine: response.generationLine,
+      };
+    },
   });
   const remoteUrl = await compressAndArchiveGenerated(
     "p_signboard",
@@ -55,7 +59,7 @@ export async function generatePSignboardItem(
     rawBase64: generated.rawBase64,
     rawDataUrl: `data:image/png;base64,${generated.rawBase64}`,
     remoteUrl,
-    generationLine,
+    generationLine: generated.generationLine,
     status: "succeeded",
     elapsedMs: Date.now() - started,
     attempt: generated.attempt,

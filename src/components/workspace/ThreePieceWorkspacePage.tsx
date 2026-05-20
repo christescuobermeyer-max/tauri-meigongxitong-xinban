@@ -28,8 +28,6 @@ export default function ThreePieceWorkspacePage({ slots, elapsed, globalBusy = f
       <GeneratePanel
         shopName={tp.shopName}
         setShopName={tp.setShopName}
-        generationLine={tp.generationLine}
-        setGenerationLine={tp.setGenerationLine}
         avatarMode={tp.avatarMode}
         avatarCategory={tp.avatarCategory}
         setAvatarCategory={tp.setAvatarCategory}

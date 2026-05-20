@@ -1,4 +1,4 @@
-import { generateImage, generateBrandStoryText } from "./tauri";
+import { generateImageWithLine, generateBrandStoryText } from "./tauri";
 import { compressAndArchiveGenerated } from "./oss-assets";
 import { runWithAutoRetry } from "./generation-retry";
 import { safeFileName } from "./utils";
@@ -191,14 +191,18 @@ export async function generateBrandStoryImage(options: {
 
   const generated = await runWithAutoRetry({
     onAttempt: (attempt) => options.onAttempt?.(attempt),
-    run: async () => ({
-      rawBase64: await generateImage({
+    run: async () => {
+      const response = await generateImageWithLine({
         prompt,
         size: resolveBrandStorySize(options.generationLine),
         product_images: [],
-        api_line: options.generationLine,
-      }),
-    }),
+        api_line: "auto",
+      });
+      return {
+        rawBase64: response.image,
+        generationLine: response.generationLine,
+      };
+    },
   });
 
   const remoteUrl = await compressAndArchiveGenerated(
@@ -212,7 +216,7 @@ export async function generateBrandStoryImage(options: {
     rawBase64: generated.rawBase64,
     rawDataUrl: `data:image/png;base64,${generated.rawBase64}`,
     remoteUrl,
-    generationLine: options.generationLine,
+    generationLine: generated.generationLine,
     status: "succeeded",
     attempt: generated.attempt,
   };

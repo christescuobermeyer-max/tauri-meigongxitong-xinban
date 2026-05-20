@@ -1,9 +1,7 @@
 import ThemeToggle from "./ThemeToggle";
 import type { Theme } from "../lib/theme";
-import type { GenerationLine } from "../types";
 
 interface Props {
-  generationLine: GenerationLine;
   todayCount: number;
   totalCount: number;
   busy: boolean;
@@ -11,26 +9,7 @@ interface Props {
   onThemeChange: (theme: Theme) => void;
 }
 
-const LINE_LABEL: Record<GenerationLine, string> = {
-  line1: "线路1",
-  line2: "线路2",
-  line3: "线路3",
-  line4: "线路4",
-  line5: "线路5",
-  line6: "线路6",
-};
-
-const LINE_TONE: Record<GenerationLine, "success" | "warn" | "info" | "gold" | "violet"> = {
-  line1: "success",
-  line2: "success",
-  line3: "info",
-  line4: "warn",
-  line5: "gold",
-  line6: "violet",
-};
-
 export default function TopBarStatus({
-  generationLine,
   todayCount,
   totalCount,
   busy,
@@ -41,11 +20,10 @@ export default function TopBarStatus({
     <>
       <span
         className="badge topbar-line-badge"
-        data-tone={LINE_TONE[generationLine]}
-        data-line={generationLine}
-        title="当前选择的生图线路"
+        data-tone="info"
+        title="云端网关会按线路状态和并发自动分配"
       >
-        当前是 <strong>{LINE_LABEL[generationLine]}</strong>
+        自动分配线路
       </span>
       <span className="badge" data-tone="accent" title="该账号累计成功归档到 OSS 的图片数">
         总生图 <strong style={{ marginLeft: 4 }}>{totalCount}</strong> 张

@@ -1,4 +1,4 @@
-import { generateImage, uploadImageToOss } from "./tauri";
+import { generateImageWithLine, uploadImageToOss } from "./tauri";
 import { compressAndArchiveGenerated } from "./oss-assets";
 import { runWithAutoRetry } from "./generation-retry";
 import { safeFileName } from "./utils";
@@ -96,21 +96,25 @@ export async function generateDetailPageItem(
   sourceImage: UploadedImage,
   shopName: string,
   pageIndex: number,
-  generationLine: GenerationLine,
+  _generationLine: GenerationLine,
   options: { onAttempt?: (attempt: number) => void } = {}
 ) {
   const productOssUrl = await resolveDetailPageProductOssUrl(sourceImage, shopName);
   const productName = sourceImage.productName?.trim() || sourceImage.name;
   const generated = await runWithAutoRetry({
     onAttempt: (attempt) => options.onAttempt?.(attempt),
-    run: async () => ({
-      rawBase64: await generateImage({
+    run: async () => {
+      const response = await generateImageWithLine({
         prompt: buildDetailPagePrompt({ shopName, productName, productOssUrl, pageIndex }),
         size: DETAIL_PAGE_GENERATION_SIZE,
         product_images: [productOssUrl],
-        api_line: generationLine,
-      }),
-    }),
+        api_line: "auto",
+      });
+      return {
+        rawBase64: response.image,
+        generationLine: response.generationLine,
+      };
+    },
   });
   const remoteUrl = await archiveDetailPageResult(generated.rawBase64, shopName, pageIndex);
 
@@ -119,7 +123,7 @@ export async function generateDetailPageItem(
     rawBase64: generated.rawBase64,
     rawDataUrl: `data:image/png;base64,${generated.rawBase64}`,
     remoteUrl,
-    generationLine,
+    generationLine: generated.generationLine,
     status: "succeeded" as const,
     attempt: generated.attempt,
   };

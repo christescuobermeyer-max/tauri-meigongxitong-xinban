@@ -8,7 +8,7 @@ import {
 } from "../lib/data-analysis";
 import { getAutoRetryAttempt, runWithAutoRetry } from "../lib/generation-retry";
 import { compressAndArchiveGenerated } from "../lib/oss-assets";
-import { generateImage, pickSavePath, resizeAndSaveImage } from "../lib/tauri";
+import { generateImageWithLine, pickSavePath, resizeAndSaveImage } from "../lib/tauri";
 import { safeFileName } from "../lib/utils";
 import type { AssetKind, GenerationItem, GenerationLine, Platform, UploadedImage } from "../types";
 
@@ -95,13 +95,16 @@ export default function useDataAnalysisWorkspace({
             attempt,
           })),
         run: async () => {
-          const rawBase64 = await generateImage({
+          const response = await generateImageWithLine({
             prompt: buildDataAnalysisPrompt(snapshot.storeName),
             size: resolveDataAnalysisSize(snapshot.generationLine),
             product_images: [snapshot.screenshotBase64],
-            api_line: snapshot.generationLine,
+            api_line: "auto",
           });
-          return { rawBase64 };
+          return {
+            rawBase64: response.image,
+            generationLine: response.generationLine,
+          };
         },
       });
       const remoteUrl = await compressAndArchiveGenerated(
@@ -115,7 +118,7 @@ export default function useDataAnalysisWorkspace({
         rawDataUrl: `data:image/png;base64,${result.rawBase64}`,
         remoteUrl,
         status: "succeeded",
-        generationLine: snapshot.generationLine,
+        generationLine: result.generationLine,
         elapsedMs: Date.now() - started,
         attempt: result.attempt,
       };

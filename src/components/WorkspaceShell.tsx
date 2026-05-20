@@ -61,7 +61,6 @@ export default function WorkspaceShell({ profile, isAdmin, onSignOut, onRefresh 
           crumbs={["呈尚策划", "图像生成系统"]}
           rightSlot={
             <TopBarStatus
-              generationLine={workspace.generationLine}
               todayCount={workspace.todayCount}
               totalCount={workspace.totalCount}
               busy={workspace.busy}

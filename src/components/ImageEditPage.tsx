@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { type ImageEditKind } from "../lib/image-edit";
-import type { GenerationItem, GenerationLine, Platform, PlatformSpec, UploadedImage } from "../types";
+import type { GenerationItem, Platform, PlatformSpec, UploadedImage } from "../types";
 import GenerationLineCard from "./GenerationLineCard";
 import ImageEditInputCard from "./ImageEditInputCard";
 import ImageEditKindSelect from "./ImageEditKindSelect";
@@ -20,8 +20,6 @@ interface Props {
   platform: Platform | null;
   setPlatform: (platform: Platform) => void;
   currentPlatform: PlatformSpec | null;
-  generationLine: GenerationLine;
-  setGenerationLine: (line: GenerationLine) => void;
   entries: Record<ImageEditKind, Entry>;
   busy: boolean;
   submitDisabled?: boolean;
@@ -38,8 +36,6 @@ export default function ImageEditPage({
   platform,
   setPlatform,
   currentPlatform,
-  generationLine,
-  setGenerationLine,
   entries,
   busy,
   submitDisabled = busy,
@@ -55,7 +51,7 @@ export default function ImageEditPage({
   return (
     <>
       <div className="panel-stack">
-        <GenerationLineCard value={generationLine} onChange={setGenerationLine} />
+        <GenerationLineCard />
         <section className="card image-edit-card">
           <div className="card__header image-edit-card__header">
             <div className="card__heading">

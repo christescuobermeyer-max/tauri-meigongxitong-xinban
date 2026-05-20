@@ -1,4 +1,4 @@
-import type { GenerationItem, GenerationLine, UploadedImage } from "../types";
+import type { GenerationItem, UploadedImage } from "../types";
 import { canGeneratePSignboard } from "../lib/p-signboard-form";
 import { copyGeneratedItemImage } from "../lib/clipboard-image";
 import { getGenerationPreviewUrl, isArchivingToOss } from "../lib/generation-preview";
@@ -16,8 +16,6 @@ interface Props {
   setOriginalText: (value: string) => void;
   newText: string;
   setNewText: (value: string) => void;
-  generationLine: GenerationLine;
-  setGenerationLine: (line: GenerationLine) => void;
   item: GenerationItem;
   busy: boolean;
   submitDisabled?: boolean;
@@ -33,8 +31,6 @@ export default function PSignboardPage({
   setOriginalText,
   newText,
   setNewText,
-  generationLine,
-  setGenerationLine,
   item,
   busy,
   submitDisabled = busy,
@@ -74,7 +70,7 @@ export default function PSignboardPage({
   return (
     <div className="picture-wall-split">
       <div className="panel-stack">
-        <GenerationLineCard value={generationLine} onChange={setGenerationLine} />
+        <GenerationLineCard />
         <section className="card">
           <div className="card__header">
             <div className="card__heading">

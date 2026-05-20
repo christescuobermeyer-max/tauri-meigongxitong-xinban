@@ -19,8 +19,8 @@ equal(
   "海报生成不应再走旧的专用 Gemini 海报接口"
 );
 ok(
-  workspaceSource.includes("api_line: generationLine"),
-  "海报生成应和其他 image-2 任务一样透传线路"
+  workspaceSource.includes('api_line: "auto"'),
+  "海报生成应和其他 image-2 任务一样交给网关自动分配线路"
 );
 ok(apiSource.includes('"21:9"'), "Rust image-2 请求校验应允许 21:9 海报尺寸");
 ok(apiSource.includes('"1792x768"'), "Rust image-2 请求校验应允许线路2海报像素尺寸");

@@ -4,7 +4,7 @@ import GenerationResultTile from "./GenerationResultTile";
 import { IconCheck, IconSparkles, IconStore } from "./Icons";
 import { PATROL_SCRIPT_EXPORT_SIZE } from "../lib/patrol-script";
 import { PATROL_SCRIPTS, type PatrolScript } from "../lib/patrol-scripts";
-import type { GenerationItem, GenerationLine } from "../types";
+import type { GenerationItem } from "../types";
 
 interface Props {
   storeName: string;
@@ -12,8 +12,6 @@ interface Props {
   scriptId: number;
   setScriptId: (id: number) => void;
   selectedScript: PatrolScript;
-  generationLine: GenerationLine;
-  setGenerationLine: (line: GenerationLine) => void;
   item: GenerationItem;
   busy: boolean;
   submitDisabled?: boolean;
@@ -29,8 +27,6 @@ export default function PatrolScriptPage({
   scriptId,
   setScriptId,
   selectedScript,
-  generationLine,
-  setGenerationLine,
   item,
   busy,
   submitDisabled = busy,
@@ -58,7 +54,7 @@ export default function PatrolScriptPage({
   return (
     <>
       <div className="panel-stack">
-        <GenerationLineCard value={generationLine} onChange={setGenerationLine} />
+        <GenerationLineCard />
         <section className="card">
           <div className="card__header">
             <div className="card__heading">

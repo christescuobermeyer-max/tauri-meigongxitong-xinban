@@ -2,7 +2,6 @@ import type {
   AvatarReferenceMode,
   BrandStyle,
   GenerationItem,
-  GenerationLine,
   ThemeColor,
   UploadedImage,
 } from "../types";
@@ -16,8 +15,6 @@ import ProgressSteps from "./ProgressSteps";
 interface Props {
   shopName: string;
   setShopName: (v: string) => void;
-  generationLine: GenerationLine;
-  setGenerationLine: (line: GenerationLine) => void;
   avatarMode: AvatarReferenceMode;
   avatarCategory: string;
   setAvatarCategory: (v: string) => void;
@@ -40,8 +37,6 @@ export default function GeneratePanel(props: Props) {
   const {
     shopName,
     setShopName,
-    generationLine,
-    setGenerationLine,
     avatarMode,
     avatarCategory,
     setAvatarCategory,
@@ -65,7 +60,7 @@ export default function GeneratePanel(props: Props) {
 
   return (
     <div className="panel-stack">
-      <GenerationLineCard value={generationLine} onChange={setGenerationLine} />
+      <GenerationLineCard />
       <div className="card">
         <div className="card__header">
           <div className="card__heading">

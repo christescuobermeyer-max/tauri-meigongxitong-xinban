@@ -2,15 +2,13 @@ import { IconSparkles, IconStore, IconImage } from "./Icons";
 import BrandStoryResults from "./BrandStoryResults";
 import GenerationLineCard from "./GenerationLineCard";
 import type { BrandStoryImageEntry } from "../lib/brand-story";
-import type { BrandCopy, GenerationLine } from "../types";
+import type { BrandCopy } from "../types";
 
 interface Props {
   storeName: string;
   setStoreName: (value: string) => void;
   category: string;
   setCategory: (value: string) => void;
-  generationLine: GenerationLine;
-  setGenerationLine: (line: GenerationLine) => void;
   copy: BrandCopy | null;
   entries: BrandStoryImageEntry[];
   busy: boolean;
@@ -31,8 +29,6 @@ export default function BrandStoryPage({
   setStoreName,
   category,
   setCategory,
-  generationLine,
-  setGenerationLine,
   copy,
   entries,
   busy,
@@ -57,7 +53,7 @@ export default function BrandStoryPage({
   return (
     <>
       <div className="panel-stack">
-        <GenerationLineCard value={generationLine} onChange={setGenerationLine} />
+        <GenerationLineCard />
         <section className="card">
           <div className="card__header">
             <div className="card__heading">

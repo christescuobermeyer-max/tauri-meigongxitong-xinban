@@ -16,8 +16,8 @@ const brandStorySource = readFileSync(
   "utf8"
 )
   .replace(
-    'import { generateImage, generateBrandStoryText } from "./tauri";',
-    `async function generateImage() { return "raw"; }
+    'import { generateImageWithLine, generateBrandStoryText } from "./tauri";',
+    `async function generateImageWithLine() { return { image: "raw", generationLine: "line2" }; }
 async function generateBrandStoryText() { return {}; }`
   )
   .replace(

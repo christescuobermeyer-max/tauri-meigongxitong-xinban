@@ -4,15 +4,13 @@ import ImageUpload from "./ImageUpload";
 import MerchantCopyCard from "./MerchantCopyCard";
 import { IconCheck, IconImage, IconSparkles, IconStore } from "./Icons";
 import { DATA_ANALYSIS_COPY_TEXT, DATA_ANALYSIS_EXPORT_SIZE } from "../lib/data-analysis";
-import type { GenerationItem, GenerationLine, UploadedImage } from "../types";
+import type { GenerationItem, UploadedImage } from "../types";
 
 interface Props {
   storeName: string;
   setStoreName: (value: string) => void;
   images: UploadedImage[];
   setImages: (images: UploadedImage[]) => void;
-  generationLine: GenerationLine;
-  setGenerationLine: (line: GenerationLine) => void;
   item: GenerationItem;
   busy: boolean;
   submitDisabled?: boolean;
@@ -26,8 +24,6 @@ export default function DataAnalysisPage({
   setStoreName,
   images,
   setImages,
-  generationLine,
-  setGenerationLine,
   item,
   busy,
   submitDisabled = busy,
@@ -40,7 +36,7 @@ export default function DataAnalysisPage({
   return (
     <>
       <div className="panel-stack">
-        <GenerationLineCard value={generationLine} onChange={setGenerationLine} />
+        <GenerationLineCard />
         <section className="card">
           <div className="card__header">
             <div className="card__heading">

@@ -1,7 +1,6 @@
 import type {
   BrandStyle,
   GenerationItem,
-  GenerationLine,
   Platform,
   ThemeColor,
   UploadedImage,
@@ -21,8 +20,6 @@ interface Props {
   setProductName: (v: string) => void;
   platform: Platform | null;
   setPlatform: (p: Platform) => void;
-  generationLine: GenerationLine;
-  setGenerationLine: (line: GenerationLine) => void;
   themeColor: ThemeColor | "";
   setThemeColor: (v: ThemeColor | "") => void;
   brandStyle: BrandStyle | "";
@@ -43,8 +40,6 @@ export default function ProductGeneratePanel({
   setProductName,
   platform,
   setPlatform,
-  generationLine,
-  setGenerationLine,
   themeColor,
   setThemeColor,
   brandStyle,
@@ -68,7 +63,7 @@ export default function ProductGeneratePanel({
 
   return (
     <div className="panel-stack">
-      <GenerationLineCard value={generationLine} onChange={setGenerationLine} />
+      <GenerationLineCard />
       <div className="card">
         <div className="card__header">
           <div className="card__heading">
