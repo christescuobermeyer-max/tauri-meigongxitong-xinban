@@ -79,6 +79,21 @@ impl GatewayLimiter {
         }
     }
 
+    pub fn has_global_capacity(&self) -> bool {
+        self.global_limit > 0 && self.active_global < self.global_limit
+    }
+
+    pub fn can_acquire_line(&self, line: &str) -> bool {
+        if !self.has_global_capacity() {
+            return false;
+        }
+        let line_limit = self.line_limits.get(line).copied().unwrap_or(1);
+        if line_limit == 0 {
+            return false;
+        }
+        self.active_by_line.get(line).copied().unwrap_or(0) < line_limit
+    }
+
     pub fn try_acquire_auto(&mut self, size: &str, health: &LineHealthSnapshot) -> AcquireDecision {
         if self.global_limit == 0 {
             return AcquireDecision {
@@ -278,20 +293,20 @@ mod tests {
 
     fn default_limiter() -> GatewayLimiter {
         GatewayLimiter::new(
-            17,
+            21,
             HashMap::from([
                 ("line1", 2),
-                ("line2", 3),
-                ("line3", 3),
-                ("line4", 3),
-                ("line5", 3),
+                ("line2", 4),
+                ("line3", 4),
+                ("line4", 4),
+                ("line5", 4),
                 ("line6", 3),
             ]),
         )
     }
 
     #[test]
-    fn enforces_global_limit_of_seventeen_active_generations() {
+    fn enforces_global_limit_of_twenty_one_active_generations() {
         let mut limiter = default_limiter();
 
         assert!(limiter.try_acquire("line1").allowed);
@@ -299,24 +314,28 @@ mod tests {
         assert!(limiter.try_acquire("line2").allowed);
         assert!(limiter.try_acquire("line2").allowed);
         assert!(limiter.try_acquire("line2").allowed);
+        assert!(limiter.try_acquire("line2").allowed);
         assert!(limiter.try_acquire("line3").allowed);
         assert!(limiter.try_acquire("line3").allowed);
         assert!(limiter.try_acquire("line3").allowed);
+        assert!(limiter.try_acquire("line3").allowed);
+        assert!(limiter.try_acquire("line4").allowed);
+        assert!(limiter.try_acquire("line4").allowed);
+        assert!(limiter.try_acquire("line4").allowed);
+        assert!(limiter.try_acquire("line4").allowed);
+        assert!(limiter.try_acquire("line5").allowed);
         assert!(limiter.try_acquire("line5").allowed);
         assert!(limiter.try_acquire("line5").allowed);
         assert!(limiter.try_acquire("line5").allowed);
         assert!(limiter.try_acquire("line6").allowed);
         assert!(limiter.try_acquire("line6").allowed);
         assert!(limiter.try_acquire("line6").allowed);
-        assert!(limiter.try_acquire("line4").allowed);
-        assert!(limiter.try_acquire("line4").allowed);
-        assert!(limiter.try_acquire("line4").allowed);
 
         let rejected = limiter.try_acquire("line3");
         assert!(!rejected.allowed);
         assert_eq!(
             rejected.reason.as_deref(),
-            Some("当前生图请求较多，已达到全局并发上限 17，请稍后再试")
+            Some("当前生图请求较多，已达到全局并发上限 21，请稍后再试")
         );
     }
 
@@ -339,6 +358,7 @@ mod tests {
     fn release_frees_capacity_for_next_request() {
         let mut limiter = default_limiter();
 
+        assert!(limiter.try_acquire("line5").allowed);
         assert!(limiter.try_acquire("line5").allowed);
         assert!(limiter.try_acquire("line5").allowed);
         assert!(limiter.try_acquire("line5").allowed);

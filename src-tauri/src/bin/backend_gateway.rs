@@ -141,8 +141,8 @@ async fn generate_image(
     headers: HeaderMap,
     Json(mut req): Json<api::GenerateRequest>,
 ) -> Result<Json<GenerateImageResponse>, GatewayError> {
-    verify_access_token(&state, &headers).await?;
-    let permit = acquire_generation_permit(&state, req.api_line, &req.size).await?;
+    let user_id = verify_access_token(&state, &headers).await?;
+    let permit = acquire_generation_permit(&state, req.api_line, &req.size, &user_id).await?;
     req.api_line = permit.line;
     let line = req.api_line.as_str();
     req.size = generation_size_for_line(line, &req.size)
@@ -166,7 +166,7 @@ async fn get_line_health(
     State(state): State<AppState>,
     headers: HeaderMap,
 ) -> Result<Json<LineHealthSnapshot>, GatewayError> {
-    verify_access_token(&state, &headers).await?;
+    let _user_id = verify_access_token(&state, &headers).await?;
     Ok(Json(state.line_health.snapshot()))
 }
 
@@ -175,7 +175,7 @@ async fn upload_image_to_oss(
     headers: HeaderMap,
     Json(req): Json<oss::UploadImageToOssRequest>,
 ) -> Result<Json<oss::UploadImageToOssResponse>, GatewayError> {
-    verify_access_token(&state, &headers).await?;
+    let _user_id = verify_access_token(&state, &headers).await?;
     oss::upload_image_to_oss(req)
         .await
         .map(Json)
@@ -187,7 +187,7 @@ async fn oss_presigned_urls(
     headers: HeaderMap,
     Json(req): Json<oss::PresignOssUrlsRequest>,
 ) -> Result<Json<oss::PresignOssUrlsResponse>, GatewayError> {
-    verify_access_token(&state, &headers).await?;
+    let _user_id = verify_access_token(&state, &headers).await?;
     oss::presign_oss_urls(req)
         .await
         .map(Json)
@@ -199,7 +199,7 @@ async fn admin_create_user(
     headers: HeaderMap,
     Json(req): Json<admin_user::AdminCreateUserRequest>,
 ) -> Result<Json<admin_user::AdminCreateUserResponse>, GatewayError> {
-    verify_access_token(&state, &headers).await?;
+    let _user_id = verify_access_token(&state, &headers).await?;
     admin_user::admin_create_user(req)
         .await
         .map(Json)
@@ -211,7 +211,7 @@ async fn brand_story_generate_text(
     headers: HeaderMap,
     Json(req): Json<brand_story::BrandStoryTextRequestInput>,
 ) -> Result<Json<brand_story::BrandCopy>, GatewayError> {
-    verify_access_token(&state, &headers).await?;
+    let _user_id = verify_access_token(&state, &headers).await?;
     brand_story::brand_story_generate_text(req)
         .await
         .map(Json)
@@ -222,7 +222,10 @@ async fn brand_story_thread_availability() -> Json<brand_story::BrandStoryThread
     Json(brand_story::brand_story_thread_availability())
 }
 
-async fn verify_access_token(state: &AppState, headers: &HeaderMap) -> Result<(), GatewayError> {
+async fn verify_access_token(
+    state: &AppState,
+    headers: &HeaderMap,
+) -> Result<String, GatewayError> {
     let token = bearer_token(headers)?;
     let response = state
         .client
@@ -246,7 +249,8 @@ async fn verify_access_token(state: &AppState, headers: &HeaderMap) -> Result<()
         .and_then(|value| value.as_str())
         .ok_or_else(|| GatewayError::unauthorized("登录态无效或已过期，请重新登录"))?;
 
-    ensure_active_profile(state, token, user_id).await
+    ensure_active_profile(state, token, user_id).await?;
+    Ok(user_id.to_string())
 }
 
 async fn ensure_active_profile(
@@ -319,6 +323,7 @@ fn build_state() -> Result<AppState, String> {
         generation_queue: Arc::new(GatewayGenerationQueue::new(
             build_generation_limiter(),
             line_health,
+            read_limit_env("GATEWAY_GENERATION_USER_LIMIT", 3),
         )),
     })
 }
@@ -353,21 +358,23 @@ async fn acquire_generation_permit(
     state: &AppState,
     requested_line: ImageApiLine,
     size: &str,
+    user_id: &str,
 ) -> Result<GenerationPermit, GatewayError> {
     if requested_line == ImageApiLine::Line1 {
-        return acquire_manual_generation_permit(state, requested_line).await;
+        return acquire_manual_generation_permit(state, requested_line, user_id).await;
     }
 
-    acquire_auto_generation_permit(state, size).await
+    acquire_auto_generation_permit(state, size, user_id).await
 }
 
 async fn acquire_auto_generation_permit(
     state: &AppState,
     size: &str,
+    user_id: &str,
 ) -> Result<GenerationPermit, GatewayError> {
     let queued = state
         .generation_queue
-        .acquire_auto(size)
+        .acquire_auto_for_user(user_id, size)
         .await
         .map_err(GatewayError::too_many_requests)?;
     let line = queued.line().to_string();
@@ -382,10 +389,11 @@ async fn acquire_auto_generation_permit(
 async fn acquire_manual_generation_permit(
     state: &AppState,
     line: ImageApiLine,
+    user_id: &str,
 ) -> Result<GenerationPermit, GatewayError> {
     let queued = state
         .generation_queue
-        .acquire_line(line.as_str())
+        .acquire_line_for_user(user_id, line.as_str())
         .await
         .map_err(GatewayError::too_many_requests)?;
     Ok(GenerationPermit {
@@ -396,13 +404,13 @@ async fn acquire_manual_generation_permit(
 
 fn build_generation_limiter() -> GatewayLimiter {
     GatewayLimiter::new(
-        read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 17),
+        read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 21),
         HashMap::from([
             ("line1", read_limit_env("GATEWAY_GENERATION_LINE1_LIMIT", 2)),
-            ("line2", read_limit_env("GATEWAY_GENERATION_LINE2_LIMIT", 3)),
-            ("line3", read_limit_env("GATEWAY_GENERATION_LINE3_LIMIT", 3)),
-            ("line4", read_limit_env("GATEWAY_GENERATION_LINE4_LIMIT", 3)),
-            ("line5", read_limit_env("GATEWAY_GENERATION_LINE5_LIMIT", 3)),
+            ("line2", read_limit_env("GATEWAY_GENERATION_LINE2_LIMIT", 4)),
+            ("line3", read_limit_env("GATEWAY_GENERATION_LINE3_LIMIT", 4)),
+            ("line4", read_limit_env("GATEWAY_GENERATION_LINE4_LIMIT", 4)),
+            ("line5", read_limit_env("GATEWAY_GENERATION_LINE5_LIMIT", 4)),
             ("line6", read_limit_env("GATEWAY_GENERATION_LINE6_LIMIT", 3)),
         ]),
     )

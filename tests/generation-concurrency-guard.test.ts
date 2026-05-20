@@ -41,20 +41,24 @@ const pageSources = new Map(
 );
 
 ok(gateway.includes("acquire_generation_permit"), "网关生图前必须获取限流许可");
-ok(gateway.includes("acquire_generation_permit(&state, req.api_line, &req.size).await"), "网关应等待服务端队列许可，而不是满载立即失败");
+ok(gateway.includes("acquire_generation_permit(&state, req.api_line, &req.size, &user_id).await"), "网关应带账号身份等待服务端队列许可，而不是满载立即失败");
 ok(gateway.includes("GatewayGenerationQueue"), "网关应使用服务端 FIFO 队列协调并发");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 17)'), "默认全局并发上限应为 17");
+ok(!gateway.includes('read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 17)'), "默认全局并发上限不应再停留在 17");
 ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE1_LIMIT", 2)'), "line1 默认上限应为 2");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE2_LIMIT", 3)'), "line2 默认上限应为 3");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE3_LIMIT", 3)'), "line3 默认上限应为 3");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE4_LIMIT", 3)'), "line4 默认上限应为 3");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE5_LIMIT", 3)'), "line5 默认上限应为 3");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 21)'), "默认全局并发上限应为 21");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_USER_LIMIT", 3)'), "默认单账号生图并发上限应为 3");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE2_LIMIT", 4)'), "line2 默认上限应为 4");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE3_LIMIT", 4)'), "line3 默认上限应为 4");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE4_LIMIT", 4)'), "line4 默认上限应为 4");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE5_LIMIT", 4)'), "line5 默认上限应为 4");
 ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE6_LIMIT", 3)'), "line6 默认上限应为 3");
 
 ok(limiter.includes("release_frees_capacity_for_next_request"), "限流器应覆盖释放容量");
-ok(limiter.includes("enforces_global_limit_of_seventeen_active_generations"), "限流器应覆盖全局 17 并发");
+ok(limiter.includes("enforces_global_limit_of_twenty_one_active_generations"), "限流器应覆盖全局 21 并发");
 ok(limiter.includes("enforces_line_specific_limits"), "限流器应覆盖线路上限");
 ok(queue.includes("waits_for_capacity_in_fifo_order_when_all_lines_are_full"), "服务端队列应覆盖满载后按提交顺序释放");
+ok(queue.includes("lets_other_users_run_when_front_user_is_at_limit"), "服务端队列应覆盖账号级公平调度");
+ok(queue.includes("enforces_configured_user_limit"), "服务端队列应覆盖单账号并发上限");
 ok(queue.includes("VecDeque"), "服务端队列应保留 FIFO 等待顺序");
 ok(queue.includes("Notify"), "服务端队列应在容量释放后唤醒等待请求");
 ok(queue.includes("notify_waiters"), "服务端队列应主动通知等待请求重新检查容量");
