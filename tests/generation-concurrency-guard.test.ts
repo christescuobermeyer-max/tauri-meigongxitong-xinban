@@ -38,15 +38,15 @@ const pageSources = new Map(
 
 ok(gateway.includes("acquire_generation_permit"), "网关生图前必须获取限流许可");
 ok(gateway.includes("StatusCode::TOO_MANY_REQUESTS"), "超限应返回 429");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 6)'), "默认全局并发上限应为 6");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE2_LIMIT", 2)'), "line2 默认上限应为 2");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE3_LIMIT", 2)'), "line3 默认上限应为 2");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE4_LIMIT", 2)'), "line4 默认上限应为 2");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE5_LIMIT", 2)'), "line5 默认上限应为 2");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE6_LIMIT", 2)'), "line6 默认上限应为 2");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 9)'), "默认全局并发上限应为 9");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE2_LIMIT", 3)'), "line2 默认上限应为 3");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE3_LIMIT", 3)'), "line3 默认上限应为 3");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE4_LIMIT", 3)'), "line4 默认上限应为 3");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE5_LIMIT", 3)'), "line5 默认上限应为 3");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE6_LIMIT", 3)'), "line6 默认上限应为 3");
 
 ok(limiter.includes("release_frees_capacity_for_next_request"), "限流器应覆盖释放容量");
-ok(limiter.includes("enforces_global_limit_of_six_active_generations"), "限流器应覆盖全局 6 并发");
+ok(limiter.includes("enforces_global_limit_of_nine_active_generations"), "限流器应覆盖全局 9 并发");
 ok(limiter.includes("enforces_line_specific_limits"), "限流器应覆盖线路上限");
 
 for (const page of [

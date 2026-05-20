@@ -256,33 +256,36 @@ mod tests {
 
     fn default_limiter() -> GatewayLimiter {
         GatewayLimiter::new(
-            6,
+            9,
             HashMap::from([
-                ("line2", 2),
-                ("line3", 2),
-                ("line4", 2),
-                ("line5", 2),
-                ("line6", 2),
+                ("line2", 3),
+                ("line3", 3),
+                ("line4", 3),
+                ("line5", 3),
+                ("line6", 3),
             ]),
         )
     }
 
     #[test]
-    fn enforces_global_limit_of_six_active_generations() {
+    fn enforces_global_limit_of_nine_active_generations() {
         let mut limiter = default_limiter();
 
         assert!(limiter.try_acquire("line2").allowed);
         assert!(limiter.try_acquire("line2").allowed);
+        assert!(limiter.try_acquire("line2").allowed);
         assert!(limiter.try_acquire("line3").allowed);
         assert!(limiter.try_acquire("line3").allowed);
+        assert!(limiter.try_acquire("line3").allowed);
+        assert!(limiter.try_acquire("line5").allowed);
         assert!(limiter.try_acquire("line5").allowed);
         assert!(limiter.try_acquire("line5").allowed);
 
-        let rejected = limiter.try_acquire("line2");
+        let rejected = limiter.try_acquire("line4");
         assert!(!rejected.allowed);
         assert_eq!(
             rejected.reason.as_deref(),
-            Some("当前生图请求较多，已达到全局并发上限 6，请稍后再试")
+            Some("当前生图请求较多，已达到全局并发上限 9，请稍后再试")
         );
     }
 
@@ -292,11 +295,12 @@ mod tests {
 
         assert!(limiter.try_acquire("line6").allowed);
         assert!(limiter.try_acquire("line6").allowed);
+        assert!(limiter.try_acquire("line6").allowed);
         let line6_rejected = limiter.try_acquire("line6");
         assert!(!line6_rejected.allowed);
         assert_eq!(
             line6_rejected.reason.as_deref(),
-            Some("line6 当前请求较多，已达到线路并发上限 2，请稍后再试")
+            Some("line6 当前请求较多，已达到线路并发上限 3，请稍后再试")
         );
     }
 
@@ -304,6 +308,7 @@ mod tests {
     fn release_frees_capacity_for_next_request() {
         let mut limiter = default_limiter();
 
+        assert!(limiter.try_acquire("line5").allowed);
         assert!(limiter.try_acquire("line5").allowed);
         assert!(limiter.try_acquire("line5").allowed);
         assert!(!limiter.try_acquire("line5").allowed);
@@ -324,6 +329,8 @@ mod tests {
         assert_eq!(second.line, Some("line3"));
         let third = limiter.try_acquire_auto("1024x1536", &health);
         assert_eq!(third.line, Some("line4"));
+        let fourth = limiter.try_acquire_auto("1024x1536", &health);
+        assert_eq!(fourth.line, Some("line5"));
     }
 
     #[test]

@@ -403,14 +403,14 @@ fn acquire_manual_generation_permit(
 
 fn build_generation_limiter() -> GatewayLimiter {
     GatewayLimiter::new(
-        read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 6),
+        read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 9),
         HashMap::from([
             ("line1", read_limit_env("GATEWAY_GENERATION_LINE1_LIMIT", 0)),
-            ("line2", read_limit_env("GATEWAY_GENERATION_LINE2_LIMIT", 2)),
-            ("line3", read_limit_env("GATEWAY_GENERATION_LINE3_LIMIT", 2)),
-            ("line4", read_limit_env("GATEWAY_GENERATION_LINE4_LIMIT", 2)),
-            ("line5", read_limit_env("GATEWAY_GENERATION_LINE5_LIMIT", 2)),
-            ("line6", read_limit_env("GATEWAY_GENERATION_LINE6_LIMIT", 2)),
+            ("line2", read_limit_env("GATEWAY_GENERATION_LINE2_LIMIT", 3)),
+            ("line3", read_limit_env("GATEWAY_GENERATION_LINE3_LIMIT", 3)),
+            ("line4", read_limit_env("GATEWAY_GENERATION_LINE4_LIMIT", 3)),
+            ("line5", read_limit_env("GATEWAY_GENERATION_LINE5_LIMIT", 3)),
+            ("line6", read_limit_env("GATEWAY_GENERATION_LINE6_LIMIT", 3)),
         ]),
     )
 }
