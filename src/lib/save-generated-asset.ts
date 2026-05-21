@@ -1,4 +1,5 @@
 import { getGeneratedAssetExportSpec } from "./generated-asset-files";
+import { saveEditedPictureWallPair } from "./picture-wall-download";
 import { replaceFileExtension } from "./utils";
 import { pickSavePath, resizeAndSaveImage } from "./tauri";
 import type { AssetKind, GenerationItem, PlatformSpec } from "../types";
@@ -11,6 +12,13 @@ export async function saveGeneratedAsset(
   productName?: string
 ): Promise<string | null> {
   if (item.status !== "succeeded" || !item.rawBase64) return null;
+
+  // 图片墙特殊：选一个文件夹，自动保存两个尺寸（1086×1448 + 240×330），与"图片墙生成"工具一致
+  if (kind === "picture_wall") {
+    const result = await saveEditedPictureWallPair(item.rawBase64, shopName);
+    return result ? result.directory : null;
+  }
+
   const spec = getGeneratedAssetExportSpec(kind, shopName, currentPlatform, productName);
 
   if (kind === "product") {

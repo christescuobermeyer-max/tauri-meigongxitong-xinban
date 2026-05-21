@@ -36,7 +36,12 @@ import type {
   Platform,
 } from "../types";
 
-const FRONTEND_GENERATION_USER_LIMIT = 3;
+/**
+ * 前端账号并发上限：超过这个数字后提交按钮变灰，需要等其中一个任务完成才能继续提交。
+ * 防止用户误触导致一次性几十个请求，但比服务端 `GATEWAY_GENERATION_USER_LIMIT`（3）
+ * 大很多，让用户体验更"可以连续多点几下，后面排队就行"。
+ */
+const FRONTEND_GENERATION_USER_LIMIT = 10;
 
 export type WorkspaceTab =
   | "avatarStorefront"

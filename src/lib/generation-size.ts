@@ -31,6 +31,7 @@ export function resolveGenerationSize(
       : currentPlatform.poster.sourceLabel;
   }
   if (kind === "detail_page") return DETAIL_PAGE_GENERATION_SIZE;
+  if (kind === "picture_wall") return "1024x1536";
   if (kind === "product") return formatSize(currentPlatform.product.source);
   return IMAGE_GENERATION_STOREFRONT_SIZE;
 }
@@ -42,6 +43,7 @@ function resolveApimartGenerationSize(kind: AssetKind, currentPlatform: Platform
   if (kind === "p_signboard") return "auto";
   if (kind === "product") return currentPlatform.id === "taobao" ? "1:1" : "4:3";
   if (kind === "detail_page") return DETAIL_PAGE_GENERATION_SIZE;
+  if (kind === "picture_wall") return "3:4";
   return IMAGE_GENERATION_STOREFRONT_SIZE;
 }
 

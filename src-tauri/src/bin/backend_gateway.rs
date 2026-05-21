@@ -56,7 +56,7 @@ use axum::{
 };
 use serde::Serialize;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     env,
     net::SocketAddr,
     sync::Arc,
@@ -136,30 +136,114 @@ async fn health() -> Json<HealthResponse> {
     })
 }
 
+/// 生图请求最多尝试的线路数。
+/// 当前共有 6 条线路，设为 6 意味着失败时最多依次试遍所有线路。
+const GENERATE_IMAGE_MAX_ATTEMPTS: usize = 6;
+
 async fn generate_image(
     State(state): State<AppState>,
     headers: HeaderMap,
-    Json(mut req): Json<api::GenerateRequest>,
+    Json(req): Json<api::GenerateRequest>,
 ) -> Result<Json<GenerateImageResponse>, GatewayError> {
     let user_id = verify_access_token(&state, &headers).await?;
-    let permit = acquire_generation_permit(&state, req.api_line, &req.size, &user_id).await?;
-    req.api_line = permit.line;
-    let line = req.api_line.as_str();
-    req.size = generation_size_for_line(line, &req.size)
-        .ok_or_else(|| GatewayError::bad_request(format!("{line} 不支持尺寸：{}", req.size)))?
-        .into_owned();
-    let started = Instant::now();
-    let result = api::generate_image(req).await;
-    let latency_ms = started.elapsed().as_millis() as u64;
-    state.line_health.record(line, latency_ms, result.is_ok());
-    result
-        .map(|image| {
-            Json(GenerateImageResponse {
-                image,
-                generation_line: line.to_string(),
-            })
-        })
-        .map_err(GatewayError::bad_gateway)
+
+    // 用户显式选了 line1 = manual 模式，不做线路切换，但仍允许 1 次重试在同一线路上重试。
+    let requested_line = req.api_line;
+    let is_manual = requested_line == ImageApiLine::Line1;
+    let original_size = req.size.clone();
+
+    let mut tried_lines: HashSet<String> = HashSet::new();
+    let mut last_error: Option<String> = None;
+    let mut last_line: Option<String> = None;
+
+    for attempt in 0..GENERATE_IMAGE_MAX_ATTEMPTS {
+        let permit = match acquire_generation_permit(
+            &state,
+            requested_line,
+            &original_size,
+            &user_id,
+            &tried_lines,
+        )
+        .await
+        {
+            Ok(p) => p,
+            Err(err) => {
+                // 拿不到 permit 通常意味着所有可用线路都尝试过/全 Red。
+                if attempt == 0 {
+                    return Err(err);
+                }
+                break;
+            }
+        };
+
+        let line = permit.line;
+        let line_str = line.as_str().to_string();
+        tried_lines.insert(line_str.clone());
+        last_line = Some(line_str.clone());
+
+        let mapped_size = match generation_size_for_line(line.as_str(), &original_size) {
+            Some(s) => s.into_owned(),
+            None => {
+                return Err(GatewayError::bad_request(format!(
+                    "{} 不支持尺寸：{}",
+                    line.as_str(),
+                    original_size
+                )));
+            }
+        };
+        let attempt_req = api::GenerateRequest {
+            prompt: req.prompt.clone(),
+            size: mapped_size,
+            product_images: req.product_images.clone(),
+            api_line: line,
+        };
+
+        let started = Instant::now();
+        let result = api::generate_image(attempt_req).await;
+        let latency_ms = started.elapsed().as_millis() as u64;
+        state.line_health.record(line.as_str(), latency_ms, result.is_ok());
+
+        match result {
+            Ok(image) => {
+                if attempt > 0 {
+                    eprintln!(
+                        "[gateway] generate_image succeeded on {} after {} retry(ies)",
+                        line.as_str(),
+                        attempt
+                    );
+                }
+                return Ok(Json(GenerateImageResponse {
+                    image,
+                    generation_line: line_str,
+                }));
+            }
+            Err(err) => {
+                eprintln!(
+                    "[gateway] generate_image attempt {}/{} failed on {}: {}",
+                    attempt + 1,
+                    GENERATE_IMAGE_MAX_ATTEMPTS,
+                    line.as_str(),
+                    err
+                );
+                last_error = Some(err);
+                // manual line1：不再去试其他线路，最多让 retry 在同一线路上等 line_health 自然恢复（取消重试）
+                if is_manual {
+                    break;
+                }
+                // permit 在这里 drop，释放 slot；下一次循环会重新 acquire 排除已试过的线路
+                continue;
+            }
+        }
+    }
+
+    let line_tag = last_line.unwrap_or_else(|| "(unknown)".to_string());
+    let detail = last_error.unwrap_or_else(|| "no upstream error captured".to_string());
+    Err(GatewayError::bad_gateway(format!(
+        "生图失败：已尝试 {} 条线路均未成功，最后线路 {}：{}",
+        tried_lines.len(),
+        line_tag,
+        detail
+    )))
 }
 
 async fn get_line_health(
@@ -359,22 +443,24 @@ async fn acquire_generation_permit(
     requested_line: ImageApiLine,
     size: &str,
     user_id: &str,
+    exclude: &HashSet<String>,
 ) -> Result<GenerationPermit, GatewayError> {
     if requested_line == ImageApiLine::Line1 {
         return acquire_manual_generation_permit(state, requested_line, user_id).await;
     }
 
-    acquire_auto_generation_permit(state, size, user_id).await
+    acquire_auto_generation_permit(state, size, user_id, exclude).await
 }
 
 async fn acquire_auto_generation_permit(
     state: &AppState,
     size: &str,
     user_id: &str,
+    exclude: &HashSet<String>,
 ) -> Result<GenerationPermit, GatewayError> {
     let queued = state
         .generation_queue
-        .acquire_auto_for_user(user_id, size)
+        .acquire_auto_for_user_excluding(user_id, size, exclude.clone())
         .await
         .map_err(GatewayError::too_many_requests)?;
     let line = queued.line().to_string();
@@ -406,12 +492,15 @@ fn build_generation_limiter() -> GatewayLimiter {
     GatewayLimiter::new(
         read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 21),
         HashMap::from([
-            ("line1", read_limit_env("GATEWAY_GENERATION_LINE1_LIMIT", 2)),
+            // line1 = wlai，单张成本最高，故并发 = 1，只在其它线路全饱和/全 Red 时兜底
+            ("line1", read_limit_env("GATEWAY_GENERATION_LINE1_LIMIT", 1)),
             ("line2", read_limit_env("GATEWAY_GENERATION_LINE2_LIMIT", 4)),
             ("line3", read_limit_env("GATEWAY_GENERATION_LINE3_LIMIT", 4)),
             ("line4", read_limit_env("GATEWAY_GENERATION_LINE4_LIMIT", 4)),
-            ("line5", read_limit_env("GATEWAY_GENERATION_LINE5_LIMIT", 4)),
-            ("line6", read_limit_env("GATEWAY_GENERATION_LINE6_LIMIT", 3)),
+            // line5 = apimart，性价比高、最稳，并发 = 5
+            ("line5", read_limit_env("GATEWAY_GENERATION_LINE5_LIMIT", 5)),
+            // line6 = manxiaobai，稳定性也好，并发 = 4
+            ("line6", read_limit_env("GATEWAY_GENERATION_LINE6_LIMIT", 4)),
         ]),
     )
 }

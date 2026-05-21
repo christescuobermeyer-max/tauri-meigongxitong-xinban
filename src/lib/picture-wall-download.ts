@@ -88,6 +88,40 @@ export async function downloadSinglePictureWallEntry(
   return savedPaths;
 }
 
+/**
+ * "修改图片" 工具里图片墙类型的下载入口：让用户选目录后把生成结果按图片墙的两个尺寸
+ * （1086×1448 高清原图 + 240×330 缩略）保存到目录里，返回保存路径数组。
+ */
+export async function saveEditedPictureWallPair(
+  rawBase64: string,
+  shopName: string
+): Promise<{ directory: string; paths: string[] } | null> {
+  const directoryPath = await pickDirectoryPath("选择图片墙修改图下载文件夹");
+  if (!directoryPath) return null;
+  const stem = safeFileName(shopName) || "修改图片";
+  const paths: string[] = [];
+  paths.push(
+    await resizeAndSaveImage({
+      base64_data: rawBase64,
+      target_width: PICTURE_WALL_SOURCE_SIZE.w,
+      target_height: PICTURE_WALL_SOURCE_SIZE.h,
+      output_path: joinPath(directoryPath, `${stem}_图片墙_高清原图.png`),
+    })
+  );
+  paths.push(
+    await resizeAndSaveImage({
+      base64_data: rawBase64,
+      target_width: PICTURE_WALL_EXPORT_SIZE.w,
+      target_height: PICTURE_WALL_EXPORT_SIZE.h,
+      output_path: joinPath(
+        directoryPath,
+        `${stem}_图片墙_${PICTURE_WALL_EXPORT_SIZE.w}x${PICTURE_WALL_EXPORT_SIZE.h}.png`
+      ),
+    })
+  );
+  return { directory: directoryPath, paths };
+}
+
 async function saveEntryPair(
   entry: PictureWallEntry,
   stem: string,

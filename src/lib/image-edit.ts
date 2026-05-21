@@ -1,14 +1,25 @@
 import type { AssetKind, PlatformSpec } from "../types";
+import { PICTURE_WALL_EXPORT_SIZE, PICTURE_WALL_SOURCE_SIZE } from "./picture-wall";
 
-export type ImageEditKind = Extract<AssetKind, "avatar" | "storefront" | "poster" | "product">;
+export type ImageEditKind = Extract<
+  AssetKind,
+  "avatar" | "storefront" | "poster" | "product" | "picture_wall"
+>;
 
-export const IMAGE_EDIT_KINDS: ImageEditKind[] = ["avatar", "storefront", "poster", "product"];
+export const IMAGE_EDIT_KINDS: ImageEditKind[] = [
+  "avatar",
+  "storefront",
+  "poster",
+  "product",
+  "picture_wall",
+];
 
 export const IMAGE_EDIT_LABEL: Record<ImageEditKind, string> = {
   avatar: "头像",
   storefront: "店招",
   poster: "海报",
   product: "产品图",
+  picture_wall: "图片墙",
 };
 
 export function getImageEditSourceMaxCount(kind: ImageEditKind) {
@@ -58,6 +69,14 @@ export function getImageEditSpec(kind: ImageEditKind, platform: PlatformSpec) {
       sourceLabel: `原图 ${platform.poster.sourceLabel} 横版`,
       exportLabel: `${platform.poster.export.w}×${platform.poster.export.h}`,
       uploadTitle: "上传 1 张海报图",
+    };
+  }
+
+  if (kind === "picture_wall") {
+    return {
+      sourceLabel: "原图 1024×1536（2:3 竖版）",
+      exportLabel: `${PICTURE_WALL_SOURCE_SIZE.w}×${PICTURE_WALL_SOURCE_SIZE.h} + ${PICTURE_WALL_EXPORT_SIZE.w}×${PICTURE_WALL_EXPORT_SIZE.h}`,
+      uploadTitle: "上传 1 张图片墙图",
     };
   }
 

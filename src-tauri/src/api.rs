@@ -23,7 +23,7 @@ use crate::yunwu_edit::generate_yunwu_edit_image;
 use serde::Deserialize;
 
 /// 前端调用入参（与 TypeScript 端 GenerateImageRequest 对齐）
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct GenerateRequest {
     pub prompt: String,
     /// 线路1/3支持 "1024x1024" / "1024x1536" / "1536x1024" / "21:9" / "3:4"；线路2海报使用 "1792x768"；线路4额外支持 "16:9" / "1792x1024"；线路5使用比例值，门头 "auto" 会转为 "3:2"

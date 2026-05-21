@@ -3,14 +3,20 @@ import { readFileSync } from "node:fs";
 import ts from "typescript";
 
 const libSource = readFileSync(new URL("../src/lib/image-edit.ts", import.meta.url), "utf8")
-  .replace('import type { AssetKind, PlatformSpec } from "../types";', "");
+  .replace('import type { AssetKind, PlatformSpec } from "../types";', "")
+  .replace(
+    'import { PICTURE_WALL_EXPORT_SIZE, PICTURE_WALL_SOURCE_SIZE } from "./picture-wall";',
+    "const PICTURE_WALL_EXPORT_SIZE = { w: 240, h: 330 }; const PICTURE_WALL_SOURCE_SIZE = { w: 1086, h: 1448 };"
+  );
 const libModule = await import(
   `data:text/javascript;base64,${Buffer.from(ts.transpileModule(libSource, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
   }).outputText).toString("base64")}`
 );
 
-equal(libModule.IMAGE_EDIT_KINDS.join(","), "avatar,storefront,poster,product");
+equal(libModule.IMAGE_EDIT_KINDS.join(","), "avatar,storefront,poster,product,picture_wall");
+equal(libModule.IMAGE_EDIT_LABEL.picture_wall, "图片墙");
+equal(libModule.getImageEditSourceMaxCount("picture_wall"), 1);
 const prompt = libModule.buildImageEditPrompt({
   kind: "product",
   instruction: "把背景改成暖色，产品主体不变",
@@ -87,6 +93,11 @@ equal(libModule.getImageEditSpec("avatar", platform).exportLabel, "800×800");
 equal(libModule.getImageEditSpec("storefront", platform).exportLabel, "692×390");
 equal(libModule.getImageEditSpec("poster", platform).sourceLabel, "原图 21:9 横版");
 equal(libModule.getImageEditSpec("product", platform).sourceLabel, "原图 1792×1024");
+// 图片墙修改：与"图片墙生成"工具同尺寸（1086×1448 + 240×330），与平台无关
+const pictureWallSpec = libModule.getImageEditSpec("picture_wall", platform);
+equal(pictureWallSpec.sourceLabel, "原图 1024×1536（2:3 竖版）");
+equal(pictureWallSpec.exportLabel, "1086×1448 + 240×330");
+equal(pictureWallSpec.uploadTitle, "上传 1 张图片墙图");
 
 const sidebarSource = readFileSync(new URL("../src/components/Sidebar.tsx", import.meta.url), "utf8");
 const pagesSource = readFileSync(new URL("../src/components/WorkspacePages.tsx", import.meta.url), "utf8");
@@ -102,13 +113,13 @@ equal(sidebarSource.includes('key: "pSignboard"'), true);
 ok(sidebarSource.indexOf('key: "imageEdit"') > sidebarSource.indexOf('key: "pSignboard"'));
 equal(sidebarSource.includes('label: "修改图片"'), true);
 equal(pagesSource.includes('workspace.tab === "imageEdit"'), true);
-equal(pagesSource.includes("ImageEditPage"), true);
+equal(pagesSource.includes("ImageEditWorkspacePage"), true);
 equal(workspaceSource.includes(' | "imageEdit"'), true);
 equal(workspaceSource.includes(' | "detailPage"'), true);
 equal(workspaceSource.includes("useImageEditWorkspace"), true);
-equal(workspaceSource.includes("imageEdit,"), true);
+equal(workspaceSource.includes("imageEditSlots,"), true);
 equal(workspaceSource.includes("useDetailPageWorkspace"), true);
-equal(workspaceSource.includes("detailPage,"), true);
+equal(workspaceSource.includes("detailPageSlots,"), true);
 equal(hookSource.includes("ensureUploadedImagesOnOss"), true);
 equal(hookSource.includes("runWithAutoRetry"), true);
 equal(hookSource.includes("referenceImages: requestReferences"), true);

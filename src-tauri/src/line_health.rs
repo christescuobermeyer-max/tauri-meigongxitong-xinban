@@ -5,10 +5,10 @@
 //! `snapshot()` 按线路计算状态。
 //!
 //! 阈值：
-//! - green  < 150_000 ms
-//! - yellow 150_000–350_000 ms
-//! - red    > 350_000 ms 或最近 5 次中 ≥3 次失败
-//! - unknown 无样本或最近样本距今超过 60 分钟（视为陈旧）
+//! - green   median < 150_000 ms 且失败 < 5
+//! - yellow  median ≥ 150_000 ms 且失败 < 5（仅作 UI 警示，不影响路由）
+//! - red     最近 5 次全部失败（唯一进入 Red 的条件）
+//! - unknown 无样本或最近样本距今超过 5 分钟（视为陈旧 → 自动复活给一次探测机会）
 
 use serde::Serialize;
 use std::collections::{HashMap, VecDeque};
@@ -17,8 +17,7 @@ use std::time::SystemTime;
 
 pub const RING_BUFFER_CAP: usize = 5;
 pub const GREEN_MAX_MS: u64 = 150_000;
-pub const YELLOW_MAX_MS: u64 = 350_000;
-pub const STALE_AFTER_SECS: u64 = 3600;
+pub const STALE_AFTER_SECS: u64 = 300;
 
 const LINES: [&str; 6] = ["line1", "line2", "line3", "line4", "line5", "line6"];
 
@@ -131,9 +130,7 @@ fn classify(buf: &VecDeque<Sample>, now: SystemTime) -> LineHealthEntry {
     latencies.sort_unstable();
     let median = latencies[latencies.len() / 2];
 
-    let status = if failure_count >= 3 {
-        LineHealthStatus::Red
-    } else if median > YELLOW_MAX_MS {
+    let status = if failure_count >= RING_BUFFER_CAP {
         LineHealthStatus::Red
     } else if median >= GREEN_MAX_MS {
         LineHealthStatus::Yellow
@@ -192,26 +189,39 @@ mod tests {
     }
 
     #[test]
-    fn median_above_threshold_is_red() {
+    fn high_latency_with_successes_is_yellow_not_red() {
+        // 高延迟但全部成功，仅 Yellow，不应进入 Red（Red 现在只由失败次数触发）
         let reg = LineHealthRegistry::new();
         for ms in [200_000u64, 300_000, 400_000, 500_000, 600_000] {
             push(&reg, "line1", ms, true);
         }
         let snap = reg.snapshot();
-        assert_eq!(snap.lines["line1"].status, LineHealthStatus::Red);
+        assert_eq!(snap.lines["line1"].status, LineHealthStatus::Yellow);
+        assert_eq!(snap.lines["line1"].failure_count, 0);
     }
 
     #[test]
-    fn three_failures_force_red() {
+    fn five_failures_force_red() {
         let reg = LineHealthRegistry::new();
-        push(&reg, "line1", 90_000, true);
-        push(&reg, "line1", 90_000, true);
-        push(&reg, "line1", 0, false);
-        push(&reg, "line1", 0, false);
-        push(&reg, "line1", 0, false);
+        for _ in 0..5 {
+            push(&reg, "line1", 0, false);
+        }
         let snap = reg.snapshot();
         assert_eq!(snap.lines["line1"].status, LineHealthStatus::Red);
-        assert_eq!(snap.lines["line1"].failure_count, 3);
+        assert_eq!(snap.lines["line1"].failure_count, 5);
+    }
+
+    #[test]
+    fn four_failures_with_one_success_is_not_red() {
+        let reg = LineHealthRegistry::new();
+        push(&reg, "line1", 90_000, true);
+        for _ in 0..4 {
+            push(&reg, "line1", 0, false);
+        }
+        let snap = reg.snapshot();
+        // 4 个失败 + 1 个 90s 成功，median latency = 0，不应触发 Red
+        assert_ne!(snap.lines["line1"].status, LineHealthStatus::Red);
+        assert_eq!(snap.lines["line1"].failure_count, 4);
     }
 
     #[test]

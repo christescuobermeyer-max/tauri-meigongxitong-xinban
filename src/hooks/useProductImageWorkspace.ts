@@ -37,6 +37,8 @@ export default function useProductImageWorkspace(options: Options) {
   const { generationLine, setGenerationLine, onToast, onRecordHistory } = options;
   const [shopName, setShopName] = useState("");
   const [productName, setProductName] = useState("");
+  // 记录上一次从图片自动填入 productName 的值；用户手动改过后这里不变，于是再换图也不会覆盖用户输入。
+  const [autoFilledProductName, setAutoFilledProductName] = useState("");
   const [platform, setPlatform] = useState<Platform | null>(null);
   const [themeColor, setThemeColor] = useState<ThemeColor | "">("");
   const [brandStyle, setBrandStyle] = useState<BrandStyle | "">("");
@@ -47,10 +49,18 @@ export default function useProductImageWorkspace(options: Options) {
   const busy = isBusyStatus(product.status);
 
   useEffect(() => {
-    if (productName.trim()) return;
-    const firstName = images[0]?.productName?.trim();
-    if (firstName) setProductName(firstName);
-  }, [images, productName]);
+    const firstName = images[0]?.productName?.trim() ?? "";
+    if (!firstName) return;
+    const current = productName.trim();
+    // 允许自动覆盖的两种情况：
+    //  1) 输入框为空
+    //  2) 当前值正是"上一次自动填入"的内容（用户没改过）
+    // 否则视为用户已手动编辑，保留用户输入。
+    if (!current || current === autoFilledProductName) {
+      setProductName(firstName);
+      setAutoFilledProductName(firstName);
+    }
+  }, [images]);
 
   function buildSetters() {
     return {

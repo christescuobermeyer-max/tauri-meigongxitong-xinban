@@ -1,8 +1,14 @@
 use crate::line_health::{LineHealthSnapshot, LineHealthStatus};
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 const AUTO_GENERATION_LINES: [&str; 6] = ["line2", "line3", "line4", "line5", "line6", "line1"];
+
+/// line1（wlai）成本最高，作"备用"使用：
+/// 只有当其他可用线路（line2..line6 中健康 + 未满 + 尺寸匹配）少于这个阈值时，
+/// 才把 line1 加入候选池。其余情况下 line1 永远不被自动选中。
+const FALLBACK_LINE: &str = "line1";
+const FALLBACK_PROMOTE_THRESHOLD: usize = 2;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LimitDecision {
@@ -95,6 +101,15 @@ impl GatewayLimiter {
     }
 
     pub fn try_acquire_auto(&mut self, size: &str, health: &LineHealthSnapshot) -> AcquireDecision {
+        self.try_acquire_auto_excluding(size, health, &HashSet::new())
+    }
+
+    pub fn try_acquire_auto_excluding(
+        &mut self,
+        size: &str,
+        health: &LineHealthSnapshot,
+        exclude: &HashSet<String>,
+    ) -> AcquireDecision {
         if self.global_limit == 0 {
             return AcquireDecision {
                 line: None,
@@ -111,7 +126,7 @@ impl GatewayLimiter {
             };
         }
 
-        let selected = self.select_generation_line(size, health);
+        let selected = self.select_generation_line_excluding(size, health, exclude);
         let Some(line) = selected else {
             return AcquireDecision {
                 line: None,
@@ -134,9 +149,41 @@ impl GatewayLimiter {
         size: &str,
         health: &LineHealthSnapshot,
     ) -> Option<&'static str> {
-        let mut candidates = AUTO_GENERATION_LINES
+        self.select_generation_line_excluding(size, health, &HashSet::new())
+    }
+
+    pub fn select_generation_line_excluding(
+        &self,
+        size: &str,
+        health: &LineHealthSnapshot,
+        exclude: &HashSet<String>,
+    ) -> Option<&'static str> {
+        // 第一轮：只看非 line1 候选。
+        // 只要还有 >= FALLBACK_PROMOTE_THRESHOLD (=2) 个非 line1 健康+未满的线路，永远不动用 line1。
+        let primary = self.collect_auto_candidates(size, health, exclude, /*include_fallback=*/ false);
+        if primary.len() >= FALLBACK_PROMOTE_THRESHOLD {
+            return Self::pick_best_candidate(primary);
+        }
+
+        // 第二轮：非 line1 候选不足（其他线路 ≤1 条可用），把 line1 加进来一起挑。
+        let with_fallback = self.collect_auto_candidates(size, health, exclude, /*include_fallback=*/ true);
+        Self::pick_best_candidate(with_fallback)
+    }
+
+    /// 返回所有满足"自动路由可挑选"条件的候选行（包含排序键）。
+    /// 当 `include_fallback=false` 时，line1（FALLBACK_LINE）被显式排除。
+    fn collect_auto_candidates(
+        &self,
+        size: &str,
+        health: &LineHealthSnapshot,
+        exclude: &HashSet<String>,
+        include_fallback: bool,
+    ) -> Vec<(&'static str, usize, usize, u64, usize)> {
+        AUTO_GENERATION_LINES
             .iter()
             .copied()
+            .filter(|line| include_fallback || *line != FALLBACK_LINE)
+            .filter(|line| !exclude.contains(*line))
             .filter(|line| supports_generation_size(line, size))
             .filter_map(|line| {
                 let line_limit = self.line_limits.get(line).copied().unwrap_or(1);
@@ -163,8 +210,12 @@ impl GatewayLimiter {
                     auto_line_order(line),
                 ))
             })
-            .collect::<Vec<_>>();
+            .collect()
+    }
 
+    fn pick_best_candidate(
+        mut candidates: Vec<(&'static str, usize, usize, u64, usize)>,
+    ) -> Option<&'static str> {
         candidates.sort_by_key(|(_, health_rank, active_line, latency_ms, order)| {
             (*active_line, *health_rank, *latency_ms, *order)
         });
@@ -172,11 +223,23 @@ impl GatewayLimiter {
     }
 
     pub fn has_auto_candidate(&self, size: &str, health: &LineHealthSnapshot) -> bool {
+        self.has_auto_candidate_excluding(size, health, &HashSet::new())
+    }
+
+    pub fn has_auto_candidate_excluding(
+        &self,
+        size: &str,
+        health: &LineHealthSnapshot,
+        exclude: &HashSet<String>,
+    ) -> bool {
         if self.global_limit == 0 {
             return false;
         }
 
         AUTO_GENERATION_LINES.iter().copied().any(|line| {
+            if exclude.contains(line) {
+                return false;
+            }
             let line_limit = self.line_limits.get(line).copied().unwrap_or(1);
             if line_limit == 0 || !supports_generation_size(line, size) {
                 return false;
@@ -388,7 +451,7 @@ mod tests {
     fn auto_routing_excludes_red_health_lines() {
         let mut limiter = default_limiter();
         let registry = LineHealthRegistry::new();
-        for _ in 0..3 {
+        for _ in 0..5 {
             registry.record("line5", 0, false);
         }
         let health = registry.snapshot();
@@ -397,6 +460,81 @@ mod tests {
         let selected = limiter.try_acquire_auto("1024x1536", &health);
 
         assert_eq!(selected.line, Some("line2"));
+    }
+
+    #[test]
+    fn line1_excluded_from_primary_when_two_or_more_other_lines_available() {
+        // 所有线路健康且空闲时，line1 不应被自动路由选中（line1=fallback）。
+        let limiter = default_limiter();
+        let health = LineHealthRegistry::new().snapshot();
+        let line = limiter.select_generation_line("1024x1536", &health);
+        assert_ne!(line, Some("line1"));
+        assert_eq!(line, Some("line2"));
+    }
+
+    #[test]
+    fn line1_excluded_from_primary_even_when_other_lines_busy() {
+        // line2,3,4,5 都已被占走 1 个，但 line6 仍空闲 → primary 仍有 >=2 个非 line1 候选。
+        // line1 active=0 即使是最快候选也不应被选中。
+        let mut limiter = default_limiter();
+        let health = LineHealthRegistry::new().snapshot();
+        let _ = limiter.try_acquire("line2");
+        let _ = limiter.try_acquire("line3");
+        let _ = limiter.try_acquire("line4");
+        let _ = limiter.try_acquire("line5");
+        // 此时 primary = [line2(active=1), line3(1), line4(1), line5(1), line6(0)]，5 个 >= 2
+        let line = limiter.try_acquire_auto("1024x1536", &health);
+        assert_ne!(line.line, Some("line1"));
+        assert_eq!(line.line, Some("line6"));
+    }
+
+    #[test]
+    fn line1_promoted_when_only_one_other_line_available() {
+        // line3,4,5,6 全 Red（5/5 失败），只剩 line2 → primary.len()==1 < 2，line1 被纳入候选。
+        let mut limiter = default_limiter();
+        let registry = LineHealthRegistry::new();
+        for line in ["line3", "line4", "line5", "line6"] {
+            for _ in 0..5 {
+                registry.record(line, 0, false);
+            }
+        }
+        let health = registry.snapshot();
+
+        // 第 1 次：line2 active=0、line1 active=0；按 order line2 优先。
+        let first = limiter.try_acquire_auto("1024x1536", &health);
+        assert_eq!(first.line, Some("line2"));
+        // 第 2 次：line2 active=1、line1 active=0；按 active 排序，line1 胜出（这正是"补位"作用）。
+        let second = limiter.try_acquire_auto("1024x1536", &health);
+        assert_eq!(second.line, Some("line1"));
+    }
+
+    #[test]
+    fn line1_used_when_all_other_lines_unavailable() {
+        // 所有非 line1 线路全 Red → line1 是唯一可用线路。
+        let mut limiter = default_limiter();
+        let registry = LineHealthRegistry::new();
+        for line in ["line2", "line3", "line4", "line5", "line6"] {
+            for _ in 0..5 {
+                registry.record(line, 0, false);
+            }
+        }
+        let health = registry.snapshot();
+        let line = limiter.try_acquire_auto("1024x1536", &health);
+        assert_eq!(line.line, Some("line1"));
+    }
+
+    #[test]
+    fn line1_not_selected_even_when_faster_than_others() {
+        // 即使 line1 latency=10s，而 line2-6 latency=100s，
+        // primary 不含 line1，所以 line1 永远不会因为"快"而被选中。
+        let limiter = default_limiter();
+        let registry = LineHealthRegistry::new();
+        registry.record("line1", 10_000, true);
+        registry.record("line2", 100_000, true);
+        registry.record("line3", 100_000, true);
+        let health = registry.snapshot();
+        let line = limiter.select_generation_line("1024x1536", &health);
+        assert_ne!(line, Some("line1"));
     }
 
     #[test]

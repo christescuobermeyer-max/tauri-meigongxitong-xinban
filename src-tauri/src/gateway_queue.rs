@@ -1,6 +1,6 @@
 use crate::gateway_limiter::GatewayLimiter;
 use crate::line_health::{LineHealthRegistry, LineHealthSnapshot};
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::{Arc, Mutex};
 use tokio::sync::Notify;
 
@@ -28,8 +28,14 @@ struct QueueTicket {
 
 #[derive(Debug, Clone)]
 enum QueueRequest {
-    Auto { size: String },
-    Line { line: String },
+    /// `exclude` 列出本次请求已经试过且失败的线路，自动路由会跳过它们
+    Auto {
+        size: String,
+        exclude: HashSet<String>,
+    },
+    Line {
+        line: String,
+    },
 }
 
 pub struct QueuedGenerationPermit {
@@ -69,9 +75,21 @@ impl GatewayGenerationQueue {
         user_id: &str,
         size: &str,
     ) -> Result<QueuedGenerationPermit, String> {
+        self.acquire_auto_for_user_excluding(user_id, size, HashSet::new())
+            .await
+    }
+
+    /// 与 acquire_auto_for_user 相同，但额外允许排除已经在本次重试中试过的线路。
+    pub async fn acquire_auto_for_user_excluding(
+        self: &Arc<Self>,
+        user_id: &str,
+        size: &str,
+        exclude: HashSet<String>,
+    ) -> Result<QueuedGenerationPermit, String> {
         self.acquire(
             QueueRequest::Auto {
                 size: size.to_string(),
+                exclude,
             },
             user_id,
         )
@@ -199,8 +217,11 @@ impl GatewayGenerationQueue {
         let user_id = ticket.user_id.clone();
 
         let acquired_line = match request {
-            QueueRequest::Auto { size } => {
-                if !state.limiter.has_auto_candidate(&size, &health) {
+            QueueRequest::Auto { size, exclude } => {
+                if !state
+                    .limiter
+                    .has_auto_candidate_excluding(&size, &health, &exclude)
+                {
                     state.waiting.remove(own_position);
                     drop(state);
                     self.notify.notify_waiters();
@@ -208,7 +229,7 @@ impl GatewayGenerationQueue {
                 }
                 state
                     .limiter
-                    .try_acquire_auto(&size, &health)
+                    .try_acquire_auto_excluding(&size, &health, &exclude)
                     .line
                     .map(str::to_string)
             }
@@ -317,7 +338,9 @@ impl Drop for WaitingTicketGuard {
 impl QueueRequest {
     fn can_ever_run(&self, limiter: &GatewayLimiter, health: &LineHealthSnapshot) -> bool {
         match self {
-            QueueRequest::Auto { size } => limiter.has_auto_candidate(size, health),
+            QueueRequest::Auto { size, exclude } => {
+                limiter.has_auto_candidate_excluding(size, health, exclude)
+            }
             QueueRequest::Line { line } => limiter.can_queue_line(line),
         }
     }
@@ -346,9 +369,11 @@ impl QueueTicket {
             return false;
         }
         match &self.request {
-            QueueRequest::Auto { size } => {
+            QueueRequest::Auto { size, exclude } => {
                 limiter.has_global_capacity()
-                    && limiter.select_generation_line(size, health).is_some()
+                    && limiter
+                        .select_generation_line_excluding(size, health, exclude)
+                        .is_some()
             }
             QueueRequest::Line { line } => limiter.can_acquire_line(line),
         }
@@ -484,7 +509,7 @@ mod tests {
         };
         tokio::time::sleep(Duration::from_millis(25)).await;
 
-        for _ in 0..3 {
+        for _ in 0..5 {
             health.record("line2", 0, false);
         }
         drop(occupied);
