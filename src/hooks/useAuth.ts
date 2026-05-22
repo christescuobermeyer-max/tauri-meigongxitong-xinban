@@ -37,9 +37,16 @@ export default function useAuth() {
       void refreshProfile();
     });
 
+    // 每 60 秒重新校验一次 profile.is_active：被管理员停用后会被 assertActiveProfile
+    // 内部的 supabase.auth.signOut() 弹出，下一次 onAuthStateChange 会把 state 清空。
+    const pollTimer = window.setInterval(() => {
+      void refreshProfile();
+    }, 60_000);
+
     return () => {
       cancelled = true;
       sub.subscription.unsubscribe();
+      window.clearInterval(pollTimer);
     };
   }, [refreshProfile]);
 

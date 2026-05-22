@@ -14,6 +14,7 @@ const LINE_META: Array<{ id: GenerationLine; label: string }> = [
   { id: "line4", label: "线路4" },
   { id: "line5", label: "线路5" },
   { id: "line6", label: "线路6" },
+  { id: "line7", label: "线路7" },
 ];
 
 export default function LineHealthBar() {

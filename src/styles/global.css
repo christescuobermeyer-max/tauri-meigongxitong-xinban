@@ -976,6 +976,25 @@ input, textarea { outline: none; }
     linear-gradient(135deg, color-mix(in srgb, var(--line6-violet) 18%, var(--bg-elevated)), var(--bg-elevated));
 }
 
+.topbar-line-badge[data-line="line7"] {
+  --line7-teal: #11b5a5;
+  border-color: color-mix(in srgb, var(--line7-teal) 42%, var(--border));
+  background:
+    radial-gradient(circle at 92% -20%, color-mix(in srgb, var(--line7-teal) 30%, transparent), transparent 48%),
+    linear-gradient(135deg, color-mix(in srgb, var(--line7-teal) 14%, var(--bg-elevated)), var(--bg-elevated));
+  color: #0a5a52;
+  box-shadow:
+    0 10px 22px color-mix(in srgb, var(--line7-teal) 18%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+[data-theme="dark"] .topbar-line-badge[data-line="line7"] {
+  color: #9cebe0;
+  background:
+    radial-gradient(circle at 92% -20%, color-mix(in srgb, var(--line7-teal) 34%, transparent), transparent 48%),
+    linear-gradient(135deg, color-mix(in srgb, var(--line7-teal) 18%, var(--bg-elevated)), var(--bg-elevated));
+}
+
 /* ---------- Main scroll area ------------------------------------------- */
 .main {
   display: flex; flex-direction: column;
@@ -3749,6 +3768,60 @@ body,
   .admin__layout { grid-template-columns: 1fr; }
 }
 
+/* ====== 网关实时监控面板 ====== */
+.gateway-monitor .gateway-monitor__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.stat-card {
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--surface, #fff);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stat-card[data-tone="warn"] {
+  border-color: rgba(255, 153, 0, 0.5);
+  background: rgba(255, 153, 0, 0.06);
+}
+.stat-card__label { font-size: 12px; opacity: 0.7; }
+.stat-card__value { font-size: 22px; font-weight: 600; }
+.stat-card__hint { font-size: 11px; opacity: 0.65; }
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border, rgba(0,0,0,0.06));
+}
+.data-table th {
+  font-weight: 500;
+  font-size: 12px;
+  opacity: 0.75;
+}
+.data-table tr:last-child td { border-bottom: none; }
+
+.badge--muted {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  background: rgba(0,0,0,0.06);
+  color: rgba(0,0,0,0.6);
+}
+@media (prefers-color-scheme: dark) {
+  .badge--muted { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); }
+}
+
 .admin-table {
   width: 100%;
   border-collapse: collapse;
@@ -3910,17 +3983,61 @@ body,
   cursor: zoom-in;
 }
 
-.admin__log-thumb-preview {
+/* 缩略图作为按钮（点击打开 lightbox），重置浏览器默认 button 样式 */
+.admin__log-thumb--button {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  appearance: none;
+  font: inherit;
+  color: inherit;
+}
+.admin__log-thumb--button:focus-visible {
+  outline: 2px solid var(--border-focus, var(--accent));
+  outline-offset: 2px;
+}
+
+/* 点击大图查看器（全屏遮罩 + 居中大图） */
+.admin__log-lightbox {
   position: fixed;
-  width: 240px;
-  height: 240px;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.78);
+  cursor: zoom-out;
+  animation: admin-log-lightbox-fade 120ms ease-out;
+}
+.admin__log-lightbox-image {
+  max-width: 92vw;
+  max-height: 92vh;
   object-fit: contain;
   border-radius: var(--radius-lg);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(0, 0, 0, 0.08);
-  background: var(--bg-elevated);
-  z-index: 9999;
-  pointer-events: none;
-  transform: translate(12px, -50%);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  cursor: default;
+}
+.admin__log-lightbox-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.admin__log-lightbox-close:hover {
+  background: rgba(0, 0, 0, 0.65);
+}
+@keyframes admin-log-lightbox-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .admin__log-thumb--contain {

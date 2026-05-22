@@ -19,7 +19,7 @@ pub const RING_BUFFER_CAP: usize = 5;
 pub const GREEN_MAX_MS: u64 = 150_000;
 pub const STALE_AFTER_SECS: u64 = 300;
 
-const LINES: [&str; 6] = ["line1", "line2", "line3", "line4", "line5", "line6"];
+const LINES: [&str; 7] = ["line1", "line2", "line3", "line4", "line5", "line6", "line7"];
 
 #[derive(Debug, Clone)]
 struct Sample {

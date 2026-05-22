@@ -5,11 +5,13 @@ import {
   fetchAccountDailyStats,
   fetchAccountGenerationLogs,
   listAccountSummaries,
+  setAccountActive,
   type AccountSummary,
 } from "../lib/admin";
 import type { AssetKindLabel } from "../lib/admin-log-filters";
-import type { DailyStatRow, GenerationLogRow } from "../lib/supabase";
+import { supabase, type DailyStatRow, type GenerationLogRow } from "../lib/supabase";
 import AdminAccountsTable from "./admin/AdminAccountsTable";
+import AdminGatewayMonitor from "./admin/AdminGatewayMonitor";
 import AdminGenerationDetail from "./admin/AdminGenerationDetail";
 import NewAccountDialog from "./NewAccountDialog";
 import { useToast } from "./Toast";
@@ -25,9 +27,14 @@ export default function AdminPage() {
   const [filter, setFilter] = useState<AssetKindLabel>("全部");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   useEffect(() => {
     void refresh();
+    void supabase.auth.getSession().then(({ data }) => {
+      setCurrentUserId(data.session?.user.id ?? null);
+    });
   }, []);
 
   async function refresh() {
@@ -86,6 +93,26 @@ export default function AdminPage() {
     setSelectedDate(null);
   }
 
+  async function handleToggleActive(account: AccountSummary) {
+    const willDisable = account.is_active;
+    const action = willDisable ? "停用" : "启用";
+    const confirmText = willDisable
+      ? `确定要停用「${account.display_name}」吗？\n\n停用后该账号将无法登录，已登录的设备会在 1 分钟内被自动登出。`
+      : `确定要重新启用「${account.display_name}」吗？`;
+    if (!window.confirm(confirmText)) return;
+
+    setTogglingId(account.id);
+    try {
+      await setAccountActive(account.id, !willDisable);
+      toast.show(`${action}成功`, "success");
+      await refresh();
+    } catch (error: unknown) {
+      toast.show(error instanceof Error ? error.message : String(error), "error");
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
   return (
     <div className="admin">
       <div className="admin__head">
@@ -109,12 +136,17 @@ export default function AdminPage() {
         </div>
       </div>
 
+      <AdminGatewayMonitor />
+
       <div className="admin__layout">
         <AdminAccountsTable
           accounts={accountRows}
           loading={loading}
           selectedId={selectedId}
           onSelect={handleSelectAccount}
+          currentUserId={currentUserId}
+          togglingId={togglingId}
+          onToggleActive={handleToggleActive}
         />
         <AdminGenerationDetail
           selected={selected}

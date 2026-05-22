@@ -48,7 +48,7 @@ const pageSources = new Map(
 ok(gateway.includes("acquire_generation_permit"), "网关生图前必须获取限流许可");
 ok(gateway.includes("GatewayGenerationQueue"), "网关应使用服务端 FIFO 队列协调并发");
 ok(!gateway.includes('read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 17)'), "默认全局并发上限不应再停留在 17");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 21)'), "默认全局并发上限应为 21");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 24)'), "默认全局并发上限应为 24（21 + line7 的 3）");
 ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_USER_LIMIT", 3)'), "默认单账号生图并发上限应为 3");
 // 各线路默认上限（与上游性价比/稳定性匹配）
 ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE1_LIMIT", 1)'), "line1 (wlai) 成本高，默认上限应为 1");
@@ -57,10 +57,11 @@ ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE3_LIMIT", 4)'), "lin
 ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE4_LIMIT", 4)'), "line4 默认上限应为 4");
 ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE5_LIMIT", 5)'), "line5 (apimart) 最稳，默认上限应为 5");
 ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE6_LIMIT", 4)'), "line6 (manxiaobai) 稳定，默认上限应为 4");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE7_LIMIT", 3)'), "line7 (otuapi) 主力分担，默认上限应为 3");
 
 // 限流器单测覆盖：全局/线路/释放/排除
 ok(limiter.includes("release_frees_capacity_for_next_request"), "限流器应覆盖释放容量");
-ok(limiter.includes("enforces_global_limit_of_twenty_one_active_generations"), "限流器应覆盖全局 21 并发");
+ok(limiter.includes("enforces_global_limit_of_twenty_four_active_generations"), "限流器应覆盖全局 24 并发");
 ok(limiter.includes("enforces_line_specific_limits"), "限流器应覆盖线路上限");
 ok(limiter.includes("try_acquire_auto_excluding"), "限流器应支持自动路由时排除已试过的线路（retry 用）");
 

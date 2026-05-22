@@ -47,6 +47,13 @@ const LINE6_MODEL: &str = "gpt-image-2";
 const LINE6_API_KEY_ENV_KEYS: [&str; 2] =
     ["MANXIAOBAI_IMAGE_2_API_KEY", "IMAGE_2_LINE6_API_KEY"];
 
+// 线路7：otuapi。文档：https://6l0ket291i.apifox.cn/447357296e0.md
+// 与其他线路的核心差异：generations 端点本身接受 image 字段做参考图，
+// 不需要独立的 edits 端点；响应只返回 b64_json。模型名 image2（无 gpt- 前缀）。
+const LINE7_API_URL: &str = "https://otuapi.com/v1/images/generations";
+const LINE7_MODEL: &str = "image2";
+const LINE7_API_KEY_ENV_KEYS: [&str; 2] = ["OTUAPI_IMAGE_2_API_KEY", "IMAGE_2_LINE7_API_KEY"];
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum ImageApiLine {
     #[serde(rename = "auto")]
@@ -63,6 +70,8 @@ pub enum ImageApiLine {
     Line5,
     #[serde(rename = "line6")]
     Line6,
+    #[serde(rename = "line7")]
+    Line7,
 }
 
 impl Default for ImageApiLine {
@@ -81,6 +90,7 @@ impl ImageApiLine {
             ImageApiLine::Line4 => "line4",
             ImageApiLine::Line5 => "line5",
             ImageApiLine::Line6 => "line6",
+            ImageApiLine::Line7 => "line7",
         }
     }
 
@@ -93,6 +103,7 @@ impl ImageApiLine {
             "line4" => Some(ImageApiLine::Line4),
             "line5" => Some(ImageApiLine::Line5),
             "line6" => Some(ImageApiLine::Line6),
+            "line7" => Some(ImageApiLine::Line7),
             _ => None,
         }
     }
@@ -179,6 +190,17 @@ pub fn resolve_image_provider(line: ImageApiLine) -> ImageProvider {
             format: Some("png"),
             reference_image_json_field: ReferenceImageJsonField::Image,
         },
+        ImageApiLine::Line7 => ImageProvider {
+            api_url: LINE7_API_URL,
+            edit_api_url: None,
+            model: LINE7_MODEL,
+            log_label: "image-2:line7-otuapi",
+            user_label: "线路7 otuapi",
+            api_key_env_keys: &LINE7_API_KEY_ENV_KEYS,
+            quality: None,
+            format: None,
+            reference_image_json_field: ReferenceImageJsonField::Image,
+        },
     }
 }
 
@@ -260,6 +282,17 @@ mod tests {
         assert_eq!(provider.model, "gpt-image-2");
         assert_eq!(provider.log_label, "image-2:line5-apimart");
         assert_eq!(provider.api_key_env_keys[0], "APIMART_IMAGE_2_API_KEY");
+    }
+
+    #[test]
+    fn line7_uses_otuapi_provider() {
+        let provider = resolve_image_provider(ImageApiLine::Line7);
+
+        assert_eq!(provider.api_url, "https://otuapi.com/v1/images/generations");
+        assert_eq!(provider.edit_api_url, None);
+        assert_eq!(provider.model, "image2");
+        assert_eq!(provider.log_label, "image-2:line7-otuapi");
+        assert_eq!(provider.api_key_env_keys[0], "OTUAPI_IMAGE_2_API_KEY");
     }
 
     #[test]

@@ -6,9 +6,20 @@ interface Props {
   loading: boolean;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  currentUserId: string | null;
+  togglingId: string | null;
+  onToggleActive: (account: AccountSummary) => void;
 }
 
-export default function AdminAccountsTable({ accounts, loading, selectedId, onSelect }: Props) {
+export default function AdminAccountsTable({
+  accounts,
+  loading,
+  selectedId,
+  onSelect,
+  currentUserId,
+  togglingId,
+  onToggleActive,
+}: Props) {
   return (
     <section className="card admin__accounts">
       <div className="card__header">
@@ -25,12 +36,13 @@ export default function AdminAccountsTable({ accounts, loading, selectedId, onSe
               <th>最后登录</th>
               <th>累计生图</th>
               <th>今日</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
             {accounts.length === 0 ? (
               <tr>
-                <td colSpan={6} className="admin-table__empty">
+                <td colSpan={7} className="admin-table__empty">
                   {loading ? "加载中…" : "暂无账号"}
                 </td>
               </tr>
@@ -69,6 +81,28 @@ export default function AdminAccountsTable({ accounts, loading, selectedId, onSe
                   </td>
                   <td><strong>{account.total_count}</strong></td>
                   <td>{account.today_count}</td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    {account.is_all ? (
+                      "—"
+                    ) : account.role === "admin" ? (
+                      <span className="meta-row" style={{ opacity: 0.6 }}>管理员</span>
+                    ) : account.id === currentUserId ? (
+                      <span className="meta-row" style={{ opacity: 0.6 }}>当前账号</span>
+                    ) : (
+                      <button
+                        className="btn btn--ghost btn--sm"
+                        data-tone={account.is_active ? "danger" : "success"}
+                        disabled={togglingId === account.id}
+                        onClick={() => onToggleActive(account)}
+                      >
+                        {togglingId === account.id
+                          ? "处理中…"
+                          : account.is_active
+                            ? "停用"
+                            : "启用"}
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))
             )}

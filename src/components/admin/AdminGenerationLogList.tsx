@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ASSET_LABEL,
 } from "../../lib/admin-log-filters";
@@ -57,31 +57,49 @@ function LogList({
   showAccountName: boolean;
   accountNameById: Record<string, string>;
 }) {
-  const [preview, setPreview] = useState<{ url: string; x: number; y: number } | null>(null);
+  const [lightbox, setLightbox] = useState<{ url: string; alt: string } | null>(null);
+
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightbox(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightbox]);
 
   if (logs.length === 0) return <div className="empty empty--inline">该筛选条件下无生图记录</div>;
   return (
     <div className="admin__logs">
-      {preview && (
-        <img
-          className="admin__log-thumb-preview"
-          src={preview.url}
-          alt=""
-          style={{ left: preview.x, top: preview.y }}
-        />
+      {lightbox && (
+        <div
+          className="admin__log-lightbox"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setLightbox(null)}
+        >
+          <img
+            className="admin__log-lightbox-image"
+            src={lightbox.url}
+            alt={lightbox.alt}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            className="admin__log-lightbox-close"
+            aria-label="关闭"
+            onClick={() => setLightbox(null)}
+          >
+            ×
+          </button>
+        </div>
       )}
       {logs.map((log) => (
         <article key={log.id} className="admin__log">
-          <div
-            className="admin__log-thumb admin__log-thumb--contain"
-            onMouseEnter={(e) => {
-              const r = e.currentTarget.getBoundingClientRect();
-              setPreview({ url: log.oss_url, x: r.right + 8, y: r.top + r.height / 2 });
-            }}
-            onMouseMove={(e) => {
-              setPreview((p) => p ? { ...p, x: e.clientX + 16, y: e.clientY } : p);
-            }}
-            onMouseLeave={() => setPreview(null)}
+          <button
+            type="button"
+            className="admin__log-thumb admin__log-thumb--contain admin__log-thumb--button"
+            onClick={() => setLightbox({ url: log.oss_url, alt: log.shop_name })}
+            aria-label={`查看大图：${log.shop_name}`}
           >
             <img
               className="admin__log-thumb-image admin__log-thumb-image--contain"
@@ -89,7 +107,7 @@ function LogList({
               alt={log.shop_name}
               loading="lazy"
             />
-          </div>
+          </button>
           <div className="admin__log-meta">
             <div className="admin__log-head">
               {showAccountName ? (
@@ -156,6 +174,7 @@ function getGenerationLineTone(line: GenerationLogRow["generation_line"]) {
   if (line === "line4") return "warning";
   if (line === "line5") return "info";
   if (line === "line6") return "info";
+  if (line === "line7") return "info";
   return "success";
 }
 
@@ -169,6 +188,7 @@ export function getGenerationLineLabel(
   if (line === "line4") return "线路4";
   if (line === "line5") return "线路5";
   if (line === "line6") return "线路6";
+  if (line === "line7") return "线路7";
   return kind === "picture_wall" ? "专用接口" : "线路1";
 }
 

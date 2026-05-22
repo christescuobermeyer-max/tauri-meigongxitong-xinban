@@ -27,7 +27,7 @@ export const ASSET_LABEL: Record<string, string> = {
 };
 
 export const GENERATION_LINE_LABEL: Record<
-  "line1" | "line2" | "line3" | "line4" | "line5" | "line6",
+  "line1" | "line2" | "line3" | "line4" | "line5" | "line6" | "line7",
   string
 > = {
   line1: "线路1",
@@ -36,6 +36,7 @@ export const GENERATION_LINE_LABEL: Record<
   line4: "线路4",
   line5: "线路5",
   line6: "线路6",
+  line7: "线路7",
 };
 
 export interface GenerationLogFilter {

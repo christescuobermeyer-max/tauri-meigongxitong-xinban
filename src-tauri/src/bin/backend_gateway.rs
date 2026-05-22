@@ -105,6 +105,7 @@ async fn main() -> Result<(), String> {
         .route("/health", get(health))
         .route("/api/generate-image", post(generate_image))
         .route("/api/line-health", get(get_line_health))
+        .route("/api/admin/gateway-stats", get(admin_gateway_stats))
         .route("/api/upload-image-to-oss", post(upload_image_to_oss))
         .route("/api/oss-presigned-urls", post(oss_presigned_urls))
         .route("/api/admin-create-user", post(admin_create_user))
@@ -137,8 +138,8 @@ async fn health() -> Json<HealthResponse> {
 }
 
 /// 生图请求最多尝试的线路数。
-/// 当前共有 6 条线路，设为 6 意味着失败时最多依次试遍所有线路。
-const GENERATE_IMAGE_MAX_ATTEMPTS: usize = 6;
+/// 当前共有 7 条线路，设为 7 意味着失败时最多依次试遍所有线路。
+const GENERATE_IMAGE_MAX_ATTEMPTS: usize = 7;
 
 async fn generate_image(
     State(state): State<AppState>,
@@ -252,6 +253,129 @@ async fn get_line_health(
 ) -> Result<Json<LineHealthSnapshot>, GatewayError> {
     let _user_id = verify_access_token(&state, &headers).await?;
     Ok(Json(state.line_health.snapshot()))
+}
+
+#[derive(Serialize)]
+struct AdminGatewayStatsResponse {
+    /// 当前网关进程内存视角的运行快照
+    queue: gateway_queue::GatewayQueueSnapshot,
+    /// 每条线路最近的健康度（环形缓冲计算结果）
+    health: LineHealthSnapshot,
+    /// user_id → display_name，用于前端展示
+    display_names: HashMap<String, String>,
+    /// 服务器当前时间（ISO8601 UTC），供前端校准"等待 N 秒"
+    server_time: String,
+}
+
+async fn admin_gateway_stats(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<AdminGatewayStatsResponse>, GatewayError> {
+    let user_id = verify_access_token(&state, &headers).await?;
+    let token = bearer_token(&headers)?;
+    ensure_admin_profile(&state, token, &user_id).await?;
+
+    let queue = state.generation_queue.snapshot();
+    let health = state.line_health.snapshot();
+
+    // 收集快照里出现过的所有 user_id（在跑的 + 排队的）
+    let mut user_ids: std::collections::HashSet<String> = queue.active_by_user.keys().cloned().collect();
+    for ticket in &queue.waiting {
+        user_ids.insert(ticket.user_id.clone());
+    }
+    let display_names = if user_ids.is_empty() {
+        HashMap::new()
+    } else {
+        fetch_display_names(&state, token, &user_ids).await.unwrap_or_default()
+    };
+
+    let server_time = chrono::Utc::now()
+        .to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+
+    Ok(Json(AdminGatewayStatsResponse {
+        queue,
+        health,
+        display_names,
+        server_time,
+    }))
+}
+
+async fn ensure_admin_profile(
+    state: &AppState,
+    token: &str,
+    user_id: &str,
+) -> Result<(), GatewayError> {
+    let response = state
+        .client
+        .get(format!(
+            "{}/rest/v1/profiles?select=role,is_active&id=eq.{}",
+            state.supabase_url, user_id
+        ))
+        .header("apikey", &state.supabase_anon_key)
+        .bearer_auth(token)
+        .send()
+        .await
+        .map_err(|error| GatewayError::bad_gateway(format!("校验管理员身份失败：{error}")))?;
+    if !response.status().is_success() {
+        return Err(GatewayError::unauthorized("管理员身份校验失败，请重新登录"));
+    }
+    let rows: Vec<serde_json::Value> = response
+        .json()
+        .await
+        .map_err(|error| GatewayError::bad_gateway(format!("解析管理员身份失败：{error}")))?;
+    let row = rows.first().ok_or_else(|| GatewayError::unauthorized("账号未找到"))?;
+    let role = row.get("role").and_then(|v| v.as_str()).unwrap_or("");
+    let is_active = row.get("is_active").and_then(|v| v.as_bool()).unwrap_or(false);
+    if !is_active {
+        return Err(GatewayError::unauthorized("账号已被停用"));
+    }
+    if role != "admin" {
+        return Err(GatewayError::unauthorized("仅管理员可访问网关监控"));
+    }
+    Ok(())
+}
+
+async fn fetch_display_names(
+    state: &AppState,
+    token: &str,
+    user_ids: &std::collections::HashSet<String>,
+) -> Result<HashMap<String, String>, GatewayError> {
+    // PostgREST 用 in.(...) 批量查
+    let in_list = user_ids
+        .iter()
+        .map(|id| format!("\"{}\"", id))
+        .collect::<Vec<_>>()
+        .join(",");
+    let response = state
+        .client
+        .get(format!(
+            "{}/rest/v1/profiles?select=id,display_name&id=in.({})",
+            state.supabase_url, in_list
+        ))
+        .header("apikey", &state.supabase_anon_key)
+        .bearer_auth(token)
+        .send()
+        .await
+        .map_err(|error| GatewayError::bad_gateway(format!("拉取 display_name 失败：{error}")))?;
+    if !response.status().is_success() {
+        return Err(GatewayError::bad_gateway("拉取 display_name 返回非 2xx"));
+    }
+    let rows: Vec<serde_json::Value> = response
+        .json()
+        .await
+        .map_err(|error| GatewayError::bad_gateway(format!("解析 display_name 失败：{error}")))?;
+    Ok(rows
+        .into_iter()
+        .filter_map(|row| {
+            let id = row.get("id").and_then(|v| v.as_str()).map(|s| s.to_string())?;
+            let name = row
+                .get("display_name")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| "(无名)".to_string());
+            Some((id, name))
+        })
+        .collect())
 }
 
 async fn upload_image_to_oss(
@@ -490,7 +614,7 @@ async fn acquire_manual_generation_permit(
 
 fn build_generation_limiter() -> GatewayLimiter {
     GatewayLimiter::new(
-        read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 21),
+        read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 24),
         HashMap::from([
             // line1 = wlai，单张成本最高，故并发 = 1，只在其它线路全饱和/全 Red 时兜底
             ("line1", read_limit_env("GATEWAY_GENERATION_LINE1_LIMIT", 1)),
@@ -501,6 +625,8 @@ fn build_generation_limiter() -> GatewayLimiter {
             ("line5", read_limit_env("GATEWAY_GENERATION_LINE5_LIMIT", 5)),
             // line6 = manxiaobai，稳定性也好，并发 = 4
             ("line6", read_limit_env("GATEWAY_GENERATION_LINE6_LIMIT", 4)),
+            // line7 = otuapi，稳定性 100% 但响应较慢（~22-26s），作主力分担用并发 = 3
+            ("line7", read_limit_env("GATEWAY_GENERATION_LINE7_LIMIT", 3)),
         ]),
     )
 }

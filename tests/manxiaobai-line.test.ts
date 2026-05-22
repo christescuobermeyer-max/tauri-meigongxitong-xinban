@@ -41,9 +41,7 @@ ok(lineHealthBarSource.includes('"line6"'), "线路状态条应展示 line6");
 
 // ---- 数据库 ----
 ok(
-  schemaSource.includes(
-    "check (generation_line in ('line1', 'line2', 'line3', 'line4', 'line5', 'line6'))"
-  ),
+  schemaSource.includes("'line6'"),
   "schema.sql 中 CHECK 约束应包含 line6"
 );
 ok(

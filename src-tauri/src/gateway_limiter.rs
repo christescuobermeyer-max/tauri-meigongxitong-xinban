@@ -2,7 +2,8 @@ use crate::line_health::{LineHealthSnapshot, LineHealthStatus};
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 
-const AUTO_GENERATION_LINES: [&str; 6] = ["line2", "line3", "line4", "line5", "line6", "line1"];
+const AUTO_GENERATION_LINES: [&str; 7] =
+    ["line2", "line3", "line4", "line5", "line6", "line7", "line1"];
 
 /// line1（wlai）成本最高，作"备用"使用：
 /// 只有当其他可用线路（line2..line6 中健康 + 未满 + 尺寸匹配）少于这个阈值时，
@@ -38,6 +39,36 @@ impl GatewayLimiter {
             active_global: 0,
             active_by_line: HashMap::new(),
         }
+    }
+
+    pub fn global_limit(&self) -> usize {
+        self.global_limit
+    }
+
+    pub fn active_global(&self) -> usize {
+        self.active_global
+    }
+
+    pub fn line_limits(&self) -> &HashMap<&'static str, usize> {
+        &self.line_limits
+    }
+
+    pub fn active_by_line(&self) -> &HashMap<String, usize> {
+        &self.active_by_line
+    }
+
+    /// 监控用：返回所有已配置线路的 (line, limit, active_count) 列表。
+    /// 顺序按 AUTO_GENERATION_LINES 顺序，line1 在末尾（fallback）。
+    pub fn line_snapshots(&self) -> Vec<(&'static str, usize, usize)> {
+        AUTO_GENERATION_LINES
+            .iter()
+            .copied()
+            .map(|line| {
+                let limit = self.line_limits.get(line).copied().unwrap_or(0);
+                let active = self.active_by_line.get(line).copied().unwrap_or(0);
+                (line, limit, active)
+            })
+            .collect()
     }
 
     pub fn try_acquire(&mut self, line: &str) -> LimitDecision {
@@ -300,6 +331,15 @@ pub fn generation_size_for_line<'a>(line: &str, size: &'a str) -> Option<Cow<'a,
             "2:3" => Cow::Borrowed("1024x1536"),
             other => Cow::Borrowed(other),
         },
+        // line7 = otuapi。文档支持 1024x1024 / 1024x1792 / 1792x1024。
+        // 没有 1024x1536 / 1536x1024 这两个尺寸，比例字段映射到最接近的尺寸。
+        "line7" => match size {
+            "1:1" => Cow::Borrowed("1024x1024"),
+            "16:9" | "21:9" | "3:2" | "4:3" | "auto" => Cow::Borrowed("1792x1024"),
+            "2:3" | "3:4" | "1024x1536" => Cow::Borrowed("1024x1792"),
+            "1536x1024" => Cow::Borrowed("1792x1024"),
+            other => Cow::Borrowed(other),
+        },
         _ => return None,
     };
 
@@ -328,6 +368,7 @@ fn supports_provider_size(line: &str, size: &str) -> bool {
             size,
             "1024x1024" | "1024x1536" | "1536x1024" | "21:9" | "3:4"
         ),
+        "line7" => matches!(size, "1024x1024" | "1024x1792" | "1792x1024"),
         _ => false,
     }
 }
@@ -356,7 +397,7 @@ mod tests {
 
     fn default_limiter() -> GatewayLimiter {
         GatewayLimiter::new(
-            21,
+            24,
             HashMap::from([
                 ("line1", 2),
                 ("line2", 4),
@@ -364,12 +405,13 @@ mod tests {
                 ("line4", 4),
                 ("line5", 4),
                 ("line6", 3),
+                ("line7", 3),
             ]),
         )
     }
 
     #[test]
-    fn enforces_global_limit_of_twenty_one_active_generations() {
+    fn enforces_global_limit_of_twenty_four_active_generations() {
         let mut limiter = default_limiter();
 
         assert!(limiter.try_acquire("line1").allowed);
@@ -393,12 +435,15 @@ mod tests {
         assert!(limiter.try_acquire("line6").allowed);
         assert!(limiter.try_acquire("line6").allowed);
         assert!(limiter.try_acquire("line6").allowed);
+        assert!(limiter.try_acquire("line7").allowed);
+        assert!(limiter.try_acquire("line7").allowed);
+        assert!(limiter.try_acquire("line7").allowed);
 
         let rejected = limiter.try_acquire("line3");
         assert!(!rejected.allowed);
         assert_eq!(
             rejected.reason.as_deref(),
-            Some("当前生图请求较多，已达到全局并发上限 21，请稍后再试")
+            Some("当前生图请求较多，已达到全局并发上限 24，请稍后再试")
         );
     }
 
@@ -490,10 +535,10 @@ mod tests {
 
     #[test]
     fn line1_promoted_when_only_one_other_line_available() {
-        // line3,4,5,6 全 Red（5/5 失败），只剩 line2 → primary.len()==1 < 2，line1 被纳入候选。
+        // line3,4,5,6,7 全 Red（5/5 失败），只剩 line2 → primary.len()==1 < 2，line1 被纳入候选。
         let mut limiter = default_limiter();
         let registry = LineHealthRegistry::new();
-        for line in ["line3", "line4", "line5", "line6"] {
+        for line in ["line3", "line4", "line5", "line6", "line7"] {
             for _ in 0..5 {
                 registry.record(line, 0, false);
             }
@@ -513,7 +558,7 @@ mod tests {
         // 所有非 line1 线路全 Red → line1 是唯一可用线路。
         let mut limiter = default_limiter();
         let registry = LineHealthRegistry::new();
-        for line in ["line2", "line3", "line4", "line5", "line6"] {
+        for line in ["line2", "line3", "line4", "line5", "line6", "line7"] {
             for _ in 0..5 {
                 registry.record(line, 0, false);
             }

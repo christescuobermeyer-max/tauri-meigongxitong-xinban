@@ -172,6 +172,19 @@ function startOfShanghaiTodayIso(): string {
   return new Date(startOfDayShanghaiMs - 8 * 60 * 60 * 1000).toISOString();
 }
 
+/**
+ * 切换账号是否启用。仅 admin 可调用，依赖 RLS "profiles: admin update"。
+ * - 停用后，该账号无法登录（signInWithEmail → assertActiveProfile 抛错）
+ * - 已登录的客户端会在下次 getCurrentProfile 轮询中被踢出
+ */
+export async function setAccountActive(userId: string, active: boolean): Promise<void> {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ is_active: active })
+    .eq("id", userId);
+  if (error) throw new Error(`${active ? "启用" : "停用"}账号失败：${error.message}`);
+}
+
 /** 推导出 Supabase Dashboard 创建用户页面的 URL（仅当应用内创建失败时给一个备用入口） */
 export function getDashboardUsersUrl(): string {
   const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
