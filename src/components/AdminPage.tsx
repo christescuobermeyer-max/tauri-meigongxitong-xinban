@@ -11,6 +11,7 @@ import {
 import type { AssetKindLabel } from "../lib/admin-log-filters";
 import { supabase, type DailyStatRow, type GenerationLogRow } from "../lib/supabase";
 import AdminAccountsTable from "./admin/AdminAccountsTable";
+import AdminDailyTrendCharts from "./admin/AdminDailyTrendCharts";
 import AdminGatewayMonitor from "./admin/AdminGatewayMonitor";
 import AdminGenerationDetail from "./admin/AdminGenerationDetail";
 import NewAccountDialog from "./NewAccountDialog";
@@ -159,6 +160,8 @@ export default function AdminPage() {
           onDateChange={setSelectedDate}
         />
       </div>
+
+      <AdminDailyTrendCharts accounts={accounts} days={30} />
 
       {showCreate ? (
         <NewAccountDialog

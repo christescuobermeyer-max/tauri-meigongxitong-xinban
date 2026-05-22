@@ -164,6 +164,22 @@ export async function fetchAccountDailyStats(
   return userId === ALL_ACCOUNTS_ID ? aggregateDailyStatRows(rows, days) : rows;
 }
 
+/**
+ * 拉取所有账号最近 N 天的每日统计原始行（不做聚合）。
+ * 后台管理底部的"每日趋势 + 每用户趋势"折线图用，调用方自行按 stat_day 聚合或按 user_id 拆分。
+ */
+export async function fetchAllDailyStatsRaw(days = 30): Promise<DailyStatRow[]> {
+  const cutoffDay = getShanghaiCutoffDay(days);
+  const { data, error } = await supabase
+    .from("daily_generation_stats")
+    .select("user_id,stat_day,total_count")
+    .gte("stat_day", cutoffDay)
+    .order("stat_day", { ascending: true })
+    .limit(50000);
+  if (error) throw new Error(`读取每日趋势统计失败：${error.message}`);
+  return (data as DailyStatRow[] | null) ?? [];
+}
+
 function startOfShanghaiTodayIso(): string {
   const now = new Date();
   const shanghaiNowMs = now.getTime() + 8 * 60 * 60 * 1000;
