@@ -11,6 +11,7 @@ import {
 import type { AssetKindLabel } from "../lib/admin-log-filters";
 import { supabase, type DailyStatRow, type GenerationLogRow } from "../lib/supabase";
 import AdminAccountsTable from "./admin/AdminAccountsTable";
+import AdminBalancePanel from "./admin/AdminBalancePanel";
 import AdminDailyTrendCharts from "./admin/AdminDailyTrendCharts";
 import AdminGatewayMonitor from "./admin/AdminGatewayMonitor";
 import AdminGenerationDetail from "./admin/AdminGenerationDetail";
@@ -18,7 +19,7 @@ import NewAccountDialog from "./NewAccountDialog";
 import { useToast } from "./Toast";
 import { IconRefresh, IconSparkles } from "./Icons";
 
-type AdminTab = "gateway" | "accounts" | "trends";
+type AdminTab = "gateway" | "accounts" | "trends" | "balance";
 
 export default function AdminPage() {
   const toast = useToast();
@@ -146,6 +147,7 @@ export default function AdminPage() {
             { id: "gateway", label: "网关实时监控" },
             { id: "accounts", label: "账号生图明细" },
             { id: "trends", label: "每日生图趋势" },
+            { id: "balance", label: "余额监控" },
           ] as Array<{ id: AdminTab; label: string }>
         ).map((tab) => (
           <button
@@ -193,6 +195,10 @@ export default function AdminPage() {
 
       <div style={{ display: activeTab === "trends" ? "block" : "none" }}>
         <AdminDailyTrendCharts accounts={accounts} days={30} />
+      </div>
+
+      <div style={{ display: activeTab === "balance" ? "block" : "none" }}>
+        <AdminBalancePanel />
       </div>
 
       {showCreate ? (

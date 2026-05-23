@@ -3768,6 +3768,126 @@ body,
   .admin__layout { grid-template-columns: 1fr; }
 }
 
+/* ---------- 后台管理 - 余额监控面板 ---------- */
+.admin__balance .balance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.balance-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  min-height: 168px;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+}
+.balance-card:hover { border-color: color-mix(in srgb, var(--accent) 30%, var(--border)); }
+.balance-card[data-status="expired"], .balance-card[data-status="no_session"] {
+  border-color: color-mix(in srgb, #f59e0b 40%, var(--border));
+  background: color-mix(in srgb, #f59e0b 4%, var(--bg-elevated));
+}
+.balance-card[data-status="error"] {
+  border-color: color-mix(in srgb, #ef4444 35%, var(--border));
+  background: color-mix(in srgb, #ef4444 4%, var(--bg-elevated));
+}
+.balance-card--placeholder { opacity: 0.6; }
+.balance-card__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.balance-card__name {
+  font-size: 13px; font-weight: 600; color: var(--fg);
+}
+.balance-card__sub { font-size: 11px; color: var(--fg-muted); margin-top: 2px; }
+.balance-card__badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.balance-card__badge--ok {
+  background: color-mix(in srgb, #10b981 14%, transparent);
+  color: #047857;
+}
+[data-theme="dark"] .balance-card__badge--ok { color: #6ee7b7; }
+.balance-card__badge--warn {
+  background: color-mix(in srgb, #f59e0b 16%, transparent);
+  color: #b45309;
+}
+[data-theme="dark"] .balance-card__badge--warn { color: #fbbf24; }
+.balance-card__badge--danger {
+  background: color-mix(in srgb, #ef4444 16%, transparent);
+  color: #b91c1c;
+}
+.balance-card__badge--muted {
+  background: var(--bg-subtle);
+  color: var(--fg-muted);
+}
+.balance-card__body { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.balance-card__amount {
+  display: flex; align-items: baseline; gap: 4px;
+}
+.balance-card__amount-unit { font-size: 18px; color: var(--accent); }
+.balance-card__amount-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--fg);
+  letter-spacing: -0.02em;
+}
+.balance-card__meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 10px;
+  row-gap: 4px;
+  margin: 0;
+  font-size: 12px;
+}
+.balance-card__meta dt { color: var(--fg-muted); }
+.balance-card__meta dd { margin: 0; color: var(--fg); }
+.balance-card__loading {
+  font-size: 12px;
+  color: var(--fg-muted);
+  padding: 16px 0;
+  text-align: center;
+}
+.balance-card__expired-text {
+  font-size: 12px;
+  color: #b45309;
+  padding: 8px 0;
+}
+[data-theme="dark"] .balance-card__expired-text { color: #fbbf24; }
+.balance-card__error pre {
+  margin: 0;
+  padding: 8px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 80px;
+  overflow: auto;
+  color: var(--fg-muted);
+}
+.balance-card__placeholder-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+.balance-card__actions {
+  display: flex;
+  gap: 6px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+.balance-card__actions .btn { flex: 1; justify-content: center; }
+
 /* ---------- 后台管理顶部 tab 切换（橙色 active 态胶囊） ---------- */
 .admin__tab-switch {
   display: inline-flex;

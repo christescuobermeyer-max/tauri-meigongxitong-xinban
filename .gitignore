@@ -51,3 +51,6 @@ tmp/
 # 本地凭证文档（含真实密码/连接串）
 运维凭证.local.md
 *.local.md
+
+# Balance monitor session/cookies (contains real auth tokens — never commit)
+scripts/balance/out/

@@ -6,6 +6,7 @@ mod api_validation;
 mod apimart;
 mod apimart_reference;
 mod apimart_task;
+mod balance;
 mod brand_story;
 mod brand_story_clients;
 mod gateway_limiter;
@@ -40,6 +41,8 @@ pub fn run() {
             oss::upload_image_to_oss,
             brand_story::brand_story_generate_text,
             brand_story::brand_story_thread_availability,
+            balance::balance_login,
+            balance::balance_fetch,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
