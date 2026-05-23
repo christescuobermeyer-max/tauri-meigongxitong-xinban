@@ -3768,6 +3768,47 @@ body,
   .admin__layout { grid-template-columns: 1fr; }
 }
 
+/* ---------- 后台管理顶部 tab 切换（橙色 active 态胶囊） ---------- */
+.admin__tab-switch {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  align-self: flex-start;
+}
+.admin__tab-switch-item {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background var(--duration-fast), color var(--duration-fast),
+              box-shadow var(--duration-fast), transform var(--duration-fast);
+}
+.admin__tab-switch-item:hover {
+  color: var(--fg);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.admin__tab-switch-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.admin__tab-switch-item[data-active="true"] {
+  background: var(--accent-grad);
+  color: var(--accent-fg);
+  box-shadow: var(--accent-glow);
+}
+.admin__tab-switch-item[data-active="true"]:hover {
+  background: var(--accent-grad);
+  color: var(--accent-fg);
+}
+
 /* ====== 网关实时监控面板 ====== */
 .gateway-monitor .gateway-monitor__grid {
   display: grid;

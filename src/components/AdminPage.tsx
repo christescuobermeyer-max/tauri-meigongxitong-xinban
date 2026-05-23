@@ -18,6 +18,8 @@ import NewAccountDialog from "./NewAccountDialog";
 import { useToast } from "./Toast";
 import { IconRefresh, IconSparkles } from "./Icons";
 
+type AdminTab = "gateway" | "accounts" | "trends";
+
 export default function AdminPage() {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
@@ -30,6 +32,7 @@ export default function AdminPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<AdminTab>("gateway");
 
   useEffect(() => {
     void refresh();
@@ -137,9 +140,36 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <AdminGatewayMonitor />
+      <div className="admin__tab-switch" role="tablist" aria-label="后台管理板块切换">
+        {(
+          [
+            { id: "gateway", label: "网关实时监控" },
+            { id: "accounts", label: "账号生图明细" },
+            { id: "trends", label: "每日生图趋势" },
+          ] as Array<{ id: AdminTab; label: string }>
+        ).map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            data-active={activeTab === tab.id}
+            className="admin__tab-switch-item"
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      <div className="admin__layout">
+      <div style={{ display: activeTab === "gateway" ? "block" : "none" }}>
+        <AdminGatewayMonitor />
+      </div>
+
+      <div
+        className="admin__layout"
+        style={{ display: activeTab === "accounts" ? "grid" : "none" }}
+      >
         <AdminAccountsTable
           accounts={accountRows}
           loading={loading}
@@ -161,7 +191,9 @@ export default function AdminPage() {
         />
       </div>
 
-      <AdminDailyTrendCharts accounts={accounts} days={30} />
+      <div style={{ display: activeTab === "trends" ? "block" : "none" }}>
+        <AdminDailyTrendCharts accounts={accounts} days={30} />
+      </div>
 
       {showCreate ? (
         <NewAccountDialog
