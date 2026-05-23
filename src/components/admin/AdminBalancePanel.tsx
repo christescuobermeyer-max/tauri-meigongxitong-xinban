@@ -1,12 +1,25 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import {
   BALANCE_LINES,
   fetchBalance,
+  openBalanceConsole,
   triggerBalanceLogin,
   type BalanceFetchResult,
   type BalanceLineDef,
 } from "../../lib/balance";
 import { IconRefresh } from "../Icons";
+
+interface BalanceCardHandle {
+  /** 由父组件触发的强制刷新（用于「一键刷新」） */
+  refresh: () => Promise<void>;
+}
 
 type CardStatus = "idle" | "loading" | "ok" | "expired" | "no_session" | "error" | "logging_in";
 
@@ -18,11 +31,29 @@ interface CardState {
   lastFetchedAt?: number;
   /** 错误描述（前端显示） */
   errorMessage?: string;
+  /** 是否打开了后台 console 浏览器（独立于 status，因为不影响余额数据） */
+  consoleOpen?: boolean;
 }
 
 const INITIAL: CardState = { status: "idle" };
 
 export default function AdminBalancePanel() {
+  const cardRefs = useRef(new Map<string, BalanceCardHandle>());
+  const [refreshingAll, setRefreshingAll] = useState(false);
+
+  const refreshAll = useCallback(async () => {
+    setRefreshingAll(true);
+    try {
+      const tasks = BALANCE_LINES
+        .filter((l) => l.supported)
+        .map((l) => cardRefs.current.get(l.id)?.refresh())
+        .filter((p): p is Promise<void> => !!p);
+      await Promise.allSettled(tasks);
+    } finally {
+      setRefreshingAll(false);
+    }
+  }, []);
+
   return (
     <section className="card admin__balance">
       <div className="card__header">
@@ -32,11 +63,26 @@ export default function AdminBalancePanel() {
             点击「重新登录」可弹出浏览器登录窗口；登录成功后回到此处自动刷新余额
           </span>
         </div>
+        <button
+          className="btn btn--primary btn--sm"
+          onClick={() => void refreshAll()}
+          disabled={refreshingAll}
+        >
+          <IconRefresh style={{ width: 13, height: 13 }} />
+          {refreshingAll ? "刷新中…" : "一键刷新"}
+        </button>
       </div>
       <div className="card__body">
         <div className="balance-grid">
           {BALANCE_LINES.map((line) => (
-            <BalanceCard key={line.id} line={line} />
+            <BalanceCard
+              key={line.id}
+              line={line}
+              ref={(handle) => {
+                if (handle) cardRefs.current.set(line.id, handle);
+                else cardRefs.current.delete(line.id);
+              }}
+            />
           ))}
         </div>
       </div>
@@ -44,7 +90,10 @@ export default function AdminBalancePanel() {
   );
 }
 
-function BalanceCard({ line }: { line: BalanceLineDef }) {
+const BalanceCard = forwardRef<BalanceCardHandle, { line: BalanceLineDef }>(function BalanceCard(
+  { line },
+  ref,
+) {
   const [state, setState] = useState<CardState>(INITIAL);
   const mountedRef = useRef(true);
   useEffect(() => {
@@ -94,6 +143,8 @@ function BalanceCard({ line }: { line: BalanceLineDef }) {
     }
   }, [applyResult, line.id, line.supported]);
 
+  useImperativeHandle(ref, () => ({ refresh }), [refresh]);
+
   const login = useCallback(async () => {
     if (!line.supported) return;
     setState((prev) => ({ ...prev, status: "logging_in" }));
@@ -105,6 +156,29 @@ function BalanceCard({ line }: { line: BalanceLineDef }) {
       if (!mountedRef.current) return;
       setState({ status: "error", errorMessage: e instanceof Error ? e.message : String(e),
                  lastFetchedAt: Date.now() });
+    }
+  }, [line.id, line.supported, refresh]);
+
+  const openConsole = useCallback(async () => {
+    if (!line.supported) return;
+    setState((prev) => ({ ...prev, consoleOpen: true }));
+    try {
+      await openBalanceConsole(line.id);
+      // 后台关闭后顺手刷一次余额（如果用户在窗口里被动登录过，session 已被回写）
+      if (mountedRef.current) await refresh();
+    } catch (e) {
+      if (!mountedRef.current) return;
+      setState((prev) => ({
+        ...prev,
+        consoleOpen: false,
+        status: "error",
+        errorMessage: e instanceof Error ? e.message : String(e),
+        lastFetchedAt: Date.now(),
+      }));
+      return;
+    }
+    if (mountedRef.current) {
+      setState((prev) => ({ ...prev, consoleOpen: false }));
     }
   }, [line.id, line.supported, refresh]);
 
@@ -201,14 +275,31 @@ function BalanceCard({ line }: { line: BalanceLineDef }) {
         <button
           className="btn btn--primary btn--sm"
           onClick={() => void login()}
-          disabled={showLoading}
+          disabled={showLoading || state.consoleOpen}
         >
           {isExpired ? "重新登录" : "更新登录"}
         </button>
       </div>
+
+      <div className="balance-card__open-row">
+        <button
+          className="btn btn--ghost btn--sm balance-card__open-btn"
+          onClick={() => void openConsole()}
+          disabled={
+            state.consoleOpen || state.status === "logging_in" || state.status === "no_session"
+          }
+          title={
+            state.status === "no_session"
+              ? "请先登录"
+              : "用已保存的 cookies 打开后台 console，方便充值/查日志"
+          }
+        >
+          {state.consoleOpen ? "后台已打开（关闭窗口后此处恢复）" : "打开后台（免登录）"}
+        </button>
+      </div>
     </div>
   );
-}
+});
 
 function formatNumber(n: number): string {
   return Number.isFinite(n) ? n.toFixed(2) : "—";

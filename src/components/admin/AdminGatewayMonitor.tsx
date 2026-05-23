@@ -288,7 +288,7 @@ export default function AdminGatewayMonitor() {
         {error ? (
           <div
             className="meta-row"
-            style={{ color: "var(--warning, #c80)" }}
+            style={{ color: "var(--warn, #c80)" }}
           >
             上一次刷新失败：{error}（沿用上一次成功数据）
           </div>

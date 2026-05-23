@@ -17,9 +17,12 @@ const SCRIPT_CAPTURE: &str =
     include_str!("../../scripts/balance/newapi_capture_login.py");
 const SCRIPT_FETCH: &str =
     include_str!("../../scripts/balance/newapi_fetch_balance.py");
+const SCRIPT_OPEN_CONSOLE: &str =
+    include_str!("../../scripts/balance/newapi_open_console.py");
 
 const CAPTURE_NAME: &str = "newapi_capture_login.py";
 const FETCH_NAME: &str = "newapi_fetch_balance.py";
+const OPEN_CONSOLE_NAME: &str = "newapi_open_console.py";
 
 #[derive(Clone, Copy)]
 struct LineConfig {
@@ -93,7 +96,13 @@ fn line_config(line: &str) -> Result<LineConfig, String> {
     }
 }
 
-fn ensure_scripts(app: &AppHandle) -> Result<(PathBuf, PathBuf), String> {
+struct Scripts {
+    capture: PathBuf,
+    fetch: PathBuf,
+    open_console: PathBuf,
+}
+
+fn ensure_scripts(app: &AppHandle) -> Result<Scripts, String> {
     let cache_dir = app
         .path()
         .app_cache_dir()
@@ -102,11 +111,14 @@ fn ensure_scripts(app: &AppHandle) -> Result<(PathBuf, PathBuf), String> {
     std::fs::create_dir_all(&scripts_dir)
         .map_err(|e| format!("创建脚本目录失败：{e}"))?;
 
-    let cap_path = scripts_dir.join(CAPTURE_NAME);
-    let fetch_path = scripts_dir.join(FETCH_NAME);
-    std::fs::write(&cap_path, SCRIPT_CAPTURE).map_err(|e| format!("写入 capture 脚本失败：{e}"))?;
-    std::fs::write(&fetch_path, SCRIPT_FETCH).map_err(|e| format!("写入 fetch 脚本失败：{e}"))?;
-    Ok((cap_path, fetch_path))
+    let capture = scripts_dir.join(CAPTURE_NAME);
+    let fetch = scripts_dir.join(FETCH_NAME);
+    let open_console = scripts_dir.join(OPEN_CONSOLE_NAME);
+    std::fs::write(&capture, SCRIPT_CAPTURE).map_err(|e| format!("写入 capture 脚本失败：{e}"))?;
+    std::fs::write(&fetch, SCRIPT_FETCH).map_err(|e| format!("写入 fetch 脚本失败：{e}"))?;
+    std::fs::write(&open_console, SCRIPT_OPEN_CONSOLE)
+        .map_err(|e| format!("写入 open_console 脚本失败：{e}"))?;
+    Ok(Scripts { capture, fetch, open_console })
 }
 
 fn session_path(app: &AppHandle, session_key: &str) -> Result<PathBuf, String> {
@@ -152,11 +164,28 @@ fn run_fetch_blocking(
         .map_err(|e| format!("启动 python 失败：{e}"))
 }
 
+fn run_open_console_blocking(
+    script: PathBuf,
+    sess: PathBuf,
+    cfg: LineConfig,
+) -> Result<std::process::Output, String> {
+    Command::new("python")
+        .arg("-u")
+        .arg(&script)
+        .arg("--console-url").arg(cfg.login_url)
+        .arg("--domain").arg(cfg.domain)
+        .arg("--session-file").arg(&sess)
+        .env("PYTHONIOENCODING", "utf-8")
+        .output()
+        .map_err(|e| format!("启动 python 失败：{e}"))
+}
+
 #[cfg_attr(feature = "tauri-commands", tauri::command)]
 pub async fn balance_login(app: AppHandle, line: String) -> Result<(), String> {
     let cfg = line_config(&line)?;
-    let (cap_path, _) = ensure_scripts(&app)?;
+    let scripts = ensure_scripts(&app)?;
     let sess_path = session_path(&app, cfg.session_key)?;
+    let cap_path = scripts.capture;
 
     let output = tauri::async_runtime::spawn_blocking(move || {
         run_capture_blocking(cap_path, sess_path, cfg)
@@ -178,8 +207,9 @@ pub async fn balance_login(app: AppHandle, line: String) -> Result<(), String> {
 #[cfg_attr(feature = "tauri-commands", tauri::command)]
 pub async fn balance_fetch(app: AppHandle, line: String) -> Result<serde_json::Value, String> {
     let cfg = line_config(&line)?;
-    let (_, fetch_path) = ensure_scripts(&app)?;
+    let scripts = ensure_scripts(&app)?;
     let sess_path = session_path(&app, cfg.session_key)?;
+    let fetch_path = scripts.fetch;
 
     if !sess_path.exists() {
         return Ok(serde_json::json!({
@@ -203,4 +233,30 @@ pub async fn balance_fetch(app: AppHandle, line: String) -> Result<serde_json::V
     }
     serde_json::from_str::<serde_json::Value>(trimmed)
         .map_err(|e| format!("解析脚本输出失败：{e}\n原始输出：{trimmed}"))
+}
+
+#[cfg_attr(feature = "tauri-commands", tauri::command)]
+pub async fn balance_open_console(app: AppHandle, line: String) -> Result<(), String> {
+    let cfg = line_config(&line)?;
+    let scripts = ensure_scripts(&app)?;
+    let sess_path = session_path(&app, cfg.session_key)?;
+    if !sess_path.exists() {
+        return Err("尚未登录该线路，请先点击「重新登录」".into());
+    }
+    let open_path = scripts.open_console;
+
+    let output = tauri::async_runtime::spawn_blocking(move || {
+        run_open_console_blocking(open_path, sess_path, cfg)
+    })
+    .await
+    .map_err(|e| format!("子线程加入失败：{e}"))??;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        return Err(format!(
+            "打开后台失败。stdout:\n{stdout}\nstderr:\n{stderr}"
+        ));
+    }
+    Ok(())
 }

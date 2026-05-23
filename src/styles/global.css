@@ -3887,6 +3887,23 @@ body,
   padding-top: 10px;
 }
 .balance-card__actions .btn { flex: 1; justify-content: center; }
+.balance-card__open-row {
+  display: flex;
+  margin-top: 6px;
+}
+.balance-card__open-btn {
+  flex: 1;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--fg-muted);
+  background: var(--bg-subtle);
+  border: 1px dashed var(--border);
+}
+.balance-card__open-btn:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent) 4%, var(--bg-subtle));
+}
 
 /* ---------- 后台管理顶部 tab 切换（橙色 active 态胶囊） ---------- */
 .admin__tab-switch {
@@ -3937,38 +3954,41 @@ body,
 }
 
 .stat-card {
-  border: 1px solid var(--border, rgba(0,0,0,0.08));
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px 14px;
-  background: var(--surface, #fff);
+  background: var(--bg-elevated);
+  color: var(--fg);
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 .stat-card[data-tone="warn"] {
-  border-color: rgba(255, 153, 0, 0.5);
-  background: rgba(255, 153, 0, 0.06);
+  border-color: color-mix(in srgb, var(--warn) 50%, var(--border));
+  background: color-mix(in srgb, var(--warn) 8%, var(--bg-elevated));
 }
-.stat-card__label { font-size: 12px; opacity: 0.7; }
-.stat-card__value { font-size: 22px; font-weight: 600; }
-.stat-card__hint { font-size: 11px; opacity: 0.65; }
+.stat-card__label { font-size: 12px; color: var(--fg-muted); }
+.stat-card__value { font-size: 22px; font-weight: 600; color: var(--fg); }
+.stat-card__hint { font-size: 11px; color: var(--fg-subtle); }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  color: var(--fg);
 }
 .data-table th,
 .data-table td {
   text-align: left;
   padding: 6px 8px;
-  border-bottom: 1px solid var(--border, rgba(0,0,0,0.06));
+  border-bottom: 1px solid var(--border);
 }
 .data-table th {
   font-weight: 500;
   font-size: 12px;
-  opacity: 0.75;
+  color: var(--fg-muted);
 }
+.data-table td { color: var(--fg); }
 .data-table tr:last-child td { border-bottom: none; }
 
 .badge--muted {
@@ -3976,11 +3996,9 @@ body,
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 10px;
-  background: rgba(0,0,0,0.06);
-  color: rgba(0,0,0,0.6);
-}
-@media (prefers-color-scheme: dark) {
-  .badge--muted { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); }
+  background: var(--bg-subtle);
+  color: var(--fg-muted);
+  border: 1px solid var(--border);
 }
 
 .admin-table {

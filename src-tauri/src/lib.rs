@@ -43,6 +43,7 @@ pub fn run() {
             brand_story::brand_story_thread_availability,
             balance::balance_login,
             balance::balance_fetch,
+            balance::balance_open_console,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

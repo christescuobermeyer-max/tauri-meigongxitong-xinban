@@ -53,3 +53,8 @@ export async function fetchBalance(lineId: string): Promise<BalanceFetchResult> 
 export async function triggerBalanceLogin(lineId: string): Promise<void> {
   await invoke<void>("balance_login", { line: lineId });
 }
+
+/** 打开该线路后台 console（注入已有 cookies，免登录），用户关窗口后才 resolve */
+export async function openBalanceConsole(lineId: string): Promise<void> {
+  await invoke<void>("balance_open_console", { line: lineId });
+}
