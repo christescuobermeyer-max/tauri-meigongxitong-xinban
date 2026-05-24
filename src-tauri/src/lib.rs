@@ -6,6 +6,9 @@ mod api_validation;
 mod apimart;
 mod apimart_reference;
 mod apimart_task;
+// balance 模块依赖 tauri::AppHandle / tauri::async_runtime（Playwright headed 登录），
+// 仅桌面端需要。云端 backend-gateway 用 --no-default-features 编译时排除。
+#[cfg(feature = "tauri-commands")]
 mod balance;
 mod brand_story;
 mod brand_story_clients;
