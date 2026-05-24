@@ -27,6 +27,7 @@ export async function listAccountSummaries(): Promise<AccountSummary[]> {
   const { data: profiles, error: profileError } = await supabase
     .from("profiles")
     .select("*")
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
   if (profileError) throw new Error(`读取账号列表失败：${profileError.message}`);
   const profileRows = (profiles as ProfileRow[] | null) ?? [];

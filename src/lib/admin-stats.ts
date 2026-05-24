@@ -24,6 +24,7 @@ export function buildAllAccountsSummary(accounts: AccountSummary[]): AccountSumm
     last_login_at: lastLogin,
     is_active: true,
     created_at: "",
+    deleted_at: null,
     total_count: accounts.reduce((sum, account) => sum + account.total_count, 0),
     today_count: accounts.reduce((sum, account) => sum + account.today_count, 0),
     is_all: true,

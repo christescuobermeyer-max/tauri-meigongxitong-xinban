@@ -41,6 +41,7 @@ export interface ProfileRow {
   last_login_at: string | null;
   is_active: boolean;
   created_at: string;
+  deleted_at: string | null;
 }
 
 export interface GenerationLogRow {

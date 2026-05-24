@@ -197,6 +197,7 @@ pub async fn admin_soft_delete_user(
         ));
     }
 
+    let now_iso = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
     let profile_response = client
         .patch(format!(
             "{supabase_url}/rest/v1/profiles?id=eq.{target_id}"
@@ -205,14 +206,14 @@ pub async fn admin_soft_delete_user(
         .header(AUTHORIZATION, format!("Bearer {service_role}"))
         .header(CONTENT_TYPE, "application/json")
         .header("Prefer", "return=minimal")
-        .json(&serde_json::json!({ "is_active": false }))
+        .json(&serde_json::json!({ "is_active": false, "deleted_at": now_iso }))
         .send()
         .await
-        .map_err(|e| format!("更新 profiles.is_active 失败：{e}"))?;
+        .map_err(|e| format!("更新 profiles 失败：{e}"))?;
     if !profile_response.status().is_success() {
         let detail = profile_response.text().await.unwrap_or_default();
         return Err(format!(
-            "更新 profiles.is_active 失败：{}",
+            "更新 profiles 失败：{}",
             truncate(&detail, 240)
         ));
     }
