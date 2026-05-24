@@ -32,7 +32,7 @@ const prompt = module.buildPatrolScriptPrompt(
 
 ok(prompt.includes("山饺下"));
 ok(prompt.includes("老板，今天我们把您店铺最近的客户咨询记录看了下。客服回得到位，差评能减掉一大半。"));
-ok(prompt.includes("请为下面这段文字生成一张竖版知识卡片图片平面设计"));
+ok(prompt.includes("请为店铺「山饺下」生成一张竖版知识卡片图片"));
 ok(prompt.includes("浅色主题色"));
 ok(prompt.includes("垂直杂志风格单页信息图"));
 ok(prompt.includes("有吸引力、有视觉冲击力"));
@@ -43,6 +43,10 @@ ok(prompt.includes("左上角"));
 ok(prompt.includes("右下角"));
 ok(prompt.includes("呈尚策划运营部"));
 ok(prompt.includes("不得改写"));
+// storeName 必须在 prompt 里至少出现 4 次（首句、关键信息行、左上角、结尾再次提醒），
+// 否则上游 AI 容易在 storeName 微小变化时复用上一次的潜在表示。
+const storeNameCount = (prompt.match(/山饺下/g) || []).length;
+ok(storeNameCount >= 4, `storeName 应至少出现 4 次，实际 ${storeNameCount} 次`);
 ok(!prompt.includes("横版卡片图片"));
 ok(!prompt.includes("风格可以自由发挥"));
 ok(!prompt.includes("不要添加其他文字"));
