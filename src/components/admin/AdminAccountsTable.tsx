@@ -9,6 +9,8 @@ interface Props {
   currentUserId: string | null;
   togglingId: string | null;
   onToggleActive: (account: AccountSummary) => void;
+  deletingId: string | null;
+  onDelete: (account: AccountSummary) => void;
 }
 
 export default function AdminAccountsTable({
@@ -19,6 +21,8 @@ export default function AdminAccountsTable({
   currentUserId,
   togglingId,
   onToggleActive,
+  deletingId,
+  onDelete,
 }: Props) {
   return (
     <section className="card admin__accounts">
@@ -89,18 +93,50 @@ export default function AdminAccountsTable({
                     ) : account.id === currentUserId ? (
                       <span className="meta-row" style={{ opacity: 0.6 }}>当前账号</span>
                     ) : (
-                      <button
-                        className="btn btn--ghost btn--sm"
-                        data-tone={account.is_active ? "danger" : "success"}
-                        disabled={togglingId === account.id}
-                        onClick={() => onToggleActive(account)}
-                      >
-                        {togglingId === account.id
-                          ? "处理中…"
-                          : account.is_active
-                            ? "停用"
-                            : "启用"}
-                      </button>
+                      <div className="admin-table__ops">
+                        <div
+                          className="admin-status-tabs"
+                          role="group"
+                          aria-label={`切换「${account.display_name}」启用状态`}
+                          data-busy={togglingId === account.id ? "true" : undefined}
+                        >
+                          <button
+                            type="button"
+                            className="admin-status-tabs__item"
+                            data-tone="active"
+                            data-selected={account.is_active ? "true" : "false"}
+                            disabled={togglingId === account.id || account.is_active}
+                            onClick={() => {
+                              if (account.is_active) return;
+                              onToggleActive(account);
+                            }}
+                          >
+                            启用
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-status-tabs__item"
+                            data-tone="inactive"
+                            data-selected={!account.is_active ? "true" : "false"}
+                            disabled={togglingId === account.id || !account.is_active}
+                            onClick={() => {
+                              if (!account.is_active) return;
+                              onToggleActive(account);
+                            }}
+                          >
+                            停用
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn btn--ghost btn--sm admin-table__delete"
+                          data-tone="danger"
+                          disabled={deletingId === account.id}
+                          onClick={() => onDelete(account)}
+                        >
+                          {deletingId === account.id ? "删除中…" : "删除"}
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

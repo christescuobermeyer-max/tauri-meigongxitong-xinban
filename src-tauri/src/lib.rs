@@ -35,6 +35,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             admin_user::admin_create_user,
+            admin_user::admin_soft_delete_user,
             image_proc::compress_generated_image,
             api::generate_image,
             image_proc::resize_and_save_image,

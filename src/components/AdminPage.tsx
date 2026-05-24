@@ -6,6 +6,7 @@ import {
   fetchAccountGenerationLogs,
   listAccountSummaries,
   setAccountActive,
+  softDeleteUser,
   type AccountSummary,
 } from "../lib/admin";
 import type { AssetKindLabel } from "../lib/admin-log-filters";
@@ -33,6 +34,7 @@ export default function AdminPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<AdminTab>("gateway");
 
   useEffect(() => {
@@ -118,6 +120,39 @@ export default function AdminPage() {
     }
   }
 
+  async function handleSoftDelete(account: AccountSummary) {
+    const first = window.confirm(
+      `⚠️ 删除账号「${account.display_name}」？\n\n` +
+        `此操作会：\n` +
+        `· 把该账号的邮箱改成无人知道的字符串\n` +
+        `· 把密码重置为随机串\n` +
+        `· 把账号设为停用\n\n` +
+        `结果：该账号将彻底无法登录。\n` +
+        `生图历史（累计 ${account.total_count} 张）和 OSS 图片不会被删除。\n\n` +
+        `继续？`
+    );
+    if (!first) return;
+    const typed = window.prompt(
+      `为了防止误删，请输入要删除的账号名以确认：\n\n「${account.display_name}」`
+    );
+    if (typed === null) return;
+    if (typed.trim() !== account.display_name.trim()) {
+      toast.show("账号名不匹配，已取消删除", "info");
+      return;
+    }
+
+    setDeletingId(account.id);
+    try {
+      await softDeleteUser(account.id);
+      toast.show(`账号「${account.display_name}」已删除`, "success");
+      await refresh();
+    } catch (error: unknown) {
+      toast.show(error instanceof Error ? error.message : String(error), "error");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <div className="admin">
       <div className="admin__head">
@@ -180,6 +215,8 @@ export default function AdminPage() {
           currentUserId={currentUserId}
           togglingId={togglingId}
           onToggleActive={handleToggleActive}
+          deletingId={deletingId}
+          onDelete={handleSoftDelete}
         />
         <AdminGenerationDetail
           selected={selected}

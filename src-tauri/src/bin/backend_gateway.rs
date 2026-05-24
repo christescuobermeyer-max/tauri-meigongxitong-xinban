@@ -109,6 +109,7 @@ async fn main() -> Result<(), String> {
         .route("/api/upload-image-to-oss", post(upload_image_to_oss))
         .route("/api/oss-presigned-urls", post(oss_presigned_urls))
         .route("/api/admin-create-user", post(admin_create_user))
+        .route("/api/admin-soft-delete-user", post(admin_soft_delete_user))
         .route(
             "/api/brand-story-generate-text",
             post(brand_story_generate_text),
@@ -409,6 +410,18 @@ async fn admin_create_user(
 ) -> Result<Json<admin_user::AdminCreateUserResponse>, GatewayError> {
     let _user_id = verify_access_token(&state, &headers).await?;
     admin_user::admin_create_user(req)
+        .await
+        .map(Json)
+        .map_err(GatewayError::bad_request)
+}
+
+async fn admin_soft_delete_user(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<admin_user::AdminSoftDeleteUserRequest>,
+) -> Result<Json<admin_user::AdminSoftDeleteUserResponse>, GatewayError> {
+    let _user_id = verify_access_token(&state, &headers).await?;
+    admin_user::admin_soft_delete_user(req)
         .await
         .map(Json)
         .map_err(GatewayError::bad_request)

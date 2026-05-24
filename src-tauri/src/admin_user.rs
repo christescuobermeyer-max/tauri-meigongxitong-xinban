@@ -35,6 +35,18 @@ pub struct AdminCreateUserResponse {
     pub password: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct AdminSoftDeleteUserRequest {
+    pub access_token: String,
+    pub target_user_id: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AdminSoftDeleteUserResponse {
+    pub id: String,
+    pub anonymized_email: String,
+}
+
 #[cfg_attr(feature = "tauri-commands", tauri::command)]
 pub async fn admin_create_user(
     req: AdminCreateUserRequest,
@@ -62,7 +74,8 @@ pub async fn admin_create_user(
         .build()
         .map_err(|e| format!("初始化 HTTP 客户端失败：{e}"))?;
 
-    verify_caller_is_admin(&client, &supabase_url, &service_role, &req.access_token).await?;
+    let _caller_id =
+        verify_caller_is_admin(&client, &supabase_url, &service_role, &req.access_token).await?;
 
     let payload = serde_json::json!({
         "email": req.email.trim(),
@@ -115,12 +128,121 @@ pub async fn admin_create_user(
     })
 }
 
+/// 软删除账号：彻底剥夺登录能力，但保留所有 generation_logs / generation_totals 等数据。
+///
+/// 做法：
+/// 1. 把 auth.users.email 改成 deleted-<uuid>@deleted.local（释放原邮箱）
+/// 2. 重设密码为 48 位随机串（无人知道）
+/// 3. 把 profiles.is_active 置为 false
+///
+/// 不会调用 DELETE /auth/v1/admin/users，因为 profiles → auth.users / generation_logs → profiles
+/// 都是 ON DELETE CASCADE，真删会把全部生图历史一并清掉。
+#[cfg_attr(feature = "tauri-commands", tauri::command)]
+pub async fn admin_soft_delete_user(
+    req: AdminSoftDeleteUserRequest,
+) -> Result<AdminSoftDeleteUserResponse, String> {
+    if req.access_token.trim().is_empty() {
+        return Err("缺少调用方 access_token".into());
+    }
+    let target_id = req.target_user_id.trim();
+    if target_id.is_empty() {
+        return Err("缺少要删除的用户 ID".into());
+    }
+
+    let supabase_url = read_required_env(&SUPABASE_URL_ENV_KEYS)?
+        .trim_end_matches('/')
+        .to_string();
+    let service_role = read_required_env(&SERVICE_ROLE_ENV_KEYS)?;
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("初始化 HTTP 客户端失败：{e}"))?;
+
+    let caller_id =
+        verify_caller_is_admin(&client, &supabase_url, &service_role, &req.access_token).await?;
+    if caller_id == target_id {
+        return Err("不能删除当前正在使用的管理员账号".into());
+    }
+
+    let anonymized_email = format!("deleted-{}@deleted.local", target_id);
+    let random_password = generate_random_password(48);
+
+    let payload = serde_json::json!({
+        "email": anonymized_email,
+        "password": random_password,
+        "email_confirm": true,
+    });
+
+    let response = client
+        .put(format!("{supabase_url}/auth/v1/admin/users/{target_id}"))
+        .header("apikey", &service_role)
+        .header(AUTHORIZATION, format!("Bearer {service_role}"))
+        .header(CONTENT_TYPE, "application/json")
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| format!("调用 Supabase Admin API 失败：{e}"))?;
+
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .map_err(|e| format!("读取响应失败：{e}"))?;
+    if !status.is_success() {
+        return Err(format!(
+            "重置账号登录信息失败 ({})：{}",
+            status,
+            truncate(&body, 400)
+        ));
+    }
+
+    let profile_response = client
+        .patch(format!(
+            "{supabase_url}/rest/v1/profiles?id=eq.{target_id}"
+        ))
+        .header("apikey", &service_role)
+        .header(AUTHORIZATION, format!("Bearer {service_role}"))
+        .header(CONTENT_TYPE, "application/json")
+        .header("Prefer", "return=minimal")
+        .json(&serde_json::json!({ "is_active": false }))
+        .send()
+        .await
+        .map_err(|e| format!("更新 profiles.is_active 失败：{e}"))?;
+    if !profile_response.status().is_success() {
+        let detail = profile_response.text().await.unwrap_or_default();
+        return Err(format!(
+            "更新 profiles.is_active 失败：{}",
+            truncate(&detail, 240)
+        ));
+    }
+
+    eprintln!(
+        "[admin_soft_delete_user] success id={} caller={}",
+        target_id, caller_id
+    );
+
+    Ok(AdminSoftDeleteUserResponse {
+        id: target_id.to_string(),
+        anonymized_email,
+    })
+}
+
+fn generate_random_password(len: usize) -> String {
+    use rand::RngCore;
+    let mut buf = vec![0u8; len];
+    rand::thread_rng().fill_bytes(&mut buf);
+    const CHARSET: &[u8] =
+        b"ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*";
+    buf.iter().map(|b| CHARSET[(*b as usize) % CHARSET.len()] as char).collect()
+}
+
 async fn verify_caller_is_admin(
     client: &reqwest::Client,
     supabase_url: &str,
     service_role: &str,
     access_token: &str,
-) -> Result<(), String> {
+) -> Result<String, String> {
     let user_response = client
         .get(format!("{supabase_url}/auth/v1/user"))
         .header("apikey", service_role)
@@ -170,9 +292,9 @@ async fn verify_caller_is_admin(
         .unwrap_or(false);
 
     if role != "admin" || !is_active {
-        return Err("权限不足：仅管理员可创建账号".into());
+        return Err("权限不足：仅管理员可执行该操作".into());
     }
-    Ok(())
+    Ok(user_id.to_string())
 }
 
 fn translate_admin_error(status: u16, body: &str) -> String {

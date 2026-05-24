@@ -201,6 +201,32 @@ export async function setAccountActive(userId: string, active: boolean): Promise
   if (error) throw new Error(`${active ? "启用" : "停用"}账号失败：${error.message}`);
 }
 
+export interface SoftDeleteUserResponse {
+  id: string;
+  anonymized_email: string;
+}
+
+/**
+ * 软删除账号：用 service_role 把 email 改成 deleted-<uuid>@deleted.local + 重设密码 + is_active=false。
+ * 不会真删 auth.users，因此 generation_logs / generation_totals 全部保留（不会因为 CASCADE 被清掉）。
+ */
+export async function softDeleteUser(userId: string): Promise<SoftDeleteUserResponse> {
+  const id = userId.trim();
+  if (!id) throw new Error("缺少要删除的账号 ID");
+
+  const session = await supabase.auth.getSession();
+  const accessToken = session.data.session?.access_token;
+  if (!accessToken) throw new Error("登录态已失效，请重新登录后再试");
+
+  const req = { access_token: accessToken, target_user_id: id };
+
+  if (getBackendGatewayUrl()) {
+    return await callBackendGateway<SoftDeleteUserResponse>("/api/admin-soft-delete-user", req);
+  }
+
+  return await invoke<SoftDeleteUserResponse>("admin_soft_delete_user", { req });
+}
+
 /** 推导出 Supabase Dashboard 创建用户页面的 URL（仅当应用内创建失败时给一个备用入口） */
 export function getDashboardUsersUrl(): string {
   const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
