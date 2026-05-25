@@ -145,6 +145,39 @@ async fn download_reference_image(
     url: &str,
     index: usize,
 ) -> Result<ReferenceImageFile, String> {
+    // 同 line2/3：OSS 偶发提前 EOF / stale connection，立即重试一次即可。
+    const ATTEMPTS: usize = 2;
+    let mut last_error: Option<String> = None;
+    for attempt in 0..ATTEMPTS {
+        match download_reference_image_once(client, url, index).await {
+            Ok(file) => {
+                if attempt > 0 {
+                    eprintln!(
+                        "[line6-ref] download succeeded on retry {} index={}",
+                        attempt,
+                        index + 1
+                    );
+                }
+                return Ok(file);
+            }
+            Err(error) => {
+                last_error = Some(error);
+                if attempt + 1 < ATTEMPTS {
+                    tokio::time::sleep(Duration::from_millis(300)).await;
+                }
+            }
+        }
+    }
+    Err(last_error.unwrap_or_else(|| {
+        format!("下载线路6第 {} 张参考图失败：unknown", index + 1)
+    }))
+}
+
+async fn download_reference_image_once(
+    client: &reqwest::Client,
+    url: &str,
+    index: usize,
+) -> Result<ReferenceImageFile, String> {
     let response = client
         .get(url)
         .timeout(Duration::from_secs(120))
