@@ -28,9 +28,13 @@ ALI_OSS_ACCESS_KEY_ID=你的 OSS access key id
 ALI_OSS_ACCESS_KEY_SECRET=你的 OSS access key secret
 ALI_OSS_BUCKET=你的 OSS bucket
 
+GATEWAY_OSS_ARCHIVE_LIMIT=6
+
 BACKEND_GATEWAY_HOST=0.0.0.0
 BACKEND_GATEWAY_PORT=8787
 ```
+
+`GATEWAY_OSS_ARCHIVE_LIMIT` 只限制生成成功后的图片压缩和 `generated/` 目录 OSS 归档并发；生图请求本身仍由原有线路并发控制负责。
 
 > 品牌故事工作区新增两个端点：
 > - `POST /api/brand-story-generate-text`：生成 6 段品牌文案（鉴权同 generate-image，需要 Supabase access_token）

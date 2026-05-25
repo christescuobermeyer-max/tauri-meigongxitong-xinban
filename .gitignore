@@ -54,3 +54,6 @@ tmp/
 
 # Balance monitor session/cookies (contains real auth tokens — never commit)
 scripts/balance/out/
+
+# 本地 MSI / NSIS 打包产物（数十 MB 的安装包，不应入仓）
+release/

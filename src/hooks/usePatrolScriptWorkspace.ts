@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { getAutoRetryAttempt, runWithAutoRetry } from "../lib/generation-retry";
-import { compressAndArchiveGenerated } from "../lib/oss-assets";
+import { resolveGeneratedArchiveUrl } from "../lib/oss-assets";
 import {
   PATROL_SCRIPT_ASSET_KIND,
   PATROL_SCRIPT_EXPORT_SIZE,
@@ -9,7 +9,7 @@ import {
   resolvePatrolScriptSize,
 } from "../lib/patrol-script";
 import { PATROL_SCRIPTS, type PatrolScript } from "../lib/patrol-scripts";
-import { generateImageWithLine, pickSavePath, resizeAndSaveImage } from "../lib/tauri";
+import { generateArchivedImageWithLine, pickSavePath, resizeAndSaveImage } from "../lib/tauri";
 import { safeFileName } from "../lib/utils";
 import type { AssetKind, GenerationItem, GenerationLine, Platform } from "../types";
 
@@ -108,22 +108,31 @@ export default function usePatrolScriptWorkspace({
             attempt,
           })),
         run: async () => {
-          const response = await generateImageWithLine({
-            prompt: buildPatrolScriptPrompt(snapshot.storeName, snapshot.script.content),
-            size: resolvePatrolScriptSize(snapshot.generationLine),
-            product_images: [],
-            api_line: "auto",
-          });
+          const response = await generateArchivedImageWithLine(
+            {
+              prompt: buildPatrolScriptPrompt(snapshot.storeName, snapshot.script.content),
+              size: resolvePatrolScriptSize(snapshot.generationLine),
+              product_images: [],
+              api_line: "auto",
+            },
+            {
+              asset_kind: PATROL_SCRIPT_ASSET_KIND,
+              file_name_stem: `${safeFileName(snapshot.storeName)}-patrol-script-${snapshot.script.id}`,
+            }
+          );
           return {
             rawBase64: response.image,
             generationLine: response.generationLine,
+            archiveUrl: response.archiveUrl,
+            archiveError: response.archiveError,
           };
         },
       });
-      const remoteUrl = await compressAndArchiveGenerated(
+      const remoteUrl = await resolveGeneratedArchiveUrl(
         PATROL_SCRIPT_ASSET_KIND,
         result.rawBase64,
-        `${safeFileName(snapshot.storeName)}-patrol-script-${snapshot.script.id}`
+        `${safeFileName(snapshot.storeName)}-patrol-script-${snapshot.script.id}`,
+        result
       );
       const itemWithRemoteUrl: GenerationItem = {
         kind: PATROL_SCRIPT_ASSET_KIND,

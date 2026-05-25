@@ -28,6 +28,12 @@ export interface GenerationLogsPage {
 export async function recordGenerationLog(
   input: RecordGenerationLogInput
 ): Promise<boolean> {
+  if (!input.ossUrl.trim()) {
+    console.warn(
+      "[cloud-history] skip insert generation_log: empty oss_url (archive likely failed)"
+    );
+    return false;
+  }
   const { error } = await supabase.from("generation_logs").insert({
     user_id: input.userId,
     shop_name: input.shopName.trim() || "未命名店铺",

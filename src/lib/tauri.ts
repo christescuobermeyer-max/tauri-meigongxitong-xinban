@@ -80,9 +80,25 @@ export interface GenerateImageRequest {
   api_line?: GenerationLine | "auto";
 }
 
+export interface ArchiveGeneratedImageRequest {
+  asset_kind: string;
+  file_name_stem: string;
+}
+
 export interface GenerateImageResponse {
   image: string;
   generation_line?: GenerationLine;
+  archive_url?: string | null;
+  archive_key?: string | null;
+  archive_error?: string | null;
+}
+
+export interface GenerateImageWithLineResult {
+  image: string;
+  generationLine: GenerationLine;
+  archiveUrl?: string;
+  archiveKey?: string;
+  archiveError?: string;
 }
 
 /** 调用 Rust 端的 image-2 生图（已设置 350s 超时） */
@@ -90,10 +106,9 @@ export async function generateImage(req: GenerateImageRequest): Promise<string> 
   return (await generateImageWithLine(req)).image;
 }
 
-export async function generateImageWithLine(req: GenerateImageRequest): Promise<{
-  image: string;
-  generationLine: GenerationLine;
-}> {
+export async function generateImageWithLine(
+  req: GenerateImageRequest
+): Promise<GenerateImageWithLineResult> {
   if (getBackendGatewayUrl()) {
     const response = await callBackendGateway<string | GenerateImageResponse>(
       "/api/generate-image",
@@ -108,6 +123,9 @@ export async function generateImageWithLine(req: GenerateImageRequest): Promise<
     return {
       image: response.image,
       generationLine: response.generation_line ?? normalizeGeneratedLine(req.api_line),
+      archiveUrl: response.archive_url ?? undefined,
+      archiveKey: response.archive_key ?? undefined,
+      archiveError: response.archive_error ?? undefined,
     };
   }
   const localReq = req.api_line === "auto" ? { ...req, api_line: normalizeGeneratedLine(req.api_line) } : req;
@@ -115,6 +133,31 @@ export async function generateImageWithLine(req: GenerateImageRequest): Promise<
   return {
     image,
     generationLine: normalizeGeneratedLine(req.api_line),
+  };
+}
+
+export async function generateArchivedImageWithLine(
+  req: GenerateImageRequest,
+  archive: ArchiveGeneratedImageRequest
+): Promise<GenerateImageWithLineResult> {
+  if (!getBackendGatewayUrl()) return await generateImageWithLine(req);
+
+  const response = await callBackendGateway<string | GenerateImageResponse>(
+    "/api/generate-image",
+    { ...req, archive }
+  );
+  if (typeof response === "string") {
+    return {
+      image: response,
+      generationLine: normalizeGeneratedLine(req.api_line),
+    };
+  }
+  return {
+    image: response.image,
+    generationLine: response.generation_line ?? normalizeGeneratedLine(req.api_line),
+    archiveUrl: response.archive_url ?? undefined,
+    archiveKey: response.archive_key ?? undefined,
+    archiveError: response.archive_error ?? undefined,
   };
 }
 
@@ -139,14 +182,60 @@ export async function uploadImageToOss(
   req: UploadImageToOssRequest,
   options: { timeoutMs?: number } = {}
 ): Promise<UploadImageToOssResponse> {
+  // 网关模式下走"网关签 URL + 客户端直 PUT 到 OSS"，避开客户端 → 网关那段
+  // 用户公网出口；多个员工同 IP 上传时不再互相挤。
   if (getBackendGatewayUrl()) {
-    return await callBackendGateway<UploadImageToOssResponse>(
-      "/api/upload-image-to-oss",
-      req,
-      options
-    );
+    return await uploadImageToOssViaPresignedUrl(req, options);
   }
   return await ensureTauriInvoke()<UploadImageToOssResponse>("upload_image_to_oss", { req });
+}
+
+async function uploadImageToOssViaPresignedUrl(
+  req: UploadImageToOssRequest,
+  options: { timeoutMs?: number } = {}
+): Promise<UploadImageToOssResponse> {
+  const presign = await requestOssPresignedUrls({
+    folder: req.folder,
+    file_name: req.file_name,
+    mime_type: req.mime_type,
+  });
+
+  const bytes = decodeBase64ToBytes(req.base64_data);
+  const timeoutMs = options.timeoutMs ?? 30_000;
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    // Content-Type 必须用网关签名时锚定的值，否则阿里云会拒签。
+    const response = await fetch(presign.put_url, {
+      method: "PUT",
+      headers: { "Content-Type": presign.content_type },
+      body: new Blob([bytes], { type: presign.content_type }),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      throw new Error(`直传 OSS 失败：HTTP ${response.status}${detail ? ` - ${detail.slice(0, 200)}` : ""}`);
+    }
+    return { key: presign.key, url: presign.get_url };
+  } catch (error: unknown) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(`直传 OSS 超过 ${Math.round(timeoutMs / 1000)} 秒，请稍后重试`);
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
+function decodeBase64ToBytes(input: string): Uint8Array<ArrayBuffer> {
+  const trimmed = input.replace(/^data:[^,]*,/, "").replace(/\s+/g, "");
+  const binary = atob(trimmed);
+  // 显式从 ArrayBuffer 构造，避免 TS 5.7+ 推断成 Uint8Array<ArrayBufferLike>
+  // （Blob/fetch body 只接受 ArrayBufferView<ArrayBuffer>）。
+  const buffer = new ArrayBuffer(binary.length);
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
 }
 
 export interface PresignOssUrlsRequest {

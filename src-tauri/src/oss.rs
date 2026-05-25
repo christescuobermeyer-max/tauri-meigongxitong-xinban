@@ -5,12 +5,18 @@ use chrono::Local;
 use serde::{Deserialize, Serialize};
 use std::{
     path::Path,
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 const DOWNLOAD_URL_EXPIRE_SECONDS: i64 = 60 * 60 * 24 * 7;
 const PUT_URL_EXPIRE_SECONDS: i64 = 600;
 const UPLOAD_FOLDERS: [&str; 2] = ["uploads", "generated"];
+
+/// 单次 OSS PUT 的硬超时。SDK 内部用 reqwest 默认超时（=无限），
+/// OSS 偶发卡住会拖死整个网关 HTTP 请求，因此外层包一层 timeout。
+const OSS_PUT_TIMEOUT_SECS: u64 = 30;
+/// PUT 失败时的重试次数（含首次共 1 + N 次）。
+const OSS_PUT_RETRY_ATTEMPTS: usize = 2;
 
 #[derive(Debug, Deserialize)]
 pub struct UploadImageToOssRequest {
@@ -39,12 +45,7 @@ pub async fn upload_image_to_oss(
     let key = build_object_key(&req.folder, req.file_name.as_deref(), &mime);
     let oss = build_oss_client()?;
 
-    let upload_builder = RequestBuilder::new()
-        .with_content_type(&mime)
-        .with_expire(600);
-    oss.pub_object_from_buffer(&key, &bytes, upload_builder)
-        .await
-        .map_err(|error| format!("上传图片到 OSS 失败：{error}"))?;
+    put_object_with_retry(&oss, &key, &bytes, &mime).await?;
 
     let signed_url = oss.sign_download_url(
         &key,
@@ -145,6 +146,58 @@ fn validate_upload_request(req: &UploadImageToOssRequest) -> Result<(), String> 
         ));
     }
     Ok(())
+}
+
+/// 包了硬超时 + 指数退避重试的 OSS PUT。
+///
+/// 失败模式分两类：
+/// - timeout / 网络错误：值得重试（OSS 偶发抖动 200ms 内恢复）
+/// - 4xx 鉴权 / bucket 不存在：重试也没用，但 SDK 返回的是同一种 `OssError`，
+///   无从区分，且生产里这类错误意味着配置坏了——多重试 2 次也不会让事情更糟，
+///   先简单按"统一重试"处理，未来需要精细化再拆。
+async fn put_object_with_retry(
+    oss: &OSS,
+    key: &str,
+    bytes: &[u8],
+    mime: &str,
+) -> Result<(), String> {
+    let mut last_error: Option<String> = None;
+    for attempt in 0..=OSS_PUT_RETRY_ATTEMPTS {
+        let builder = RequestBuilder::new().with_content_type(mime).with_expire(600);
+        let fut = oss.pub_object_from_buffer(key, bytes, builder);
+        match tokio::time::timeout(Duration::from_secs(OSS_PUT_TIMEOUT_SECS), fut).await {
+            Ok(Ok(())) => {
+                if attempt > 0 {
+                    eprintln!(
+                        "[oss] put_object succeeded on retry {} key={}",
+                        attempt, key
+                    );
+                }
+                return Ok(());
+            }
+            Ok(Err(error)) => {
+                last_error = Some(format!("上传图片到 OSS 失败：{error}"));
+            }
+            Err(_) => {
+                last_error = Some(format!(
+                    "上传图片到 OSS 超时（>{OSS_PUT_TIMEOUT_SECS}s）key={key}"
+                ));
+            }
+        }
+        if attempt < OSS_PUT_RETRY_ATTEMPTS {
+            // 500ms / 1500ms 指数退避
+            let backoff = Duration::from_millis(500 * (1 << attempt));
+            eprintln!(
+                "[oss] put_object attempt {}/{} failed, retrying in {:?}: {}",
+                attempt + 1,
+                OSS_PUT_RETRY_ATTEMPTS + 1,
+                backoff,
+                last_error.as_deref().unwrap_or("(unknown)")
+            );
+            tokio::time::sleep(backoff).await;
+        }
+    }
+    Err(last_error.unwrap_or_else(|| "上传图片到 OSS 失败：unknown".into()))
 }
 
 fn build_oss_client() -> Result<OSS, String> {

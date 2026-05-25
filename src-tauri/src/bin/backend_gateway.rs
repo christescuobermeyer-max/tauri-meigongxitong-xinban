@@ -28,6 +28,8 @@ mod http_client;
 mod image_api_response;
 #[path = "../image_generation_payload.rs"]
 mod image_generation_payload;
+#[path = "../image_proc.rs"]
+mod image_proc;
 #[path = "../image_provider.rs"]
 mod image_provider;
 #[path = "../line_health.rs"]
@@ -62,6 +64,7 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
+use tokio::sync::Semaphore;
 use tower_http::cors::{Any, CorsLayer};
 
 use gateway_limiter::{generation_size_for_line, GatewayLimiter};
@@ -76,6 +79,7 @@ struct AppState {
     supabase_anon_key: String,
     line_health: Arc<LineHealthRegistry>,
     generation_queue: Arc<GatewayGenerationQueue>,
+    oss_archive_limiter: Arc<Semaphore>,
 }
 
 #[derive(Serialize)]
@@ -93,6 +97,31 @@ struct ErrorResponse {
 struct GenerateImageResponse {
     image: String,
     generation_line: String,
+    archive_url: Option<String>,
+    archive_key: Option<String>,
+    archive_error: Option<String>,
+}
+
+#[derive(serde::Deserialize)]
+struct GatewayGenerateImageRequest {
+    prompt: String,
+    size: String,
+    product_images: Vec<String>,
+    #[serde(default)]
+    api_line: ImageApiLine,
+    #[serde(default)]
+    archive: Option<ArchiveGeneratedImageRequest>,
+}
+
+#[derive(Clone, serde::Deserialize)]
+struct ArchiveGeneratedImageRequest {
+    asset_kind: String,
+    file_name_stem: String,
+}
+
+struct ArchiveGeneratedImageResult {
+    url: String,
+    key: String,
 }
 
 #[tokio::main]
@@ -145,7 +174,7 @@ const GENERATE_IMAGE_MAX_ATTEMPTS: usize = 7;
 async fn generate_image(
     State(state): State<AppState>,
     headers: HeaderMap,
-    Json(req): Json<api::GenerateRequest>,
+    Json(req): Json<GatewayGenerateImageRequest>,
 ) -> Result<Json<GenerateImageResponse>, GatewayError> {
     let user_id = verify_access_token(&state, &headers).await?;
 
@@ -214,9 +243,30 @@ async fn generate_image(
                         attempt
                     );
                 }
+                drop(permit);
+                let archive_result = if let Some(archive_req) = req.archive.as_ref() {
+                    Some(archive_generated_image(&state, archive_req.clone(), &image).await)
+                } else {
+                    None
+                };
+                let (archive_url, archive_key, archive_error) = match archive_result {
+                    Some(Ok(archive)) => (Some(archive.url), Some(archive.key), None),
+                    Some(Err(error)) => {
+                        eprintln!(
+                            "[gateway] archive generated image failed on {}: {}",
+                            line.as_str(),
+                            error
+                        );
+                        (None, None, Some(error))
+                    }
+                    None => (None, None, None),
+                };
                 return Ok(Json(GenerateImageResponse {
                     image,
                     generation_line: line_str,
+                    archive_url,
+                    archive_key,
+                    archive_error,
                 }));
             }
             Err(err) => {
@@ -246,6 +296,71 @@ async fn generate_image(
         line_tag,
         detail
     )))
+}
+
+async fn archive_generated_image(
+    state: &AppState,
+    req: ArchiveGeneratedImageRequest,
+    raw_base64: &str,
+) -> Result<ArchiveGeneratedImageResult, String> {
+    let _permit = state
+        .oss_archive_limiter
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(|_| "OSS 归档队列已关闭".to_string())?;
+    let config = compression_config_for_asset_kind(&req.asset_kind)?;
+    let compressed =
+        image_proc::compress_generated_image(image_proc::CompressGeneratedImageRequest {
+            base64_data: raw_base64.to_string(),
+            max_dimension: config.max_dimension,
+            quality: config.quality,
+        })
+        .await?;
+    let uploaded = oss::upload_image_to_oss(oss::UploadImageToOssRequest {
+        base64_data: compressed.base64_data,
+        mime_type: Some(compressed.mime_type),
+        folder: "generated".to_string(),
+        file_name: Some(format!("{}.jpg", req.file_name_stem)),
+    })
+    .await?;
+
+    Ok(ArchiveGeneratedImageResult {
+        url: uploaded.url,
+        key: uploaded.key,
+    })
+}
+
+struct ArchiveCompressionConfig {
+    max_dimension: u32,
+    quality: u8,
+}
+
+fn compression_config_for_asset_kind(kind: &str) -> Result<ArchiveCompressionConfig, String> {
+    let config = match kind {
+        "avatar" => ArchiveCompressionConfig {
+            max_dimension: 768,
+            quality: 82,
+        },
+        "storefront" | "poster" | "p_signboard" => ArchiveCompressionConfig {
+            max_dimension: 1536,
+            quality: 88,
+        },
+        "product" | "picture_wall" => ArchiveCompressionConfig {
+            max_dimension: 1024,
+            quality: 88,
+        },
+        "detail_page" => ArchiveCompressionConfig {
+            max_dimension: 2048,
+            quality: 92,
+        },
+        "brand_story" | "data_analysis" | "patrol_script" => ArchiveCompressionConfig {
+            max_dimension: 1792,
+            quality: 90,
+        },
+        _ => return Err(format!("不支持的归档图片类型：{kind}")),
+    };
+    Ok(config)
 }
 
 async fn get_line_health(
@@ -546,6 +661,12 @@ fn build_state() -> Result<AppState, String> {
             line_health,
             read_limit_env("GATEWAY_GENERATION_USER_LIMIT", 3),
         )),
+        // 压缩 + OSS PUT 比生图轻得多（每张 < 2s），
+        // 生图全局并发 24，归档要跟得上才不会成为瓶颈，默认开到 6。
+        oss_archive_limiter: Arc::new(Semaphore::new(read_positive_limit_env(
+            "GATEWAY_OSS_ARCHIVE_LIMIT",
+            6,
+        ))),
     })
 }
 
@@ -649,6 +770,10 @@ fn read_limit_env(name: &str, default: usize) -> usize {
         .ok()
         .and_then(|value| value.trim().parse::<usize>().ok())
         .unwrap_or(default)
+}
+
+fn read_positive_limit_env(name: &str, default: usize) -> usize {
+    read_limit_env(name, default).max(1)
 }
 
 struct GatewayError {

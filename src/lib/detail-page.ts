@@ -1,5 +1,5 @@
-import { generateImageWithLine, uploadImageToOss } from "./tauri";
-import { compressAndArchiveGenerated } from "./oss-assets";
+import { generateArchivedImageWithLine, uploadImageToOss } from "./tauri";
+import { resolveGeneratedArchiveUrl } from "./oss-assets";
 import { runWithAutoRetry } from "./generation-retry";
 import { safeFileName } from "./utils";
 import type { GenerationItem, GenerationLine, GenerationStatus, UploadedImage } from "../types";
@@ -104,19 +104,27 @@ export async function generateDetailPageItem(
   const generated = await runWithAutoRetry({
     onAttempt: (attempt) => options.onAttempt?.(attempt),
     run: async () => {
-      const response = await generateImageWithLine({
-        prompt: buildDetailPagePrompt({ shopName, productName, productOssUrl, pageIndex }),
-        size: DETAIL_PAGE_GENERATION_SIZE,
-        product_images: [productOssUrl],
-        api_line: "auto",
-      });
+      const response = await generateArchivedImageWithLine(
+        {
+          prompt: buildDetailPagePrompt({ shopName, productName, productOssUrl, pageIndex }),
+          size: DETAIL_PAGE_GENERATION_SIZE,
+          product_images: [productOssUrl],
+          api_line: "auto",
+        },
+        {
+          asset_kind: "detail_page",
+          file_name_stem: `${safeFileName(shopName)}-detail-page-${pageIndex + 1}`,
+        }
+      );
       return {
         rawBase64: response.image,
         generationLine: response.generationLine,
+        archiveUrl: response.archiveUrl,
+        archiveError: response.archiveError,
       };
     },
   });
-  const remoteUrl = await archiveDetailPageResult(generated.rawBase64, shopName, pageIndex);
+  const remoteUrl = await archiveDetailPageResult(generated, shopName, pageIndex);
 
   return {
     kind: "detail_page" as const,
@@ -140,12 +148,21 @@ async function resolveDetailPageProductOssUrl(sourceImage: UploadedImage, shopNa
   return uploaded.url;
 }
 
-async function archiveDetailPageResult(rawBase64: string, shopName: string, pageIndex: number) {
+async function archiveDetailPageResult(
+  generated: {
+    rawBase64: string;
+    archiveUrl?: string;
+    archiveError?: string;
+  },
+  shopName: string,
+  pageIndex: number
+) {
   try {
-    return await compressAndArchiveGenerated(
+    return await resolveGeneratedArchiveUrl(
       "detail_page",
-      rawBase64,
-      `${safeFileName(shopName)}-detail-page-${pageIndex + 1}`
+      generated.rawBase64,
+      `${safeFileName(shopName)}-detail-page-${pageIndex + 1}`,
+      generated
     );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

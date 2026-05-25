@@ -103,6 +103,18 @@ pub async fn compress_generated_image(
         return Err("JPEG 质量必须在 1-100 之间".into());
     }
 
+    // 解码 + resize + JPEG encode 都是 CPU 密集同步操作；
+    // 3 路网关 archive 并发就足以把 tokio runtime 的所有工作线程占满，
+    // 进而阻塞同期的上游 LLM polling / 其它 HTTP 请求。
+    // 全部丢到 blocking pool。
+    tokio::task::spawn_blocking(move || compress_blocking(req))
+        .await
+        .map_err(|e| format!("压缩任务调度失败：{e}"))?
+}
+
+fn compress_blocking(
+    req: CompressGeneratedImageRequest,
+) -> Result<CompressGeneratedImageResponse, String> {
     let bytes = STANDARD
         .decode(req.base64_data.as_bytes())
         .map_err(|e| format!("base64 解码失败：{e}"))?;

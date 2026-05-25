@@ -1,6 +1,7 @@
 import { archiveGeneratedImage } from "./oss-assets";
 import { buildGenerationPayload } from "./generation-flow";
-import { generateImageWithLine } from "./tauri";
+import { generateArchivedImageWithLine, generateImageWithLine, getBackendGatewayUrl } from "./tauri";
+import { safeFileName } from "./utils";
 import type {
   AppearanceOptions,
   AssetKind,
@@ -26,6 +27,8 @@ export interface GenerateAssetBase64Result {
   rawDataUrl: string;
   generationLine: GenerationLine;
   elapsedMs: number;
+  remoteUrl?: string;
+  archiveError?: string;
 }
 
 export function getMissingReferenceMessage(kind: AssetKind): string {
@@ -95,18 +98,26 @@ export async function generateAssetBase64(
 
   const referenceImagesForRequest = productImages ?? [];
   const started = Date.now();
-  const generated = await generateImageWithLine({
+  const request = {
     prompt,
     size,
     product_images: referenceImagesForRequest,
     api_line: "auto",
-  });
+  } as const;
+  const generated = getBackendGatewayUrl()
+    ? await generateArchivedImageWithLine(request, {
+        asset_kind: kind,
+        file_name_stem: `${safeFileName(shopName)}-${kind}`,
+      })
+    : await generateImageWithLine(request);
 
   return {
     rawBase64: generated.image,
     rawDataUrl: `data:image/png;base64,${generated.image}`,
     generationLine: generated.generationLine,
     elapsedMs: Date.now() - started,
+    remoteUrl: generated.archiveUrl,
+    archiveError: generated.archiveError,
   };
 }
 
@@ -121,7 +132,9 @@ export async function archiveAssetToOss(
 /** @deprecated 使用 generateAssetBase64 + archiveAssetToOss 分离生图与归档时机 */
 export async function generateAsset(options: GenerateAssetOptions): Promise<GenerateAssetResult> {
   const generated = await generateAssetBase64(options);
-  const remoteUrl = await archiveAssetToOss(options.kind, options.shopName, generated.rawBase64);
+  const remoteUrl =
+    generated.remoteUrl ??
+    (generated.archiveError ? "" : await archiveAssetToOss(options.kind, options.shopName, generated.rawBase64));
   return {
     rawBase64: generated.rawBase64,
     rawDataUrl: generated.rawDataUrl,

@@ -1,10 +1,10 @@
 import type { GenerationItem } from "../types";
 
 export function getGenerationPreviewUrl(
-  item: Pick<GenerationItem, "remoteUrl">
+  item: Pick<GenerationItem, "remoteUrl" | "rawDataUrl">
 ): string | null {
   const remoteUrl = item.remoteUrl?.trim();
-  return remoteUrl || null;
+  return remoteUrl || item.rawDataUrl || null;
 }
 
 /**

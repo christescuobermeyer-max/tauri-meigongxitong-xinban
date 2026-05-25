@@ -142,7 +142,16 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     if (item.status !== "succeeded") return;
 
     const remoteUrl = item.remoteUrl;
-    if (!remoteUrl) return;
+    if (!remoteUrl) {
+      // 归档到 OSS 失败：图已生成可下载，但本次不计入云端历史/今日统计/累计。
+      // workspace-session 等调用方已经在归档失败时 toast 过技术原因；
+      // 这里只补一条对员工可读的"统计未更新"提示，避免静默丢数。
+      toast.show(
+        `${getHistoryTitle(kind)}已生成，可直接下载，但本次未计入云端历史/今日统计`,
+        "info"
+      );
+      return;
+    }
     if (!markGenerationLogRecorded(recordedGenerationLogs.current, kind, remoteUrl)) return;
     const recordedLine = item.generationLine ?? generationLine;
     const trimmedShopName = shopNameSnapshot.trim() || "未命名店铺";

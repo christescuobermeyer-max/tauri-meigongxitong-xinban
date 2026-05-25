@@ -3,22 +3,26 @@ import { readFileSync } from "node:fs";
 import ts from "typescript";
 
 const libSource = readFileSync(new URL("../src/lib/p-signboard.ts", import.meta.url), "utf8")
-  .replace('import { generateImageWithLine, uploadImageToOss } from "./tauri";', `
+  .replace('import { generateArchivedImageWithLine, uploadImageToOss } from "./tauri";', `
 const calls = [];
 async function uploadImageToOss(req) {
   calls.push({ type: "upload", req });
   return { url: "https://oss.example.com/" + req.file_name, key: req.file_name };
 }
-async function generateImageWithLine(req) {
-  calls.push({ type: "generate", req });
-  return { image: "generated-base64", generationLine: req.size === "auto" ? "line5" : "line2" };
+async function generateArchivedImageWithLine(req, archive) {
+  calls.push({ type: "generate", req, archive });
+  return {
+    image: "generated-base64",
+    generationLine: req.size === "auto" ? "line5" : "line2",
+    archiveUrl: "https://oss.example.com/" + archive.file_name_stem + ".jpg",
+  };
 }
 export function __getCalls() { return calls; }
 `)
-  .replace('import { compressAndArchiveGenerated } from "./oss-assets";', `
-async function compressAndArchiveGenerated(kind, rawBase64, fileNameStem) {
-  calls.push({ type: "archive", kind, fileNameStem });
-  return "https://oss.example.com/" + fileNameStem + ".jpg";
+  .replace('import { resolveGeneratedArchiveUrl } from "./oss-assets";', `
+async function resolveGeneratedArchiveUrl(kind, rawBase64, fileNameStem, generated) {
+  calls.push({ type: "archive", kind, fileNameStem, generated });
+  return generated.archiveUrl || "https://oss.example.com/" + fileNameStem + ".jpg";
 }
 `)
   .replace('import { runWithAutoRetry } from "./generation-retry";', `
@@ -94,10 +98,12 @@ equal(calls[1].type, "generate");
 equal(calls[1].req.size, "1536x1024");
 equal(calls[1].req.api_line, "auto");
 equal(calls[1].req.product_images[0].startsWith("https://oss.example.com/"), true);
+equal(calls[1].archive.asset_kind, "p_signboard");
+ok(calls[1].archive.file_name_stem.includes("p-signboard"));
 ok(calls[1].req.prompt.includes(calls[1].req.product_images[0]));
 ok(calls[1].req.prompt.includes("原有文字内容“老王餐厅”"));
 ok(calls[1].req.prompt.includes("新文字内容“呈尚小厨”"));
-// 生成结果走 compressAndArchiveGenerated（archive 类型，p_signboard kind）
+// 生成结果走服务器端归档（archive 类型，p_signboard kind）
 equal(calls[2].type, "archive");
 equal(calls[2].kind, "p_signboard");
 ok(calls[2].fileNameStem.includes("p-signboard"));

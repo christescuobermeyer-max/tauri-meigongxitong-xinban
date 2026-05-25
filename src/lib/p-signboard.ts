@@ -1,5 +1,5 @@
-import { generateImageWithLine, uploadImageToOss } from "./tauri";
-import { compressAndArchiveGenerated } from "./oss-assets";
+import { generateArchivedImageWithLine, uploadImageToOss } from "./tauri";
+import { resolveGeneratedArchiveUrl } from "./oss-assets";
 import { resolvePSignboardGenerationSize } from "./generation-size";
 import { runWithAutoRetry } from "./generation-retry";
 import { safeFileName } from "./utils";
@@ -26,6 +26,7 @@ export async function generatePSignboardItem(
 ): Promise<GenerationItem> {
   const stem = safeFileName(options.shopName);
   const generationLine = options.generationLine ?? "line1";
+  const resultStem = `${stem}-p-signboard-${Date.now()}`;
   const sourceUpload = await uploadImageToOss({
     base64_data: image.productBase64,
     mime_type: image.mime,
@@ -36,22 +37,31 @@ export async function generatePSignboardItem(
   const generated = await runWithAutoRetry({
     onAttempt: (attempt) => options.onAttempt?.(attempt),
     run: async () => {
-      const response = await generateImageWithLine({
-        prompt: buildPSignboardPrompt(sourceUpload.url, options.originalText, options.newText),
-        size: resolvePSignboardGenerationSize(generationLine),
-        product_images: [sourceUpload.url],
-        api_line: "auto",
-      });
+      const response = await generateArchivedImageWithLine(
+        {
+          prompt: buildPSignboardPrompt(sourceUpload.url, options.originalText, options.newText),
+          size: resolvePSignboardGenerationSize(generationLine),
+          product_images: [sourceUpload.url],
+          api_line: "auto",
+        },
+        {
+          asset_kind: "p_signboard",
+          file_name_stem: resultStem,
+        }
+      );
       return {
         rawBase64: response.image,
         generationLine: response.generationLine,
+        archiveUrl: response.archiveUrl,
+        archiveError: response.archiveError,
       };
     },
   });
-  const remoteUrl = await compressAndArchiveGenerated(
+  const remoteUrl = await resolveGeneratedArchiveUrl(
     "p_signboard",
     generated.rawBase64,
-    `${stem}-p-signboard-${Date.now()}`
+    resultStem,
+    generated
   );
 
   return {

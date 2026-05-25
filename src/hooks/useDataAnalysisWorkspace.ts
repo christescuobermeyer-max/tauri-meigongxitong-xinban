@@ -7,8 +7,13 @@ import {
   resolveDataAnalysisSize,
 } from "../lib/data-analysis";
 import { getAutoRetryAttempt, runWithAutoRetry } from "../lib/generation-retry";
-import { compressAndArchiveGenerated } from "../lib/oss-assets";
-import { generateImageWithLine, pickSavePath, resizeAndSaveImage } from "../lib/tauri";
+import { resolveGeneratedArchiveUrl } from "../lib/oss-assets";
+import {
+  generateArchivedImageWithLine,
+  pickSavePath,
+  resizeAndSaveImage,
+  uploadImageToOss,
+} from "../lib/tauri";
 import { safeFileName } from "../lib/utils";
 import type { AssetKind, GenerationItem, GenerationLine, Platform, UploadedImage } from "../types";
 
@@ -55,26 +60,55 @@ export default function useDataAnalysisWorkspace({
 
   async function handleGenerate() {
     if (!validateInputs()) return;
-    const snapshot = {
-      storeName: storeName.trim(),
-      screenshotBase64: images[0].productBase64 || images[0].base64,
-      generationLine,
-    };
-    await runGeneration(snapshot);
-  }
-
-  async function handleRetry() {
-    if (!validateInputs()) return;
+    const screenshotOssUrl = await prepareScreenshotOssUrl();
+    if (!screenshotOssUrl) return;
     await runGeneration({
       storeName: storeName.trim(),
-      screenshotBase64: images[0].productBase64 || images[0].base64,
+      screenshotOssUrl,
       generationLine,
     });
   }
 
+  async function handleRetry() {
+    if (!validateInputs()) return;
+    const screenshotOssUrl = await prepareScreenshotOssUrl();
+    if (!screenshotOssUrl) return;
+    await runGeneration({
+      storeName: storeName.trim(),
+      screenshotOssUrl,
+      generationLine,
+    });
+  }
+
+  // 先把截图传到 OSS uploads/，再把 OSS URL 传给生图网关：
+  // 避免 6 个客户端同 IP 并发 POST 数 MB base64 把公司出口带宽挤爆。
+  // 复用 UploadedImage.productOssUrl 缓存，重生成不重复上传。
+  async function prepareScreenshotOssUrl(): Promise<string | null> {
+    const source = images[0];
+    if (source.productOssUrl) return source.productOssUrl;
+    try {
+      const uploaded = await uploadImageToOss({
+        base64_data: source.productBase64 || source.base64,
+        mime_type: source.mime,
+        folder: "uploads",
+        file_name: `${safeFileName(storeName.trim() || "store")}-data-analysis-source-${source.id}.jpg`,
+      });
+      setImages((prev) =>
+        prev.map((image) =>
+          image.id === source.id ? { ...image, productOssUrl: uploaded.url } : image
+        )
+      );
+      return uploaded.url;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      onToast(`截图上传 OSS 失败：${message}`, "error");
+      return null;
+    }
+  }
+
   async function runGeneration(snapshot: {
     storeName: string;
-    screenshotBase64: string;
+    screenshotOssUrl: string;
     generationLine: GenerationLine;
   }) {
     const started = Date.now();
@@ -95,22 +129,31 @@ export default function useDataAnalysisWorkspace({
             attempt,
           })),
         run: async () => {
-          const response = await generateImageWithLine({
-            prompt: buildDataAnalysisPrompt(snapshot.storeName),
-            size: resolveDataAnalysisSize(snapshot.generationLine),
-            product_images: [snapshot.screenshotBase64],
-            api_line: "auto",
-          });
+          const response = await generateArchivedImageWithLine(
+            {
+              prompt: buildDataAnalysisPrompt(snapshot.storeName),
+              size: resolveDataAnalysisSize(snapshot.generationLine),
+              product_images: [snapshot.screenshotOssUrl],
+              api_line: "auto",
+            },
+            {
+              asset_kind: DATA_ANALYSIS_ASSET_KIND,
+              file_name_stem: `${safeFileName(snapshot.storeName)}-data-analysis`,
+            }
+          );
           return {
             rawBase64: response.image,
             generationLine: response.generationLine,
+            archiveUrl: response.archiveUrl,
+            archiveError: response.archiveError,
           };
         },
       });
-      const remoteUrl = await compressAndArchiveGenerated(
+      const remoteUrl = await resolveGeneratedArchiveUrl(
         DATA_ANALYSIS_ASSET_KIND,
         result.rawBase64,
-        `${safeFileName(snapshot.storeName)}-data-analysis`
+        `${safeFileName(snapshot.storeName)}-data-analysis`,
+        result
       );
       const itemWithRemoteUrl: GenerationItem = {
         kind: DATA_ANALYSIS_ASSET_KIND,

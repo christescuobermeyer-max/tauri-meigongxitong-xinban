@@ -8,17 +8,21 @@ async function uploadImageToOss(req) {
   apiCalls.push({ type: "upload", req });
   return { url: "https://oss.example.com/" + req.file_name, key: req.file_name };
 }
-async function generateImageWithLine(req) {
-  apiCalls.push({ type: "generate", req });
-  return { image: "detail-base64", generationLine: "line3" };
+async function generateArchivedImageWithLine(req, archive) {
+  apiCalls.push({ type: "generate", req, archive });
+  return {
+    image: "detail-base64",
+    generationLine: "line3",
+    archiveUrl: "https://oss.example.com/" + archive.file_name_stem + ".jpg",
+  };
 }
 export function __getApiCalls() { return apiCalls; }
 `;
 
 const ossAssetsStub = `
-async function compressAndArchiveGenerated(kind, rawBase64, fileNameStem) {
-  apiCalls.push({ type: "archive", kind, fileNameStem });
-  return "https://oss.example.com/" + fileNameStem + ".jpg";
+async function resolveGeneratedArchiveUrl(kind, rawBase64, fileNameStem, generated) {
+  apiCalls.push({ type: "archive", kind, fileNameStem, generated });
+  return generated.archiveUrl || "https://oss.example.com/" + fileNameStem + ".jpg";
 }
 `;
 
@@ -43,8 +47,8 @@ async function runWithAutoRetry(options) {
 `;
 
 const libSource = readFileSync(new URL("../src/lib/detail-page.ts", import.meta.url), "utf8")
-  .replace('import { generateImageWithLine, uploadImageToOss } from "./tauri";', tauriStubs)
-  .replace('import { compressAndArchiveGenerated } from "./oss-assets";', ossAssetsStub)
+  .replace('import { generateArchivedImageWithLine, uploadImageToOss } from "./tauri";', tauriStubs)
+  .replace('import { resolveGeneratedArchiveUrl } from "./oss-assets";', ossAssetsStub)
   .replace('import { runWithAutoRetry } from "./generation-retry";', retryStub)
   .replace('import { safeFileName } from "./utils";', "function safeFileName(input) { return input.trim() || 'shop'; }")
   .replace('import type { GenerationItem, GenerationLine, GenerationStatus, UploadedImage } from "../types";', "");
@@ -103,6 +107,8 @@ equal(apiCalls[1].type, "generate");
 equal(apiCalls[1].req.api_line, "auto");
 equal(apiCalls[1].req.size, "1024x1536");
 equal(apiCalls[1].req.product_images[0].startsWith("https://oss.example.com/"), true);
+equal(apiCalls[1].archive.asset_kind, "detail_page");
+ok(apiCalls[1].archive.file_name_stem.includes("detail-page-2"));
 ok(apiCalls[1].req.prompt.includes("第2张详情页"));
 ok(apiCalls[1].req.prompt.includes(apiCalls[1].req.product_images[0]));
 equal(apiCalls[2].type, "archive");

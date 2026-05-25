@@ -16,13 +16,17 @@ const brandStorySource = readFileSync(
   "utf8"
 )
   .replace(
-    'import { generateImageWithLine, generateBrandStoryText } from "./tauri";',
-    `async function generateImageWithLine() { return { image: "raw", generationLine: "line2" }; }
+    'import { generateArchivedImageWithLine, generateBrandStoryText } from "./tauri";',
+    `async function generateArchivedImageWithLine(req, archive) {
+  return { image: "raw", generationLine: "line2", archiveUrl: "https://oss.example.com/" + archive.file_name_stem + ".jpg" };
+}
 async function generateBrandStoryText() { return {}; }`
   )
   .replace(
-    'import { compressAndArchiveGenerated } from "./oss-assets";',
-    `async function compressAndArchiveGenerated() { return "https://oss.example.com/brand-story.png"; }`
+    'import { resolveGeneratedArchiveUrl } from "./oss-assets";',
+    `async function resolveGeneratedArchiveUrl(kind, rawBase64, fileNameStem, generated) {
+  return generated.archiveUrl || "https://oss.example.com/brand-story.png";
+}`
   )
   .replace(
     'import { runWithAutoRetry } from "./generation-retry";',

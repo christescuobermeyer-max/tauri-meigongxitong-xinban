@@ -146,12 +146,37 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
     kind,
     rawBase64: generated.rawBase64,
     rawDataUrl: generated.rawDataUrl,
-    remoteUrl: "",
+    remoteUrl: generated.remoteUrl ?? "",
     generationLine: generated.generationLine,
     status: "succeeded",
     elapsedMs: generated.elapsedMs,
     attempt: generated.attempt,
   });
+
+  if (generated.remoteUrl) {
+    return {
+      rawBase64: generated.rawBase64,
+      rawDataUrl: generated.rawDataUrl,
+      remoteUrl: generated.remoteUrl,
+      generationLine: generated.generationLine,
+      elapsedMs: generated.elapsedMs,
+      attempt: generated.attempt,
+    };
+  }
+
+  if (generated.archiveError) {
+    // 归档失败的对外提示由 useGenerationWorkspace.recordHistory 统一给（更准确：
+    // 会说明"未计入云端历史/今日统计"）；这里只保留 console 排查信息。
+    console.warn(`[${kind}] gateway archive failed:`, generated.archiveError);
+    return {
+      rawBase64: generated.rawBase64,
+      rawDataUrl: generated.rawDataUrl,
+      remoteUrl: "",
+      generationLine: generated.generationLine,
+      elapsedMs: generated.elapsedMs,
+      attempt: generated.attempt,
+    };
+  }
 
   try {
     const remoteUrl = await archiveAssetToOss(kind, shopName, generated.rawBase64);
@@ -165,9 +190,16 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
       attempt: generated.attempt,
     };
   } catch (ossError: unknown) {
-    const message = ossError instanceof Error ? ossError.message : String(ossError);
-    onToast(`${getAssetLabel(kind)}已生成，但归档到云端失败：${message}`, "error");
-    return null;
+    // 同上：让 recordHistory 给统一文案，console 留技术细节
+    console.warn(`[${kind}] local archive failed:`, ossError);
+    return {
+      rawBase64: generated.rawBase64,
+      rawDataUrl: generated.rawDataUrl,
+      remoteUrl: "",
+      generationLine: generated.generationLine,
+      elapsedMs: generated.elapsedMs,
+      attempt: generated.attempt,
+    };
   }
 }
 

@@ -88,20 +88,24 @@ async function uploadImageToOss(req) {
   calls.push({ type: "upload", req });
   return { url: "https://oss.example.com/" + req.file_name, key: req.file_name };
 }
-async function generateImageWithLine(req) {
-  calls.push({ type: "generate", req });
-  return { image: "abc", generationLine: "line5" };
+async function generateArchivedImageWithLine(req, archive) {
+  calls.push({ type: "generate", req, archive });
+  return {
+    image: "abc",
+    generationLine: "line5",
+    archiveUrl: "https://oss.example.com/" + archive.file_name_stem + ".jpg",
+  };
 }
-async function compressAndArchiveGenerated(kind, rawBase64, fileNameStem) {
-  calls.push({ type: "archive", kind, fileNameStem });
-  return "https://oss.example.com/" + fileNameStem + ".jpg";
+async function resolveGeneratedArchiveUrl(kind, rawBase64, fileNameStem, generated) {
+  calls.push({ type: "archive", kind, fileNameStem, generated });
+  return generated.archiveUrl || "https://oss.example.com/" + fileNameStem + ".jpg";
 }
 export function __getCalls() { return calls; }
 `;
 
 const pictureWallSource = read("src/lib/picture-wall.ts")
-  .replace('import { generateImageWithLine, uploadImageToOss } from "./tauri";', tauriStubs)
-  .replace('import { compressAndArchiveGenerated } from "./oss-assets";', "")
+  .replace('import { generateArchivedImageWithLine, uploadImageToOss } from "./tauri";', tauriStubs)
+  .replace('import { resolveGeneratedArchiveUrl } from "./oss-assets";', "")
   .replace(
     'import { runWithAutoRetry } from "./generation-retry";',
     "async function runWithAutoRetry(options) { return { ...(await options.run()), attempt: 1 }; }"

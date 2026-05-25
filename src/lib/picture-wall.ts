@@ -1,5 +1,5 @@
-import { generateImageWithLine, uploadImageToOss } from "./tauri";
-import { compressAndArchiveGenerated } from "./oss-assets";
+import { generateArchivedImageWithLine, uploadImageToOss } from "./tauri";
+import { resolveGeneratedArchiveUrl } from "./oss-assets";
 import { runWithAutoRetry } from "./generation-retry";
 import { safeFileName } from "./utils";
 import type {
@@ -179,19 +179,27 @@ export async function generatePictureWallItem(
   const generated = await runWithAutoRetry({
     onAttempt: (attempt) => options.onAttempt?.(attempt),
     run: async () => {
-      const response = await generateImageWithLine({
-        prompt: buildPictureWallPrompt(shopName, sourceImage.productName, productOssUrl, options.appearance ?? {}),
-        size: resolvePictureWallGenerationSize(generationLine),
-        product_images: [productOssUrl],
-        api_line: "auto",
-      });
+      const response = await generateArchivedImageWithLine(
+        {
+          prompt: buildPictureWallPrompt(shopName, sourceImage.productName, productOssUrl, options.appearance ?? {}),
+          size: resolvePictureWallGenerationSize(generationLine),
+          product_images: [productOssUrl],
+          api_line: "auto",
+        },
+        {
+          asset_kind: "picture_wall",
+          file_name_stem: `${safeFileName(shopName)}-picture-wall-${sourceImage.id}`,
+        }
+      );
       return {
         rawBase64: response.image,
         generationLine: response.generationLine,
+        archiveUrl: response.archiveUrl,
+        archiveError: response.archiveError,
       };
     },
   });
-  const archive = await archivePictureWallResult(generated.rawBase64, shopName, sourceImage.id);
+  const archive = await archivePictureWallResult(generated, shopName, sourceImage.id);
   return {
     kind: "picture_wall" as const,
     rawBase64: generated.rawBase64,
@@ -207,12 +215,21 @@ function resolvePictureWallGenerationSize(generationLine: GenerationLine) {
   return generationLine === "line5" ? APIMART_PICTURE_WALL_SIZE : PICTURE_WALL_GENERATION_SIZE;
 }
 
-async function archivePictureWallResult(rawBase64: string, shopName: string, sourceImageId: string) {
+async function archivePictureWallResult(
+  generated: {
+    rawBase64: string;
+    archiveUrl?: string;
+    archiveError?: string;
+  },
+  shopName: string,
+  sourceImageId: string
+) {
   try {
-    return await compressAndArchiveGenerated(
+    return await resolveGeneratedArchiveUrl(
       "picture_wall",
-      rawBase64,
-      `${safeFileName(shopName)}-picture-wall-${sourceImageId}`
+      generated.rawBase64,
+      `${safeFileName(shopName)}-picture-wall-${sourceImageId}`,
+      generated
     );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

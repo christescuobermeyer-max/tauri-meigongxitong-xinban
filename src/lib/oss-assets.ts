@@ -1,7 +1,7 @@
 import { safeFileName } from "./utils";
-import { getBackendGatewayUrl, requestOssPresignedUrls, uploadImageToOss } from "./tauri";
+import { getBackendGatewayUrl, uploadImageToOss } from "./tauri";
 import { compressGeneratedImage } from "./tauri-image";
-import type { AssetKind, UploadedImage } from "../types";
+import type { AssetKind, GenerationLine, UploadedImage } from "../types";
 
 interface CompressionConfig {
   /** 最长边像素，超过会按比例缩小 */
@@ -87,10 +87,6 @@ export async function ensureUploadedImagesOnOss(
   return next;
 }
 
-const DIRECT_PUT_TIMEOUT_MS = 60_000;
-const ARCHIVE_MAX_ATTEMPTS = 3;
-const ARCHIVE_RETRY_BACKOFF_MS = 800;
-
 /**
  * 把生成图按其类型对应的压缩参数压成 JPEG，再归档到 OSS 的 generated/ 目录。
  *
@@ -99,26 +95,24 @@ const ARCHIVE_RETRY_BACKOFF_MS = 800;
  * @param fileNameStem  OSS 文件名主体（不含扩展名，由调用方负责去重）
  * @returns             OSS 可访问 URL
  *
- * 配置了网关时走"客户端直传 OSS"：先向网关换一对签名 URL（毫秒级），
- * 再用 put_url 把压缩后的二进制直接 PUT 到 OSS，归档 get_url。
- * 这条路径不再让上游生图请求拖累 OSS 归档。
- * 未配置网关（本地 Tauri 调试）则继续走旧的 invoke 路径。
+ * 未配置网关（本地 Tauri 调试）时继续走本地 invoke 路径。
+ * 生产网关模式下生成图必须随生图请求在服务器端归档，避免员工电脑并发直传 OSS。
  */
 export async function compressAndArchiveGenerated(
   kind: AssetKind,
   rawBase64: string,
   fileNameStem: string
 ): Promise<string> {
+  if (getBackendGatewayUrl()) {
+    throw new Error("网关模式下生成图必须随生图请求由服务器端归档");
+  }
+
   const cfg = COMPRESSION_BY_KIND[kind];
   const compressed = await compressGeneratedImage({
     base64_data: rawBase64,
     max_dimension: cfg.maxDimension,
     quality: cfg.quality,
   });
-
-  if (getBackendGatewayUrl()) {
-    return await directPutWithRetry(compressed, `${fileNameStem}.jpg`);
-  }
 
   const uploaded = await uploadImageToOss({
     base64_data: compressed.base64_data,
@@ -129,61 +123,26 @@ export async function compressAndArchiveGenerated(
   return uploaded.url;
 }
 
-async function directPutWithRetry(
-  compressed: { base64_data: string; mime_type: string },
-  fileName: string
+export async function resolveGeneratedArchiveUrl(
+  kind: AssetKind,
+  rawBase64: string,
+  fileNameStem: string,
+  generated: {
+    archiveUrl?: string;
+    archiveError?: string;
+    generationLine?: GenerationLine;
+  } = {}
 ): Promise<string> {
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= ARCHIVE_MAX_ATTEMPTS; attempt++) {
-    try {
-      const presigned = await requestOssPresignedUrls({
-        folder: "generated",
-        file_name: fileName,
-        mime_type: compressed.mime_type,
-      });
-      const bytes = base64ToArrayBuffer(compressed.base64_data);
-      const controller = new AbortController();
-      const timer = window.setTimeout(
-        () => controller.abort(),
-        DIRECT_PUT_TIMEOUT_MS
-      );
-      try {
-        const response = await fetch(presigned.put_url, {
-          method: "PUT",
-          headers: { "Content-Type": presigned.content_type },
-          body: bytes,
-          signal: controller.signal,
-        });
-        if (!response.ok) {
-          const text = await response.text().catch(() => "");
-          throw new Error(
-            `OSS 直传返回 ${response.status}${text ? `：${text.slice(0, 200)}` : ""}`
-          );
-        }
-        return presigned.get_url;
-      } finally {
-        window.clearTimeout(timer);
-      }
-    } catch (error) {
-      lastError = error;
-      if (attempt < ARCHIVE_MAX_ATTEMPTS) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, ARCHIVE_RETRY_BACKOFF_MS * attempt)
-        );
-      }
-    }
+  if (generated.archiveUrl) return generated.archiveUrl;
+  if (generated.archiveError) {
+    console.warn(`[oss] generated archive failed: ${generated.archiveError}`);
+    return "";
   }
-  throw lastError instanceof Error
-    ? lastError
-    : new Error(`OSS 直传失败：${String(lastError)}`);
-}
-
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binary = atob(base64);
-  const buffer = new ArrayBuffer(binary.length);
-  const bytes = new Uint8Array(buffer);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return buffer;
+  if (getBackendGatewayUrl()) {
+    console.warn("[oss] gateway mode generation did not return archive_url");
+    return "";
+  }
+  return await compressAndArchiveGenerated(kind, rawBase64, fileNameStem);
 }
 
 /**

@@ -12,17 +12,21 @@ async function uploadImageToOss(req) {
   apiCalls.push({ type: "upload", req });
   return { url: "https://oss.example.com/" + req.file_name, key: req.file_name };
 }
-async function generateImageWithLine(req) {
-  apiCalls.push({ type: "generate", req });
-  return { image: "abc", generationLine: "line2" };
+async function generateArchivedImageWithLine(req, archive) {
+  apiCalls.push({ type: "generate", req, archive });
+  return {
+    image: "abc",
+    generationLine: "line2",
+    archiveUrl: "https://oss.example.com/" + archive.file_name_stem + ".jpg",
+  };
 }
-async function compressAndArchiveGenerated(kind, rawBase64, fileNameStem) {
-  apiCalls.push({ type: "archive", kind, fileNameStem });
+async function resolveGeneratedArchiveUrl(kind, rawBase64, fileNameStem, generated) {
+  apiCalls.push({ type: "archive", kind, fileNameStem, generated });
   if (failGeneratedUpload) {
     failGeneratedUpload = false;
     throw new Error("OSS generated upload failed");
   }
-  return "https://oss.example.com/" + fileNameStem + ".jpg";
+  return generated.archiveUrl || "https://oss.example.com/" + fileNameStem + ".jpg";
 }
 export function __getResizeCalls() { return resizeCalls; }
 export function __getApiCalls() { return apiCalls; }
@@ -48,9 +52,9 @@ async function runWithAutoRetry(options) {
 }
 `;
 const libSource = readFileSync(new URL("../src/lib/picture-wall.ts", import.meta.url), "utf8")
-  .replace('import { generateImageWithLine, uploadImageToOss } from "./tauri";', tauriStubs)
+  .replace('import { generateArchivedImageWithLine, uploadImageToOss } from "./tauri";', tauriStubs)
   .replace('import { generateImage, pickDirectoryPath, resizeAndSaveImage, uploadImageToOss } from "./tauri";', tauriStubs)
-  .replace('import { compressAndArchiveGenerated } from "./oss-assets";', "")
+  .replace('import { resolveGeneratedArchiveUrl } from "./oss-assets";', "")
   .replace('import { runWithAutoRetry } from "./generation-retry";', retryStub)
   .replace('import { safeFileName } from "./utils";', "function safeFileName(input) { return input.trim() || 'shop'; }")
   .replace('import type { GenerationItem, GenerationLine, GenerationStatus, UploadedImage } from "../types";', "")
@@ -108,7 +112,7 @@ ok(prompt.includes("产品名称：“招牌炸鸡”"));
 ok(prompt.includes("https://oss.example.com/source.jpg"));
 ok(prompt.includes("极具戏剧性的商业食品摄影风格"));
 ok(prompt.includes("不要加入促销价格、满减信息、二维码、地址、电话、联系方式"));
-ok(libSource.includes("generateImageWithLine("));
+ok(libSource.includes("generateArchivedImageWithLine("));
 
 const entries = libModule.buildPictureWallEntries([
   { id: "a", name: "a.jpg", dataUrl: "data:image/jpeg;base64,a" },
@@ -174,6 +178,8 @@ equal(apiCalls[1].type, "generate");
 equal(apiCalls[1].req.api_line, "auto");
 equal(apiCalls[1].req.size, "1024x1536");
 equal(apiCalls[1].req.product_images[0].startsWith("https://oss.example.com/"), true);
+equal(apiCalls[1].archive.asset_kind, "picture_wall");
+ok(apiCalls[1].archive.file_name_stem.includes("picture-wall"));
 ok(apiCalls[1].req.prompt.includes("外卖店铺“韩大叔炸鸡拌饭”"));
 ok(apiCalls[1].req.prompt.includes("产品名称：“招牌炸鸡”"));
 ok(apiCalls[1].req.prompt.includes(apiCalls[1].req.product_images[0]));

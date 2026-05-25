@@ -78,7 +78,7 @@ ok(globalCssSource.includes(".data-analysis-result-hero"));
 ok(globalCssSource.includes(".data-analysis-result-hero__metrics"));
 
 const hookSource = read("src/hooks/useDataAnalysisWorkspace.ts");
-ok(hookSource.includes("compressAndArchiveGenerated"));
+ok(hookSource.includes("resolveGeneratedArchiveUrl"));
 ok(hookSource.includes("DATA_ANALYSIS_ASSET_KIND"));
 ok(hookSource.includes("onRecordHistory"));
 ok(hookSource.includes("remoteUrl"));

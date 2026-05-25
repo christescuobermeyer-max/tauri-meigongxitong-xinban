@@ -1,4 +1,4 @@
-import { rejects, equal } from "node:assert/strict";
+import { equal } from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
 
@@ -10,7 +10,9 @@ const source = readFileSync(
     'import { archiveGeneratedImage } from "./oss-assets";',
     `
 let failArchive = false;
+let localArchiveCalls = 0;
 async function archiveGeneratedImage(kind, shopName, rawBase64) {
+  localArchiveCalls += 1;
   if (failArchive) {
     failArchive = false;
     throw new Error("OSS archive failed");
@@ -18,6 +20,7 @@ async function archiveGeneratedImage(kind, shopName, rawBase64) {
   return "https://oss.example.com/generated/" + kind + ".png";
 }
 export function __failNextArchive() { failArchive = true; }
+export function __getLocalArchiveCalls() { return localArchiveCalls; }
 `
   )
   .replace(
@@ -29,8 +32,30 @@ function buildGenerationPayload() {
 `
   )
   .replace(
-    'import { generateImageWithLine } from "./tauri";',
-    'async function generateImageWithLine() { return { image: "generated-base64", generationLine: "line2" }; }'
+    'import { generateArchivedImageWithLine, generateImageWithLine, getBackendGatewayUrl } from "./tauri";',
+    `
+let failGatewayArchive = false;
+let generateCalls = [];
+function getBackendGatewayUrl() { return "https://gateway.example.com"; }
+async function generateImageWithLine(req) {
+  generateCalls.push({ type: "local-generate", req });
+  return { image: "generated-base64", generationLine: "line2" };
+}
+async function generateArchivedImageWithLine(req, archive) {
+  generateCalls.push({ type: "gateway-generate", req, archive });
+  if (failGatewayArchive) {
+    failGatewayArchive = false;
+    return { image: "generated-base64", generationLine: "line2", archiveError: "OSS archive failed" };
+  }
+  return { image: "generated-base64", generationLine: "line2", archiveUrl: "https://oss.example.com/generated/product.jpg" };
+}
+export function __failNextGatewayArchive() { failGatewayArchive = true; }
+export function __getGenerateCalls() { return generateCalls; }
+`
+  )
+  .replace(
+    'import { safeFileName } from "./utils";',
+    'function safeFileName(input) { return input.trim() || "shop"; }'
   )
   .replace(/import type \{[\s\S]*?\} from "\.\.\/types";/, "");
 
@@ -58,7 +83,15 @@ const options = {
 };
 
 const generated = await module.generateAsset(options);
-equal(generated.remoteUrl, "https://oss.example.com/generated/product.png");
+equal(generated.remoteUrl, "https://oss.example.com/generated/product.jpg");
+equal(module.__getLocalArchiveCalls(), 0);
+const calls = module.__getGenerateCalls();
+equal(calls[0].type, "gateway-generate");
+equal(calls[0].archive.asset_kind, "product");
+equal(calls[0].archive.file_name_stem, "测试店铺-product");
 
-module.__failNextArchive();
-await rejects(() => module.generateAsset(options), /OSS archive failed/);
+module.__failNextGatewayArchive();
+const archiveFailed = await module.generateAsset(options);
+equal(archiveFailed.rawBase64, "generated-base64");
+equal(archiveFailed.remoteUrl, "");
+equal(module.__getLocalArchiveCalls(), 0);

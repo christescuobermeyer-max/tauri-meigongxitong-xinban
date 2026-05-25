@@ -21,7 +21,8 @@ equal(tauriSource.includes("signal: controller.signal"), true);
 equal(tauriSource.includes('"/api/generate-image"'), true);
 equal(tauriSource.includes("GenerateImageResponse"), true);
 equal(tauriSource.includes("generateImageWithLine"), true);
-equal(tauriSource.includes('"/api/upload-image-to-oss"'), true);
+// 前端在网关模式下走预签名直传 OSS（绕开网关上行），不再 POST /api/upload-image-to-oss
+equal(tauriSource.includes('"/api/oss-presigned-urls"'), true);
 equal(tauriSource.includes("Authorization"), true);
 equal(adminSource.includes('"/api/admin-create-user"'), true);
 equal(cargoSource.includes("axum"), true);
