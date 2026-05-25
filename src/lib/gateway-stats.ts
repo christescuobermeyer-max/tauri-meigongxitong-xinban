@@ -32,12 +32,23 @@ export interface GatewayQueueSnapshot {
   waiting: WaitingTicketSnapshot[];
 }
 
+export interface PausedLineSnapshot {
+  line: string;
+  reason: string;
+  /** ISO8601 UTC */
+  paused_at: string;
+  /** "balance_zero" / "manual" */
+  source: string;
+}
+
 export interface GatewayStatsResponse {
   queue: GatewayQueueSnapshot;
   health: { lines: Record<string, LineHealthEntry> };
   display_names: Record<string, string>;
   /** ISO8601 UTC，前端用来计算等待秒数与服务器对齐 */
   server_time: string;
+  /** 当前被暂停的线路（余额为 0 等原因），auto 路由会自动排除 */
+  paused_lines: PausedLineSnapshot[];
 }
 
 export async function fetchGatewayStats(): Promise<GatewayStatsResponse> {

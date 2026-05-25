@@ -18,6 +18,8 @@ mod brand_story_clients;
 mod env_config;
 #[path = "../gateway_limiter.rs"]
 mod gateway_limiter;
+#[path = "../gateway_pause_state.rs"]
+mod gateway_pause_state;
 #[path = "../gateway_queue.rs"]
 mod gateway_queue;
 #[path = "../gemini_response.rs"]
@@ -68,6 +70,7 @@ use tokio::sync::Semaphore;
 use tower_http::cors::{Any, CorsLayer};
 
 use gateway_limiter::{generation_size_for_line, GatewayLimiter};
+use gateway_pause_state::{PauseStateRegistry, PausedLineInfo};
 use gateway_queue::{GatewayGenerationQueue, QueuedGenerationPermit};
 use image_provider::ImageApiLine;
 use line_health::{LineHealthRegistry, LineHealthSnapshot};
@@ -80,6 +83,7 @@ struct AppState {
     line_health: Arc<LineHealthRegistry>,
     generation_queue: Arc<GatewayGenerationQueue>,
     oss_archive_limiter: Arc<Semaphore>,
+    pause_state: Arc<PauseStateRegistry>,
 }
 
 #[derive(Serialize)]
@@ -139,6 +143,8 @@ async fn main() -> Result<(), String> {
         .route("/api/oss-presigned-urls", post(oss_presigned_urls))
         .route("/api/admin-create-user", post(admin_create_user))
         .route("/api/admin-soft-delete-user", post(admin_soft_delete_user))
+        .route("/api/admin/line-pause", post(admin_line_pause))
+        .route("/api/admin/line-resume", post(admin_line_resume))
         .route(
             "/api/brand-story-generate-text",
             post(brand_story_generate_text),
@@ -381,6 +387,8 @@ struct AdminGatewayStatsResponse {
     display_names: HashMap<String, String>,
     /// 服务器当前时间（ISO8601 UTC），供前端校准"等待 N 秒"
     server_time: String,
+    /// 当前被暂停的线路（余额为 0 等原因），auto 路由会自动排除，manual 选择会被拒
+    paused_lines: Vec<PausedLineInfo>,
 }
 
 async fn admin_gateway_stats(
@@ -393,6 +401,7 @@ async fn admin_gateway_stats(
 
     let queue = state.generation_queue.snapshot();
     let health = state.line_health.snapshot();
+    let paused_lines = state.pause_state.snapshot();
 
     // 收集快照里出现过的所有 user_id（在跑的 + 排队的）
     let mut user_ids: std::collections::HashSet<String> = queue.active_by_user.keys().cloned().collect();
@@ -413,7 +422,90 @@ async fn admin_gateway_stats(
         health,
         display_names,
         server_time,
+        paused_lines,
     }))
+}
+
+#[derive(serde::Deserialize)]
+struct AdminLinePauseRequest {
+    line: String,
+    #[serde(default)]
+    reason: Option<String>,
+    #[serde(default)]
+    source: Option<String>,
+}
+
+#[derive(serde::Deserialize)]
+struct AdminLineResumeRequest {
+    line: String,
+}
+
+#[derive(Serialize)]
+struct AdminLinePauseResponse {
+    ok: bool,
+    paused: PausedLineInfo,
+}
+
+#[derive(Serialize)]
+struct AdminLineResumeResponse {
+    ok: bool,
+    /// true = 之前有暂停记录被移除；false = 没有记录（幂等）
+    removed: bool,
+}
+
+async fn admin_line_pause(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<AdminLinePauseRequest>,
+) -> Result<Json<AdminLinePauseResponse>, GatewayError> {
+    let user_id = verify_access_token(&state, &headers).await?;
+    let token = bearer_token(&headers)?;
+    ensure_admin_profile(&state, token, &user_id).await?;
+
+    let line = validate_line_name(&req.line)?;
+    let reason = req
+        .reason
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or("manual")
+        .to_string();
+    let source = req
+        .source
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or("manual")
+        .to_string();
+    let paused = state.pause_state.pause(line, reason, source);
+    Ok(Json(AdminLinePauseResponse { ok: true, paused }))
+}
+
+async fn admin_line_resume(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<AdminLineResumeRequest>,
+) -> Result<Json<AdminLineResumeResponse>, GatewayError> {
+    let user_id = verify_access_token(&state, &headers).await?;
+    let token = bearer_token(&headers)?;
+    ensure_admin_profile(&state, token, &user_id).await?;
+
+    let line = validate_line_name(&req.line)?;
+    let removed = state.pause_state.resume(&line);
+    Ok(Json(AdminLineResumeResponse { ok: true, removed }))
+}
+
+fn validate_line_name(raw: &str) -> Result<String, GatewayError> {
+    let trimmed = raw.trim();
+    if !matches!(
+        trimmed,
+        "line1" | "line2" | "line3" | "line4" | "line5" | "line6" | "line7"
+    ) {
+        return Err(GatewayError::bad_request(format!(
+            "不支持的线路名：{raw}（合法值 line1-line7）"
+        )));
+    }
+    Ok(trimmed.to_string())
 }
 
 async fn ensure_admin_profile(
@@ -651,6 +743,11 @@ fn build_state() -> Result<AppState, String> {
 
     let line_health = Arc::new(LineHealthRegistry::new());
 
+    // 线路暂停状态文件路径：默认 /opt/csgh-gateway/state/paused-lines.json
+    // 可通过 GATEWAY_STATE_DIR 覆盖；未设置且默认目录不可写时退化为"仅内存"（进程重启状态丢）
+    let pause_persist_path = pause_state_persist_path();
+    let pause_state = Arc::new(PauseStateRegistry::new(pause_persist_path));
+
     Ok(AppState {
         client,
         supabase_url,
@@ -667,7 +764,22 @@ fn build_state() -> Result<AppState, String> {
             "GATEWAY_OSS_ARCHIVE_LIMIT",
             6,
         ))),
+        pause_state,
     })
+}
+
+fn pause_state_persist_path() -> Option<std::path::PathBuf> {
+    let dir = env::var("GATEWAY_STATE_DIR").unwrap_or_else(|_| "/opt/csgh-gateway/state".to_string());
+    let dir = std::path::PathBuf::from(dir);
+    // 试一下能不能 mkdir + 写入。失败就退化为 None（仅内存，重启会丢，但服务能正常启动）。
+    if let Err(error) = std::fs::create_dir_all(&dir) {
+        eprintln!(
+            "[pause-state] 创建状态目录 {} 失败：{error}（暂停状态将仅保存在内存）",
+            dir.display()
+        );
+        return None;
+    }
+    Some(dir.join("paused-lines.json"))
 }
 
 fn cors_layer() -> CorsLayer {
@@ -716,9 +828,15 @@ async fn acquire_auto_generation_permit(
     user_id: &str,
     exclude: &HashSet<String>,
 ) -> Result<GenerationPermit, GatewayError> {
+    // 桌面端余额监控发现余额为 0 时会调 /api/admin/line-pause 把线路加入 paused，
+    // 这里把 paused 合并到本次 retry 的 exclude，自动路由就不会再考虑它们。
+    let mut effective_exclude = exclude.clone();
+    for paused in state.pause_state.paused_set() {
+        effective_exclude.insert(paused);
+    }
     let queued = state
         .generation_queue
-        .acquire_auto_for_user_excluding(user_id, size, exclude.clone())
+        .acquire_auto_for_user_excluding(user_id, size, effective_exclude)
         .await
         .map_err(GatewayError::too_many_requests)?;
     let line = queued.line().to_string();
@@ -735,6 +853,13 @@ async fn acquire_manual_generation_permit(
     line: ImageApiLine,
     user_id: &str,
 ) -> Result<GenerationPermit, GatewayError> {
+    // manual line1 路径：如果余额为 0 被暂停，直接拒绝（不要让用户以为"在排队"）。
+    if state.pause_state.is_paused(line.as_str()) {
+        return Err(GatewayError::too_many_requests(format!(
+            "{} 已暂停（余额为 0），请充值后再试或切换线路",
+            line.as_str()
+        )));
+    }
     let queued = state
         .generation_queue
         .acquire_line_for_user(user_id, line.as_str())

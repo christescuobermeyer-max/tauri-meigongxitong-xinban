@@ -13,6 +13,7 @@ mod balance;
 mod brand_story;
 mod brand_story_clients;
 mod gateway_limiter;
+mod gateway_pause_state;
 mod gateway_queue;
 mod gemini_response;
 mod http_client;

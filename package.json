@@ -1,7 +1,7 @@
 {
   "name": "csgh-image-studio",
   "private": true,
-  "version": "2.0.1",
+  "version": "2.0.2",
   "type": "module",
   "description": "呈尚策划 · 美工生图系统PRO — 基于 GPT-Image-2 的外卖店招/头像生成桌面应用",
   "scripts": {

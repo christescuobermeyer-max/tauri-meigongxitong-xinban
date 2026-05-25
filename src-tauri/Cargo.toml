@@ -1,6 +1,6 @@
 [package]
 name = "csgh-image-studio"
-version = "2.0.1"
+version = "2.0.2"
 description = "呈尚策划 · 美工生图系统PRO"
 authors = ["呈尚策划"]
 edition = "2021"

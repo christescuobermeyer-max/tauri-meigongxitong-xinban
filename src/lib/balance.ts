@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { callBackendGateway, getBackendGatewayUrl } from "./tauri";
 
 export interface BalanceLineDef {
   id: string;
@@ -57,4 +58,46 @@ export async function triggerBalanceLogin(lineId: string): Promise<void> {
 /** 打开该线路后台 console（注入已有 cookies，免登录），用户关窗口后才 resolve */
 export async function openBalanceConsole(lineId: string): Promise<void> {
   await invoke<void>("balance_open_console", { line: lineId });
+}
+
+export interface LinePauseResponse {
+  ok: boolean;
+  paused: {
+    line: string;
+    reason: string;
+    paused_at: string;
+    source: string;
+  };
+}
+
+export interface LineResumeResponse {
+  ok: boolean;
+  removed: boolean;
+}
+
+/**
+ * 通知网关暂停指定线路（auto 路由不再分配 + manual 选择被拒）。
+ * 仅在网关模式下生效；本地 Tauri 调试模式没有这个概念。幂等。
+ */
+export async function pauseLine(
+  lineId: string,
+  reason: string,
+  source = "balance_zero"
+): Promise<LinePauseResponse | null> {
+  if (!getBackendGatewayUrl()) return null;
+  return await callBackendGateway<LinePauseResponse>("/api/admin/line-pause", {
+    line: lineId,
+    reason,
+    source,
+  });
+}
+
+/**
+ * 通知网关恢复指定线路。幂等：没有暂停记录时也会成功，removed=false。
+ */
+export async function resumeLine(lineId: string): Promise<LineResumeResponse | null> {
+  if (!getBackendGatewayUrl()) return null;
+  return await callBackendGateway<LineResumeResponse>("/api/admin/line-resume", {
+    line: lineId,
+  });
 }

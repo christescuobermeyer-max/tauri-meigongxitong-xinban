@@ -10,11 +10,16 @@ import {
   BALANCE_LINES,
   fetchBalance,
   openBalanceConsole,
+  pauseLine,
+  resumeLine,
   triggerBalanceLogin,
   type BalanceFetchResult,
   type BalanceLineDef,
 } from "../../lib/balance";
 import { IconRefresh } from "../Icons";
+
+/** 定时自动刷新间隔：5 分钟。7 条线路并行 Python spawn，可控。 */
+const AUTO_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
 interface BalanceCardHandle {
   /** 由父组件触发的强制刷新（用于「一键刷新」） */
@@ -53,6 +58,13 @@ export default function AdminBalancePanel() {
       setRefreshingAll(false);
     }
   }, []);
+
+  // 每 5 分钟自动刷新一次，使得余额为 0 的线路能被及时检测到并通知网关暂停。
+  // 即使管理员不点"一键刷新"，只要 admin 页面打开着就会持续监控。
+  useEffect(() => {
+    const timer = window.setInterval(() => void refreshAll(), AUTO_REFRESH_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [refreshAll]);
 
   return (
     <section className="card admin__balance">
@@ -115,6 +127,17 @@ const BalanceCard = forwardRef<BalanceCardHandle, { line: BalanceLineDef }>(func
         },
         lastFetchedAt: Date.now(),
       });
+      // 余额检测 → 网关同步：== 0 触发暂停；> 0 触发恢复（幂等，多个管理员同时开 app 也无害）
+      // 网络失败时静默吞掉 — 下一轮 5min 自动刷新会再试。
+      if (result.balance <= 0) {
+        void pauseLine(line.id, `余额为 ${result.balance.toFixed(2)} ${result.unit}`).catch(
+          (e) => console.warn(`[balance] pauseLine ${line.id} failed:`, e)
+        );
+      } else {
+        void resumeLine(line.id).catch(
+          (e) => console.warn(`[balance] resumeLine ${line.id} failed:`, e)
+        );
+      }
       return;
     }
     if (result.reason === "expired") {
@@ -128,7 +151,7 @@ const BalanceCard = forwardRef<BalanceCardHandle, { line: BalanceLineDef }>(func
     }
     setState({ status: "error", lastFetchedAt: Date.now(),
                errorMessage: result.detail || result.reason || "未知错误" });
-  }, []);
+  }, [line.id]);
 
   const refresh = useCallback(async () => {
     if (!line.supported) return;

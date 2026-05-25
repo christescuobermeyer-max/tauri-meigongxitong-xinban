@@ -96,6 +96,10 @@ export default function AdminGatewayMonitor() {
   const queue = stats.queue;
   const health = stats.health.lines;
   const names = stats.display_names;
+  // line -> 暂停信息（reason + paused_at）。线路表第一列据此显示"已暂停"badge。
+  const pausedMap = new Map(
+    (stats.paused_lines ?? []).map((p) => [p.line, p] as const)
+  );
 
   // 计算"等候队列里的运营"汇总（按用户聚合）
   const waitingByUser = new Map<string, number>();
@@ -187,12 +191,22 @@ export default function AdminGatewayMonitor() {
                 const h = health[line.line];
                 const util = lineUtilization(line);
                 const pct = Math.round(util * 100);
+                const paused = pausedMap.get(line.line);
                 return (
-                  <tr key={line.line}>
+                  <tr key={line.line} data-paused={paused ? "true" : undefined}>
                     <td>
                       <strong>{line.line}</strong>
                       {line.line === "line1" ? (
                         <span className="badge badge--muted" style={{ marginLeft: 6 }}>fallback</span>
+                      ) : null}
+                      {paused ? (
+                        <span
+                          className="badge badge--danger"
+                          style={{ marginLeft: 6 }}
+                          title={`${paused.reason}\n暂停时间：${paused.paused_at}\n来源：${paused.source}`}
+                        >
+                          已暂停
+                        </span>
                       ) : null}
                     </td>
                     <td>
@@ -201,7 +215,7 @@ export default function AdminGatewayMonitor() {
                         ({pct}%)
                       </span>
                     </td>
-                    <td>{h ? HEALTH_LABEL[h.status] ?? h.status : "—"}</td>
+                    <td>{paused ? "—" : h ? HEALTH_LABEL[h.status] ?? h.status : "—"}</td>
                     <td>{h ? formatLatency(h.latency_ms) : "—"}</td>
                     <td>{h ? h.sample_count : 0}</td>
                     <td>{h ? h.failure_count : 0}</td>
