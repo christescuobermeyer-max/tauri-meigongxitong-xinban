@@ -318,11 +318,32 @@ pub fn generation_size_for_line<'a>(line: &str, size: &'a str) -> Option<Cow<'a,
             "auto" => Cow::Borrowed("16:9"),
             other => Cow::Borrowed(other),
         },
-        "line2" | "line6" => match size {
+        "line2" => match size {
             "1:1" => Cow::Borrowed("1024x1024"),
             "16:9" | "21:9" | "auto" => Cow::Borrowed("1792x768"),
             "4:3" | "3:2" => Cow::Borrowed("1536x1024"),
+            // line2 上游不接受 "3:4" 比例字面量，必须映射成像素值
+            "2:3" | "3:4" => Cow::Borrowed("1024x1536"),
+            other => Cow::Borrowed(other),
+        },
+        // line6 = manxiaobai，gpt-image-2-1k 模型支持的尺寸：
+        //   1024x1024 / 1536x1024 / 1024x1536 / 1824x1024 / 1024x1824
+        //   / 1360x1024 / 1024x1360 / 2384x1024
+        // 不支持 1792x768 / 1792x1024 / 比例字面量；客户端传过来的需要全部映射。
+        "line6" => match size {
+            "1:1" => Cow::Borrowed("1024x1024"),
+            // 16:9 ≈ 1.778, 1824/1024 = 1.781 最接近
+            "16:9" | "auto" | "1792x768" | "1792x1024" => Cow::Borrowed("1824x1024"),
+            // 21:9 ≈ 2.333, 2384/1024 = 2.328 最接近
+            "21:9" => Cow::Borrowed("2384x1024"),
+            // 4:3 ≈ 1.333, 1360/1024 = 1.328 最接近
+            "4:3" => Cow::Borrowed("1360x1024"),
+            // 3:2 = 1.5, 1536/1024 = 1.5 精确匹配
+            "3:2" => Cow::Borrowed("1536x1024"),
+            // 2:3 ↔ 3:2 翻转
             "2:3" => Cow::Borrowed("1024x1536"),
+            // 3:4 ↔ 4:3 翻转, 1024/1360 = 0.753
+            "3:4" => Cow::Borrowed("1024x1360"),
             other => Cow::Borrowed(other),
         },
         "line1" | "line3" => match size {
@@ -360,9 +381,22 @@ fn supports_provider_size(line: &str, size: &str) -> bool {
             size,
             "1024x1024" | "1024x1536" | "1536x1024" | "1792x1024" | "16:9" | "21:9" | "3:4"
         ),
-        "line2" | "line6" => matches!(
+        // line2 上游不接受 "3:4" 字面量（之前误报，导致 4xx 浪费 retry）
+        "line2" => matches!(
             size,
-            "1024x1024" | "1024x1536" | "1536x1024" | "1792x768" | "3:4"
+            "1024x1024" | "1024x1536" | "1536x1024" | "1792x768"
+        ),
+        // line6 = manxiaobai/gpt-image-2-1k 严格只接受这 8 个像素值
+        "line6" => matches!(
+            size,
+            "1024x1024"
+                | "1536x1024"
+                | "1024x1536"
+                | "1824x1024"
+                | "1024x1824"
+                | "1360x1024"
+                | "1024x1360"
+                | "2384x1024"
         ),
         "line1" | "line3" => matches!(
             size,
