@@ -26,9 +26,22 @@ fn is_supported_size_for_line(req: &GenerateRequest) -> bool {
             req.size.as_str(),
             "1024x1024" | "1024x1536" | "1536x1024" | "1792x1024" | "16:9" | "21:9" | "3:4"
         ),
-        ImageApiLine::Line2 | ImageApiLine::Line6 => matches!(
+        // line2/6 的 supports 表必须和 gateway_limiter::supports_provider_size 保持一致，
+        // 否则 limiter 选中线路+映射 size 后，validation 又拒绝，产生 "不支持的尺寸" 内部错误。
+        ImageApiLine::Line2 => matches!(
             req.size.as_str(),
-            "1024x1024" | "1024x1536" | "1536x1024" | "1792x768" | "3:4"
+            "1024x1024" | "1024x1536" | "1536x1024" | "1792x768"
+        ),
+        ImageApiLine::Line6 => matches!(
+            req.size.as_str(),
+            "1024x1024"
+                | "1536x1024"
+                | "1024x1536"
+                | "1824x1024"
+                | "1024x1824"
+                | "1360x1024"
+                | "1024x1360"
+                | "2384x1024"
         ),
         ImageApiLine::Line1 | ImageApiLine::Line3 => matches!(
             req.size.as_str(),
