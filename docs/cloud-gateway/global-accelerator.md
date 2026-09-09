@@ -11,7 +11,7 @@
 
 ```
 大陆员工电脑 ━ 跨境公网 ━▶ 香港 ECS ━ 跨境公网 ━▶ 大陆 OSS（杭州）
-                                    ━ 跨境公网 ━▶ 大陆上游 API（云雾/vectorengine/pockgo/apimart）
+                                    ━ 跨境公网 ━▶ 上游 API（Zikl/vectorengine/pockgo/apimart）
 ```
 
 ### 实测的痛点
@@ -51,7 +51,7 @@ GA 终端节点组（地域：中国香港）
 HK ECS：47.86.225.83:443（Caddy + csgh-backend-gateway）
     │
     ├─▶ 大陆 OSS（meigong-design-system-v2.oss-accelerate.aliyuncs.com）
-    └─▶ 上游 API（yunwu / vectorengine / aicohere / apimart）
+    └─▶ 上游 API（Zikl / vectorengine / aicohere / apimart）
 ```
 
 ---

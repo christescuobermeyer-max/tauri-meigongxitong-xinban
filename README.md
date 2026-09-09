@@ -1,176 +1,124 @@
-# 呈尚策划 · 美工生图系统PRO
+# 呈尚策划 · 美工生图系统 PRO
 
-> 基于 GPT-Image-2（`gpt-image-2-all`）的桌面应用，针对 **美团** 与 **淘宝闪购** 两大外卖平台批量生成店铺 **头像** 与 **店招** 宣传图。
+面向外卖运营团队的 Windows 桌面生图工具。系统基于 Tauri 2、React 18、TypeScript、Vite 和 Rust，生产环境通过云端 Rust/Axum 网关统一调度多条 image-2 生图线路，并把生成结果归档到阿里云 OSS 和 Supabase 历史。
 
-技术栈：**Tauri 2 + React 18 + TypeScript + Vite 6**。UI 采用 Linear / Vercel / GitHub 风格的克制大厂风（中性灰阶 + 1px 边框 + 充足留白 + 自动适配深浅模式）。
+完整技术栈、云服务器、数据库、OSS、GA、文件架构和数据流见 [docs/项目总览.md](docs/项目总览.md)。所有公开文档入口见 [docs/文档索引.md](docs/文档索引.md)。
 
----
+## 当前能力
 
-## 工作流
+| 工作区 | 用途 |
+|---|---|
+| 三件套设计 | 头像 / 店招 / 海报 |
+| 制作 1 张设计图 | 单张产品主图 |
+| 制作全店图 | 多产品批量全店图 |
+| 制作套餐图 | 多产品合成套餐图 |
+| 图片墙生成 | 美团图片墙素材 |
+| P 门头 | 门头招牌文字替换 |
+| 视频店招 | 外卖视频裁剪导出 |
+| 修改图片 | 头像 / 店招 / 海报 / 产品图修改 |
+| 详情页生成 | 电商详情页展示图 |
+| 品牌故事 | 店铺品牌文案 + 5 张配图 |
+| 数据分析 | 截图生成专业数据分析图 |
+| 历史记录 | 最近生成的 OSS 图片 |
+| 后台管理 | 账号、生图统计、网关监控、OSS 历史 |
 
-1. **填写店铺名称** → 例如「阿牛黄焖鸡米饭（火车站店）」
-2. **选择投放平台** → 美团 / 淘宝闪购（决定导出尺寸）
-3. **上传产品图** → PNG / JPEG / WebP，最多 5 张
-4. **点击「开始生成」**：并发调用 image-2 API 生成
-   - **头像**：原图 `1024×1024`
-   - **店招**：原图 `1536×1024`
-5. **下载**：根据所选平台**整体缩放**（不裁剪，保留完整画面）：
-   | 平台 | 头像 | 店招 |
-   | --- | --- | --- |
-   | 美团 | `800×800` | `692×390` |
-   | 淘宝闪购 | `800×800` | `750×423` |
+## 技术栈
 
-API 单次响应可能长达 6–8 分钟，应用前端 + Rust 后端均已配置 600s 超时与可视化进度。
+| 层级 | 技术 |
+|---|---|
+| 前端 | React 18 + TypeScript + Vite 6 |
+| 桌面端 | Tauri 2 + Rust |
+| 云端网关 | Rust + Axum + systemd + Caddy |
+| 云服务器 | 阿里云轻量应用服务器，香港地域 |
+| 云数据库 | Supabase Auth / Postgres / RLS |
+| 对象存储 | 阿里云 OSS |
+| 加速 | 阿里云全球加速 GA |
+| 自动更新 | Supabase 配置 + OSS 安装包下载 |
 
----
+生产网关域名是 `https://gw.hbcsch.pw`。服务器目录、服务名和运维入口见 [docs/云服务器信息.md](docs/云服务器信息.md)。
 
 ## 目录结构
 
+```text
+src/                         React 前端
+src/components/              页面、工作区、后台和 UI 组件
+src/hooks/                   工作区状态、登录态、线路健康与流程编排
+src/lib/                     前端业务 API、Supabase、Tauri、OSS、历史、下载
+src-tauri/                   Tauri 桌面端和 Rust 云网关共享源码
+src-tauri/src/bin/           backend_gateway.rs 云网关入口
+supabase/                    Postgres schema、RLS、迁移 SQL
+scripts/                     构建、诊断、数据导出、运维脚本
+tests/                       tsx / mjs 行为断言测试
+docs/                        项目说明、部署、架构、参考和计划文档
 ```
-image-2生图系统/
-├── package.json
-├── vite.config.ts
-├── tsconfig.json / tsconfig.node.json
-├── index.html
-├── src/                            # React 前端
-│   ├── main.tsx
-│   ├── App.tsx
-│   ├── types.ts
-│   ├── styles/global.css           # Linear/Vercel 风设计令牌
-│   ├── lib/
-│   │   ├── platforms.ts            # 平台 → 导出尺寸映射
-│   │   ├── prompts.ts              # 头像 / 店招 prompt 构造
-│   │   ├── tauri.ts                # 调用 Rust 命令
-│   │   └── utils.ts
-│   └── components/
-│       ├── Sidebar.tsx
-│       ├── TopBar.tsx
-│       ├── GeneratePanel.tsx       # 输入 + 上传 + prompt 预览
-│       ├── ResultPanel.tsx         # 双图预览 + 状态徽章 + 下载/重试
-│       ├── ImageUpload.tsx
-│       ├── PlatformSelect.tsx
-│       ├── Toast.tsx
-│       └── Icons.tsx
-└── src-tauri/                      # Rust 后端
-    ├── Cargo.toml
-    ├── build.rs
-    ├── tauri.conf.json
-    ├── capabilities/default.json
-    └── src/
-        ├── main.rs
-        ├── lib.rs                  # 注册 invoke handlers
-        ├── api.rs                  # POST api3.wlai.vip / 600s 超时
-        └── image_proc.rs           # base64 → resize_exact → save
-```
-
----
 
 ## 本地开发
 
-### 前置条件
+前置条件：
 
-- Node.js ≥ 18
-- Rust（含 stable toolchain）+ Cargo
-- Windows：需要 [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
-- 推荐：`@tauri-apps/cli` 全局或 `npx`
+- Node.js 18+
+- Rust stable + Cargo
+- Windows WebView2 Runtime
+- Windows 打包需要 Visual Studio 2022 Build Tools，勾选 C++ 桌面开发工具链
 
-### 安装与启动
+安装依赖：
 
-```bash
-# 1. 安装依赖
+```powershell
 npm install
+```
 
-# 2. 准备图标（任意一张 1024×1024 PNG 即可）
-npm run tauri -- icon ./source.png
+启动开发模式：
 
-# 3. 检查 Tauri 开发环境（自动选择完整的 Visual Studio C++ 工具链）
-npm run tauri:doctor
-
-# 4. 启动开发模式（同时拉起 Vite + Tauri 窗口）
+```powershell
 npm run tauri:dev
 ```
 
-现在 `npm run tauri:dev`、`npm run tauri:build`、`run-dev.bat` 都会自动：
+前端构建：
 
-- 优先选择完整可用的 Visual Studio C++ 工具链；
-- 自动跳过残缺的 Preview / Insiders 安装；
-- 启动前清理当前项目残留的 Vite / Tauri / Rust 进程；
-- 统一通过本地 `node_modules/.bin/tauri.cmd` 启动，避免环境漂移。
+```powershell
+npm run build
+```
 
-### 打包
+桌面打包：
 
-```bash
+```powershell
 npm run tauri:build
 ```
 
-产物位于 `src-tauri/target/release/bundle/`。
+## 环境变量
 
----
+模板文件：
 
-## 关键实现说明
+- [.env.example](.env.example)
+- [docs/cloud-gateway/gateway.env.example](docs/cloud-gateway/gateway.env.example)
 
-### 1) API 调用走 Rust 端
-Rust 端使用 `reqwest`（rustls）调用 `https://api3.wlai.vip/v1/images/generations`，超时 600s。这样能：
-- 绕开 WebView 的 fetch 超时与潜在 CORS 限制；
-- 处理大体积 base64 数据更稳健；
-- 不暴露 API Key 到前端 JS，且密钥由 `.env.local`、`.env` 或系统环境变量提供，不写入源码。
+生产推荐网关模式：桌面安装包只内置 `VITE_BACKEND_GATEWAY_URL`、`VITE_SUPABASE_URL`、`VITE_SUPABASE_ANON_KEY` 这类公开配置；生图 API Key、OSS AccessKey、Supabase service role 放在服务器 `/opt/csgh-gateway/secrets/gateway.env`。
 
-代码：[src-tauri/src/api.rs](src-tauri/src/api.rs)
+不要把真实密钥、数据库连接串、OSS AccessKey 或完整签名 URL 写进仓库文档。
 
-### 1.1) 环境变量
+## 常用验证
 
-仓库提供了 `.env.example` 模板。运行前准备 `.env.local`，填入当前有效的新密钥：
-
-```env
-IMAGE_2_API_KEY=替换为 image-2 API 密钥
-NEW_PICTURE_WALL_IMAGE2_API_KEY=兼容旧命名，可与上面二选一
-ALI_OSS_REGION=oss-cn-hangzhou
-ALI_OSS_ACCESS_KEY_ID=替换为阿里云 OSS AccessKey ID
-ALI_OSS_ACCESS_KEY_SECRET=替换为阿里云 OSS AccessKey Secret
-ALI_OSS_BUCKET=替换为 OSS Bucket 名称
+```powershell
+npm run build
+npx tsx tests/mandatory-update.test.ts
+npx tsx tests/sidebar-layout.test.ts
 ```
 
-### 2) Prompt 设计
-头像与店招使用两份独立 prompt，均强调：
-- 内容**完整覆盖**整个画布，禁止任何空白边；
-- **保留产品图原貌**不做改动；
-- 突出店铺名、风格符合外卖平台规范。
+Rust/Tauri 相关改动按影响范围追加：
 
-代码：[src/lib/prompts.ts](src/lib/prompts.ts)
+```powershell
+cmd.exe /c "call ""D:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat"" -arch=x64 >NUL && cargo test --manifest-path src-tauri\Cargo.toml app_update"
+npm run tauri:build
+```
 
-### 3) 导出时只缩放、不裁剪
-Rust 端使用 `image::DynamicImage::resize_exact(w, h, Lanczos3)`，按目标尺寸做整体拉伸，**不会裁掉任何画面内容**。这正是用户在需求中明确要求的「自动拉伸压缩，不裁剪，保留完整图片」。
+## 关键文档
 
-代码：[src-tauri/src/image_proc.rs](src-tauri/src/image_proc.rs)
-
-### 4) UI 风格令牌
-- 字体：Inter / SF Pro / 系统字体（含中文回退）
-- 配色：中性灰阶为主，状态色仅在徽章/边框上点缀
-- 圆角：6–8px；边框：1px；阴影非常微妙
-- 自动深色模式（基于 `prefers-color-scheme`）
-
-代码：[src/styles/global.css](src/styles/global.css)
-
----
-
-## 品牌故事工作区（新增）
-
-侧边栏「详情页生成」下方提供「品牌故事」分类：
-
-1. 输入 **店铺名称（2–20 字）** + **经营品类**
-2. 一键生成：
-   - 6 段品牌文案：主文案、副文案、品牌特色标题、品牌亮点文案、细节总标题、3 条细节
-   - 5 张配图（顺序生成）：主文案 3:2 / 品牌特色 16:9 / 细节 4:3 × 3
-3. 文案点击复制，配图支持单张下载与批量打包
-4. 配图归档至 OSS、生图记录写入 Supabase（asset_kind = `brand_story`）
-
-> **图片仍走 image-2**（顶部「生图线路」line1–line5），与三件套、详情页等共用。  
-> 文案统一走 yunwu 接口（gemini-3-flash-preview），通过 `BRAND_STORY_THREAD1_TEXT_API_KEY` 配置，详见 `.env.example`。  
-> 数据库需执行 `supabase/migrations/20260514_add_brand_story_asset_kind.sql` 扩展 asset_kind 约束。
-
-## 后续可扩展
-
-- 历史记录持久化（SQLite / JSON 文件）
-- 批量队列（一次跑多个店铺）
-- 支持自定义 prompt 模板
-- 在「设置」页显示当前固定接口与环境变量配置方式
+| 文档 | 用途 |
+|---|---|
+| [docs/项目总览.md](docs/项目总览.md) | 完整项目事实和技术架构 |
+| [docs/文档索引.md](docs/文档索引.md) | 全部公开文档导航 |
+| [docs/云服务器信息.md](docs/云服务器信息.md) | 云服务器和网关运维入口 |
+| [docs/自动更新.md](docs/自动更新.md) | 发布安装包和强制更新流程 |
+| [docs/operations/云端部署与分发手册.md](docs/operations/云端部署与分发手册.md) | 生产云端部署和客户端分发 |
+| [docs/cloud-gateway/README.md](docs/cloud-gateway/README.md) | 云端 Rust 网关部署 |
+| [docs/architecture/生图并发与网关分配框架.md](docs/architecture/生图并发与网关分配框架.md) | 多用户多线路调度设计 |

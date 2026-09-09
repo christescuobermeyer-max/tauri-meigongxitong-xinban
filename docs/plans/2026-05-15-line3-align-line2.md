@@ -199,7 +199,7 @@ node --import tsx tests/yunwu-line2-api.test.ts
 1. **vectorengine 的 model 名**：改成 `gpt-image-2`（和线路2 完全一致）？还是 vectorengine 平台使用别的 model 标识（比如保留 `gpt-image-2-all`）？
 2. **quality 参数**：vectorengine 是否支持 `quality=high`？如果不支持要不要不发？
 3. **format 参数**：vectorengine 是否支持 `format=png`？
-4. **API Key 是否要换**：运维凭证里 `VECTORENGINE_IMAGE_2_API_KEY` 当前值是 `sk-KExKJmR5aG3JXH9F4htapRxzwAAcO9BIIz0UPtNEV8dlcnhe`，本次改造是否同时要换 key？还是 key 不动、只改 URL/协议？
+4. **API Key 是否要换**：运维凭证里 `VECTORENGINE_IMAGE_2_API_KEY` 当前已有真实值，本次改造是否同时要换 key？还是 key 不动、只改 URL/协议？不要把真实 key 写入文档。
 5. **是否需要保留旧 `reference_images` 字段做兼容**？还是直接硬切到 `image` 字段（vectorengine 后端就吃 `image` 不吃 `reference_images`）？
 6. **错误信息里的"线路2"字样**：你接受我把 `yunwu_edit.rs` 抽出 `label` 参数（即选项 A）吗？
 
