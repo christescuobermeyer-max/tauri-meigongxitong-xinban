@@ -7,18 +7,19 @@ export interface BalanceLineDef {
   name: string;
   /** 余额管理后台首页 URL（提示用户去手动登录的入口） */
   consoleUrl: string;
+  /** 线路2/6/7可直接用 API Key 读取 billing；其它线路沿用网页登录 session。 */
+  balanceMode?: "session" | "api_key";
   /** 当前是否已接入 Rust 命令；false 时前端只显示占位 */
   supported: boolean;
 }
 
 export const BALANCE_LINES: BalanceLineDef[] = [
-  { id: "line1", name: "线路1（共用线路2 yunwu）", consoleUrl: "https://yunwu.ai/console", supported: true },
-  { id: "line2", name: "线路2（云雾 yunwu.ai）", consoleUrl: "https://yunwu.ai/console", supported: true },
+  { id: "line2", name: "线路2（Zikl）", consoleUrl: "https://img.zikl.dev/console", balanceMode: "api_key", supported: true },
   { id: "line3", name: "线路3（vectorengine）", consoleUrl: "https://api.vectorengine.ai/console", supported: true },
   { id: "line4", name: "线路4（pockgo）", consoleUrl: "https://newapi.pockgo.com/console", supported: true },
   { id: "line5", name: "线路5（APIMart）", consoleUrl: "https://apimart.ai/zh/overview", supported: true },
-  { id: "line6", name: "线路6（manxiaobai）", consoleUrl: "https://api.manxiaobai.online/console", supported: true },
-  { id: "line7", name: "线路7（otuapi）", consoleUrl: "https://otuapi.com/console", supported: true },
+  { id: "line6", name: "线路6（manxiaobai）", consoleUrl: "https://api.manxiaobai.online/console", balanceMode: "api_key", supported: true },
+  { id: "line7", name: "线路7（novaeworld）", consoleUrl: "https://api.novaeworld.top/console", balanceMode: "api_key", supported: true },
 ];
 
 /** balance_fetch 命令的成功结果 */
@@ -47,6 +48,14 @@ export type BalanceFetchResult = BalanceFetchOk | BalanceFetchErr;
 
 /** 触发余额刷新；可能 throw（Rust 端 invoke 失败） */
 export async function fetchBalance(lineId: string): Promise<BalanceFetchResult> {
+  const line = BALANCE_LINES.find((item) => item.id === lineId);
+  if (getBackendGatewayUrl() && line?.balanceMode === "api_key") {
+    return await callBackendGateway<BalanceFetchResult>(
+      "/api/admin/balance",
+      { line: lineId },
+      { timeoutMs: 30_000 }
+    );
+  }
   return await invoke<BalanceFetchResult>("balance_fetch", { line: lineId });
 }
 

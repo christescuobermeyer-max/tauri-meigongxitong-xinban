@@ -1,5 +1,5 @@
 import { buildBatchDownloadPlans } from "./generated-asset-files";
-import { pickDirectoryPath, resizeAndSaveImage } from "./tauri";
+import { pickDirectoryPath, resizeAndSaveImage, saveBase64Image } from "./tauri";
 import type { GenerationItem, PlatformSpec } from "../types";
 
 export async function saveGeneratedAssetsBatch(
@@ -18,15 +18,25 @@ export async function saveGeneratedAssetsBatch(
   const savedPaths: string[] = [];
 
   for (const plan of plans) {
-    const saved = await resizeAndSaveImage({
-      base64_data: plan.rawBase64,
-      target_width: plan.targetWidth,
-      target_height: plan.targetHeight,
-      output_path: plan.outputPath,
-      max_bytes: plan.maxBytes,
-    });
+    const saved = plan.saveOriginal
+      ? await saveBase64Image({
+          base64_data: plan.rawBase64,
+          output_path: plan.outputPath,
+        })
+      : await resizeAndSaveImage({
+          base64_data: plan.rawBase64,
+          target_width: requireTargetSize(plan.targetWidth, "宽度"),
+          target_height: requireTargetSize(plan.targetHeight, "高度"),
+          output_path: plan.outputPath,
+          max_bytes: plan.maxBytes,
+        });
     savedPaths.push(saved);
   }
 
   return savedPaths;
+}
+
+function requireTargetSize(value: number | undefined, label: string) {
+  if (!value) throw new Error(`导出尺寸缺少${label}`);
+  return value;
 }

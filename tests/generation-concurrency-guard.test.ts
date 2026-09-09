@@ -37,7 +37,6 @@ const pageSources = new Map(
     "PSignboardPage",
     "ImageEditInputCard",
     "DataAnalysisPage",
-    "PatrolScriptPage",
   ].map((name) => [
     name,
     readFileSync(new URL(`../src/components/${name}.tsx`, import.meta.url), "utf8"),
@@ -47,21 +46,22 @@ const pageSources = new Map(
 // 网关：FIFO 队列 + 每用户并发限制（账号公平性由服务端兜底）
 ok(gateway.includes("acquire_generation_permit"), "网关生图前必须获取限流许可");
 ok(gateway.includes("GatewayGenerationQueue"), "网关应使用服务端 FIFO 队列协调并发");
-ok(!gateway.includes('read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 17)'), "默认全局并发上限不应再停留在 17");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 24)'), "默认全局并发上限应为 24（21 + line7 的 3）");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_USER_LIMIT", 3)'), "默认单账号生图并发上限应为 3");
+ok(!gateway.includes('read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 26)'), "默认全局并发上限不应再停留在 26");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 28)'), "默认全局并发上限应为 28");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_USER_LIMIT", 5)'), "默认单账号生图并发上限应为 5");
 // 各线路默认上限（与上游性价比/稳定性匹配）
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE1_LIMIT", 1)'), "line1 (wlai) 成本高，默认上限应为 1");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE2_LIMIT", 4)'), "line2 默认上限应为 4");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE3_LIMIT", 4)'), "line3 默认上限应为 4");
+ok(!gateway.includes("GATEWAY_GENERATION_LINE1_LIMIT"), "线路1移除后不应再配置 line1 并发上限");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE2_LIMIT", 6)'), "line2 默认上限应为 6");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE3_LIMIT", 6)'), "line3 默认上限应为 6");
 ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE4_LIMIT", 4)'), "line4 默认上限应为 4");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE5_LIMIT", 5)'), "line5 (apimart) 最稳，默认上限应为 5");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE6_LIMIT", 4)'), "line6 (manxiaobai) 稳定，默认上限应为 4");
-ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE7_LIMIT", 3)'), "line7 (otuapi) 主力分担，默认上限应为 3");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE5_LIMIT", 8)'), "line5 (apimart) 最稳，默认上限应为 8");
+ok(!gateway.includes("GATEWAY_GENERATION_LINE8_LIMIT"), "线路8移除后不应再配置 line8 并发上限");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE6_LIMIT", 8)'), "line6 (manxiaobai) 默认上限应为 8");
+ok(gateway.includes('read_limit_env("GATEWAY_GENERATION_LINE7_LIMIT", 6)'), "line7 (novaeworld) 默认上限应为 6");
 
 // 限流器单测覆盖：全局/线路/释放/排除
 ok(limiter.includes("release_frees_capacity_for_next_request"), "限流器应覆盖释放容量");
-ok(limiter.includes("enforces_global_limit_of_twenty_four_active_generations"), "限流器应覆盖全局 24 并发");
+ok(limiter.includes("enforces_global_limit_of_twenty_eight_active_generations"), "限流器应覆盖全局 28 并发");
 ok(limiter.includes("enforces_line_specific_limits"), "限流器应覆盖线路上限");
 ok(limiter.includes("try_acquire_auto_excluding"), "限流器应支持自动路由时排除已试过的线路（retry 用）");
 
@@ -80,7 +80,7 @@ ok(gateway.includes("tried_lines"), "网关 generate_image 重试时必须跟踪
 
 // 前端约束：
 //   - 保留账号级"前端账号锁"，上限为 10（防止误触一次性几十个请求）
-//   - 服务端 GATEWAY_GENERATION_USER_LIMIT=3 的硬限制还在，前端 10 只是 UI 缓冲
+//   - 服务端 GATEWAY_GENERATION_USER_LIMIT=5 的硬限制还在，前端 10 只是 UI 缓冲
 //   - 各 slot 仍维护自己的 busy（防止同一 slot 重复点击）
 ok(useGenerationWorkspace.includes("FRONTEND_GENERATION_USER_LIMIT = 10"), "前端账号并发上限应为 10");
 ok(useGenerationWorkspace.includes("generationCapacityFull"), "前端应暴露 generationCapacityFull 以禁用满载后的提交");

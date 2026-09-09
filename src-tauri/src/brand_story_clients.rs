@@ -136,8 +136,8 @@ pub fn extract_text_from_response(
 }
 
 fn extract_openai_text(body: &str) -> Result<String, String> {
-    let parsed: OpenAiTextResponse = serde_json::from_str(body)
-        .map_err(|error| format!("解析 OpenAI 响应失败：{error}"))?;
+    let parsed: OpenAiTextResponse =
+        serde_json::from_str(body).map_err(|error| format!("解析 OpenAI 响应失败：{error}"))?;
     let message = parsed
         .choices
         .as_ref()
@@ -178,8 +178,8 @@ fn extract_openai_text(body: &str) -> Result<String, String> {
 }
 
 fn extract_gemini_text(body: &str) -> Result<String, String> {
-    let parsed: GeminiTextResponse = serde_json::from_str(body)
-        .map_err(|error| format!("解析 Gemini 响应失败：{error}"))?;
+    let parsed: GeminiTextResponse =
+        serde_json::from_str(body).map_err(|error| format!("解析 Gemini 响应失败：{error}"))?;
     let parts = parsed
         .candidates
         .as_ref()
@@ -194,7 +194,14 @@ fn extract_gemini_text(body: &str) -> Result<String, String> {
 
     let pick = parts
         .iter()
-        .find(|part| !part.thought && part.text.as_deref().map(str::trim).map_or(false, |s| !s.is_empty()))
+        .find(|part| {
+            !part.thought
+                && part
+                    .text
+                    .as_deref()
+                    .map(str::trim)
+                    .map_or(false, |s| !s.is_empty())
+        })
         .or_else(|| parts.last());
 
     let text = pick
@@ -250,7 +257,8 @@ mod tests {
 
     #[test]
     fn gemini_url_inserts_model() {
-        let got = build_gemini_generate_content_url("https://yunwu.ai", "gemini-3-flash-preview", "abc");
+        let got =
+            build_gemini_generate_content_url("https://yunwu.ai", "gemini-3-flash-preview", "abc");
         assert_eq!(
             got,
             "https://yunwu.ai/v1beta/models/gemini-3-flash-preview:generateContent?key=abc"

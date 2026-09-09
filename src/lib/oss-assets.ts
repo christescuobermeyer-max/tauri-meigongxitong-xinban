@@ -13,19 +13,18 @@ interface CompressionConfig {
 /**
  * 各类生成图归档到 OSS 时的压缩参数。
  *
- * OSS 上的图仅用于历史预览与跨电脑回看，不参与下载交付——
- * 员工最终交付给商家的图走 rawBase64 + resize_and_save_image 写本地，
- * 与 OSS 的这份图是两条独立链路。
+ * 生产网关会把 OSS 上的图作为新版客户端的正式交付输入，因此最长边
+ * 必须覆盖对应类型的最大导出尺寸，不能再按“仅历史预览”规格压缩。
  *
  * 详情页因为通常含较多文字，质量阈值更高。
  */
 const COMPRESSION_BY_KIND: Record<AssetKind, CompressionConfig> = {
-  avatar: { maxDimension: 768, quality: 82 },
-  storefront: { maxDimension: 1536, quality: 88 },
-  poster: { maxDimension: 1536, quality: 88 },
-  p_signboard: { maxDimension: 1536, quality: 88 },
-  product: { maxDimension: 1024, quality: 88 },
-  picture_wall: { maxDimension: 1024, quality: 88 },
+  avatar: { maxDimension: 1024, quality: 90 },
+  storefront: { maxDimension: 1536, quality: 90 },
+  poster: { maxDimension: 2048, quality: 92 },
+  p_signboard: { maxDimension: 1792, quality: 92 },
+  product: { maxDimension: 1024, quality: 90 },
+  picture_wall: { maxDimension: 1536, quality: 92 },
   detail_page: { maxDimension: 2048, quality: 92 },
   brand_story: { maxDimension: 1792, quality: 90 },
   data_analysis: { maxDimension: 1792, quality: 90 },

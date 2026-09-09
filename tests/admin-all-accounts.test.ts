@@ -2,6 +2,7 @@ import { equal, ok } from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const adminSource = readFileSync(new URL("../src/lib/admin.ts", import.meta.url), "utf8");
+const adminStatsSource = readFileSync(new URL("../src/lib/admin-stats.ts", import.meta.url), "utf8");
 const adminPageSource = readFileSync(new URL("../src/components/AdminPage.tsx", import.meta.url), "utf8");
 const accountsTableSource = readFileSync(
   new URL("../src/components/admin/AdminAccountsTable.tsx", import.meta.url),
@@ -40,16 +41,31 @@ ok(
 ok(adminSource.includes("aggregateDailyStatRows"), "所有账户每日统计应按日期汇总各用户统计行");
 ok(adminSource.includes(".gte(\"stat_day\", cutoffDay)"), "所有账户每日统计应按日期范围读取，而不是只 limit 天数");
 ok(cloudHistorySource.includes('.from("generation_totals")'), "顶部总生图应读取永久累计表");
+ok(
+  cloudHistorySource.includes("fetchGlobalTotalCount"),
+  "顶部所有账号累计应有独立的全局累计读取函数"
+);
+ok(
+  cloudHistorySource.includes("sumGlobalGenerationTotals"),
+  "顶部所有账号累计应汇总 generation_totals.total_count"
+);
 ok(supabaseTypesSource.includes("GenerationTotalRow"), "Supabase 类型应包含永久累计行");
 ok(schemaSource.includes("create table if not exists public.generation_totals"));
-ok(schemaSource.includes("increment_generation_total"));
+ok(schemaSource.includes("increment_generation_counters"));
 ok(schemaSource.includes("after insert on public.generation_logs"));
 ok(migrationSource.includes("create table if not exists public.generation_totals"));
 ok(migrationSource.includes("insert into public.generation_totals"));
 ok(migrationSource.includes("after insert on public.generation_logs"));
 
 ok(adminPageSource.includes('useState<string>(ALL_ACCOUNTS_ID)'), "后台默认应选中所有账户");
-ok(adminPageSource.includes("buildAllAccountsSummary(accounts)"), "后台页面应把所有账户汇总行传给账号列表");
+ok(adminPageSource.includes("fetchGlobalTotalCount"), "后台所有账户累计应读取全局累计数");
+ok(adminPageSource.includes("globalTotalCount"), "后台页面应保存全局累计数");
+ok(
+  adminPageSource.includes("buildAllAccountsSummary(") &&
+    adminPageSource.includes("globalTotalCount ?? undefined"),
+  "后台页面应把全局累计数传给所有账户汇总行"
+);
+ok(adminStatsSource.includes("totalCountOverride"), "所有账户汇总行应支持全局累计数覆盖");
 ok(adminPageSource.includes("accountNameById"), "所有账户明细应能显示日志所属账号");
 
 ok(accountsTableSource.includes("所有账户"), "账号列表应渲染所有账户选项");

@@ -21,6 +21,8 @@ export interface RunOneResult {
   generationLine: GenerationLine;
   elapsedMs: number;
   attempt?: number;
+  historyRecorded?: boolean;
+  historyError?: string;
 }
 
 type GenerationSetter = Dispatch<SetStateAction<GenerationItem>>;
@@ -151,6 +153,8 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
     status: "succeeded",
     elapsedMs: generated.elapsedMs,
     attempt: generated.attempt,
+    historyRecorded: generated.historyRecorded,
+    historyError: generated.historyError,
   });
 
   if (generated.remoteUrl) {
@@ -161,6 +165,8 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
       generationLine: generated.generationLine,
       elapsedMs: generated.elapsedMs,
       attempt: generated.attempt,
+      historyRecorded: generated.historyRecorded,
+      historyError: generated.historyError,
     };
   }
 
@@ -175,6 +181,8 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
       generationLine: generated.generationLine,
       elapsedMs: generated.elapsedMs,
       attempt: generated.attempt,
+      historyRecorded: generated.historyRecorded,
+      historyError: generated.historyError,
     };
   }
 
@@ -188,6 +196,8 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
       generationLine: generated.generationLine,
       elapsedMs: generated.elapsedMs,
       attempt: generated.attempt,
+      historyRecorded: generated.historyRecorded,
+      historyError: generated.historyError,
     };
   } catch (ossError: unknown) {
     // 同上：让 recordHistory 给统一文案，console 留技术细节
@@ -199,6 +209,8 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
       generationLine: generated.generationLine,
       elapsedMs: generated.elapsedMs,
       attempt: generated.attempt,
+      historyRecorded: generated.historyRecorded,
+      historyError: generated.historyError,
     };
   }
 }

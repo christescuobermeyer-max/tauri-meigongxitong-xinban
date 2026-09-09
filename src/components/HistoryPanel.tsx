@@ -7,7 +7,7 @@ import {
   getHistoryPageCountFromTotal,
   getPagedHistoryEntries,
 } from "../lib/history-pagination";
-import type { AssetKind } from "../types";
+import type { AssetKind, HistoricalGenerationLine } from "../types";
 import { IconCopy, IconDownload } from "./Icons";
 import { useToast } from "./Toast";
 
@@ -194,16 +194,16 @@ export default function HistoryPanel({
 
 function getGenerationLineLabel(
   kind: AssetKind,
-  line?: "line1" | "line2" | "line3" | "line4" | "line5" | "line6" | "line7" | null,
+  line?: HistoricalGenerationLine | null,
 ) {
-  if (line === "line1") return "线路1";
+  if (line === "line1") return "已移除线路";
   if (line === "line2") return "线路2";
   if (line === "line3") return "线路3";
   if (line === "line4") return "线路4";
   if (line === "line5") return "线路5";
   if (line === "line6") return "线路6";
   if (line === "line7") return "线路7";
-  return kind === "picture_wall" ? "专用接口" : "线路1";
+  return kind === "picture_wall" ? "专用接口" : "未知线路";
 }
 
 function formatCreatedAt(value: string) {

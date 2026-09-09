@@ -20,6 +20,8 @@ export interface GenerateAssetResult {
   generationLine: GenerationLine;
   elapsedMs: number;
   attempt?: number;
+  historyRecorded?: boolean;
+  historyError?: string;
 }
 
 export interface GenerateAssetBase64Result {
@@ -29,6 +31,8 @@ export interface GenerateAssetBase64Result {
   elapsedMs: number;
   remoteUrl?: string;
   archiveError?: string;
+  historyRecorded?: boolean;
+  historyError?: string;
 }
 
 export function getMissingReferenceMessage(kind: AssetKind): string {
@@ -108,16 +112,20 @@ export async function generateAssetBase64(
     ? await generateArchivedImageWithLine(request, {
         asset_kind: kind,
         file_name_stem: `${safeFileName(shopName)}-${kind}`,
+        shop_name: shopName,
+        platform,
       })
     : await generateImageWithLine(request);
 
   return {
     rawBase64: generated.image,
-    rawDataUrl: `data:image/png;base64,${generated.image}`,
+    rawDataUrl: generated.imageDataUrl,
     generationLine: generated.generationLine,
     elapsedMs: Date.now() - started,
     remoteUrl: generated.archiveUrl,
     archiveError: generated.archiveError,
+    historyRecorded: generated.historyRecorded,
+    historyError: generated.historyError,
   };
 }
 
@@ -141,6 +149,8 @@ export async function generateAsset(options: GenerateAssetOptions): Promise<Gene
     remoteUrl,
     generationLine: generated.generationLine,
     elapsedMs: generated.elapsedMs,
+    historyRecorded: generated.historyRecorded,
+    historyError: generated.historyError,
   };
 }
 

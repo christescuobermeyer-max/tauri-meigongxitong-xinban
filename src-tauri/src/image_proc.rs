@@ -24,6 +24,12 @@ pub struct ResizeRequest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct SaveBase64ImageRequest {
+    pub base64_data: String,
+    pub output_path: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct CompressGeneratedImageRequest {
     pub base64_data: String,
     #[serde(default = "default_max_dimension")]
@@ -88,6 +94,41 @@ pub async fn resize_and_save_image(req: ResizeRequest) -> Result<String, String>
             .save_with_format(path, format)
             .map_err(|e| format!("写入磁盘失败：{e}"))?;
     }
+
+    Ok(req.output_path)
+}
+
+/// 解码 base64 图片并把原始编码字节写入磁盘，不改变尺寸、比例或压缩格式。
+#[cfg_attr(feature = "tauri-commands", tauri::command)]
+pub async fn save_base64_image(req: SaveBase64ImageRequest) -> Result<String, String> {
+    let output_path = req.output_path.trim();
+    if output_path.is_empty() {
+        return Err("输出路径不能为空".into());
+    }
+
+    let base64_data = req.base64_data.trim();
+    let payload = if base64_data.starts_with("data:") {
+        base64_data
+            .split_once(',')
+            .map(|(_, data)| data)
+            .unwrap_or(base64_data)
+    } else {
+        base64_data
+    };
+    let bytes = STANDARD
+        .decode(payload.as_bytes())
+        .map_err(|e| format!("base64 解码失败：{e}"))?;
+
+    image::load_from_memory(&bytes).map_err(|e| format!("解析图片失败：{e}"))?;
+
+    let path = Path::new(output_path);
+    if let Some(parent) = path.parent() {
+        if !parent.as_os_str().is_empty() {
+            std::fs::create_dir_all(parent).map_err(|e| format!("创建目录失败：{e}"))?;
+        }
+    }
+
+    std::fs::write(path, &bytes).map_err(|e| format!("写入磁盘失败：{e}"))?;
 
     Ok(req.output_path)
 }
@@ -237,6 +278,38 @@ mod tests {
         assert!(result.byte_size > 0);
     }
 
+    #[tokio::test]
+    async fn save_base64_image_writes_original_bytes() {
+        let source = DynamicImage::ImageRgba8(RgbaImage::from_pixel(
+            64,
+            32,
+            image::Rgba([0, 128, 255, 255]),
+        ));
+        let mut source_bytes = Vec::new();
+        source
+            .write_to(
+                &mut std::io::Cursor::new(&mut source_bytes),
+                ImageFormat::Png,
+            )
+            .unwrap();
+        let path = std::env::temp_dir().join(format!(
+            "csgh-original-image-test-{}.png",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&path);
+
+        let result = save_base64_image(SaveBase64ImageRequest {
+            base64_data: STANDARD.encode(&source_bytes),
+            output_path: path.to_string_lossy().to_string(),
+        })
+        .await
+        .unwrap();
+
+        assert_eq!(result, path.to_string_lossy());
+        assert_eq!(std::fs::read(&path).unwrap(), source_bytes);
+        let _ = std::fs::remove_file(&path);
+    }
+
     #[test]
     fn save_jpeg_with_limit_errors_when_limit_cannot_be_met() {
         let image = DynamicImage::ImageRgba8(RgbaImage::from_pixel(
@@ -244,10 +317,8 @@ mod tests {
             64,
             image::Rgba([128, 64, 32, 255]),
         ));
-        let path = std::env::temp_dir().join(format!(
-            "csgh-jpeg-limit-test-{}.jpg",
-            std::process::id()
-        ));
+        let path =
+            std::env::temp_dir().join(format!("csgh-jpeg-limit-test-{}.jpg", std::process::id()));
         let _ = std::fs::remove_file(&path);
 
         let result = save_jpeg_with_limit(&image, &path, Some(1));

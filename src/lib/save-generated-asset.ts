@@ -1,7 +1,7 @@
 import { getGeneratedAssetExportSpec } from "./generated-asset-files";
 import { saveEditedPictureWallPair } from "./picture-wall-download";
 import { replaceFileExtension } from "./utils";
-import { pickSavePath, resizeAndSaveImage } from "./tauri";
+import { pickSavePath, resizeAndSaveImage, saveBase64Image } from "./tauri";
 import type { AssetKind, GenerationItem, PlatformSpec } from "../types";
 
 export async function saveGeneratedAsset(
@@ -21,6 +21,15 @@ export async function saveGeneratedAsset(
 
   const spec = getGeneratedAssetExportSpec(kind, shopName, currentPlatform, productName);
 
+  if (spec.saveOriginal) {
+    const selectedPath = await pickSavePath(spec.fileName);
+    if (!selectedPath) return null;
+    return await saveBase64Image({
+      base64_data: item.rawBase64,
+      output_path: selectedPath,
+    });
+  }
+
   if (kind === "product") {
     const selectedPath = await pickSavePath(spec.fileName, [
       { name: "JPEG 图像", extensions: ["jpg", "jpeg"] },
@@ -30,8 +39,8 @@ export async function saveGeneratedAsset(
     const outputPath = replaceFileExtension(selectedPath, "jpg");
     return await resizeAndSaveImage({
       base64_data: item.rawBase64,
-      target_width: spec.targetWidth,
-      target_height: spec.targetHeight,
+      target_width: requireTargetSize(spec.targetWidth, "宽度"),
+      target_height: requireTargetSize(spec.targetHeight, "高度"),
       output_path: outputPath,
       max_bytes: spec.maxBytes,
     });
@@ -42,8 +51,8 @@ export async function saveGeneratedAsset(
     if (!selectedPath) return null;
     return await resizeAndSaveImage({
       base64_data: item.rawBase64,
-      target_width: spec.targetWidth,
-      target_height: spec.targetHeight,
+      target_width: requireTargetSize(spec.targetWidth, "宽度"),
+      target_height: requireTargetSize(spec.targetHeight, "高度"),
       output_path: selectedPath,
     });
   }
@@ -53,8 +62,13 @@ export async function saveGeneratedAsset(
 
   return await resizeAndSaveImage({
     base64_data: item.rawBase64,
-    target_width: spec.targetWidth,
-    target_height: spec.targetHeight,
+    target_width: requireTargetSize(spec.targetWidth, "宽度"),
+    target_height: requireTargetSize(spec.targetHeight, "高度"),
     output_path: selectedPath,
   });
+}
+
+function requireTargetSize(value: number | undefined, label: string) {
+  if (!value) throw new Error(`导出尺寸缺少${label}`);
+  return value;
 }

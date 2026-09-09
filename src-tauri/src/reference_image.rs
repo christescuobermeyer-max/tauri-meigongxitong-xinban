@@ -24,10 +24,7 @@ pub async fn download_image_if_url(
         match fetch_image_bytes_once(client, &value, error_label).await {
             Ok(bytes) => {
                 if attempt > 0 {
-                    eprintln!(
-                        "[ref-download] {error_label} 第 {} 次重试成功",
-                        attempt
-                    );
+                    eprintln!("[ref-download] {error_label} 第 {} 次重试成功", attempt);
                 }
                 return Ok(STANDARD.encode(&bytes));
             }

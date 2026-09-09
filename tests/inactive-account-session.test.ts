@@ -2,6 +2,7 @@ import { ok } from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const authSource = readFileSync(new URL("../src/lib/auth.ts", import.meta.url), "utf8");
+const useAuthSource = readFileSync(new URL("../src/hooks/useAuth.ts", import.meta.url), "utf8");
 
 const getCurrentProfileMatch = authSource.match(
   /export async function getCurrentProfile[\s\S]*?\n}/
@@ -26,4 +27,12 @@ ok(
 ok(
   authSource.includes("账号已被停用，请联系管理员"),
   "已停用账号恢复登录态时应返回明确错误"
+);
+ok(
+  useAuthSource.includes("previous.profile"),
+  "定时校验 profile 遇到临时网络/数据库错误时应保留当前工作区，避免无人值守生图被重置"
+);
+ok(
+  useAuthSource.includes('message.includes("账号已被停用")'),
+  "账号确实被停用时仍必须清空登录态"
 );

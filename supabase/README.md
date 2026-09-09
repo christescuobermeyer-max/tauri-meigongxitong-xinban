@@ -66,6 +66,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR...
 | `profiles` | 用户档案：role、login_count、last_login_at、is_active |
 | `generation_logs` | 每张成功生图的记录（shop_name、asset_kind、platform、generation_line、oss_url、created_at） |
 | `generation_totals` | 每个用户永久累计成功归档到 OSS 的生图数量 |
+| `generation_monthly_totals` | 每个用户按 Asia/Shanghai 自然月累计成功归档到 OSS 的生图数量 |
 | `login_logs` | 登录日志（审计用） |
 | `daily_generation_stats` | 视图：按用户 × 日期聚合的生图数量 |
 
@@ -73,6 +74,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR...
 
 - `generation_logs` 只保留最近 **7 天** 的记录。
 - `generation_totals` 永久保留累计生图数，只在新增 `generation_logs` 时递增，不会因为 7 天历史清理而减少。
+- `generation_monthly_totals` 永久保留每个自然月的累计生图数，只在新增 `generation_logs` 时递增，不会因为 7 天历史清理而减少。
 - 数据库通过 `pg_cron` 每天自动执行一次 `cleanup_expired_generation_logs()`，无人登录时也会清理。
 - 前端登录后与每次成功生图后，也会再调用一次 `cleanup_expired_generation_logs()` 兜底同步。
 - 因为 OSS 签名链接 7 天后会失效，所以历史页只展示最近 7 天内仍可访问的记录。

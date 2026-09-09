@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { open as openExternal } from "@tauri-apps/plugin-shell";
 import {
   BALANCE_LINES,
   fetchBalance,
@@ -72,7 +73,7 @@ export default function AdminBalancePanel() {
         <div className="card__heading">
           <div className="card__title">余额监控</div>
           <span className="card__hint">
-            点击「重新登录」可弹出浏览器登录窗口；登录成功后回到此处自动刷新余额
+            API Key 线路会自动读取余额；其它线路点击「重新登录」后自动刷新
           </span>
         </div>
         <button
@@ -107,6 +108,7 @@ const BalanceCard = forwardRef<BalanceCardHandle, { line: BalanceLineDef }>(func
   ref,
 ) {
   const [state, setState] = useState<CardState>(INITIAL);
+  const usesApiKeyBalance = line.balanceMode === "api_key";
   const mountedRef = useRef(true);
   useEffect(() => {
     return () => {
@@ -186,6 +188,13 @@ const BalanceCard = forwardRef<BalanceCardHandle, { line: BalanceLineDef }>(func
     if (!line.supported) return;
     setState((prev) => ({ ...prev, consoleOpen: true }));
     try {
+      if (usesApiKeyBalance) {
+        await openExternal(line.consoleUrl);
+        if (mountedRef.current) {
+          setState((prev) => ({ ...prev, consoleOpen: false }));
+        }
+        return;
+      }
       await openBalanceConsole(line.id);
       // 后台关闭后顺手刷一次余额（如果用户在窗口里被动登录过，session 已被回写）
       if (mountedRef.current) await refresh();
@@ -203,7 +212,7 @@ const BalanceCard = forwardRef<BalanceCardHandle, { line: BalanceLineDef }>(func
     if (mountedRef.current) {
       setState((prev) => ({ ...prev, consoleOpen: false }));
     }
-  }, [line.id, line.supported, refresh]);
+  }, [line.consoleUrl, line.id, line.supported, refresh, usesApiKeyBalance]);
 
   // 首次挂载自动拉一次（仅支持的线路）
   useEffect(() => {
@@ -295,13 +304,15 @@ const BalanceCard = forwardRef<BalanceCardHandle, { line: BalanceLineDef }>(func
           <IconRefresh style={{ width: 13, height: 13 }} />
           刷新
         </button>
-        <button
-          className="btn btn--primary btn--sm"
-          onClick={() => void login()}
-          disabled={showLoading || state.consoleOpen}
-        >
-          {isExpired ? "重新登录" : "更新登录"}
-        </button>
+        {!usesApiKeyBalance ? (
+          <button
+            className="btn btn--primary btn--sm"
+            onClick={() => void login()}
+            disabled={showLoading || state.consoleOpen}
+          >
+            {isExpired ? "重新登录" : "更新登录"}
+          </button>
+        ) : null}
       </div>
 
       <div className="balance-card__open-row">
@@ -309,15 +320,23 @@ const BalanceCard = forwardRef<BalanceCardHandle, { line: BalanceLineDef }>(func
           className="btn btn--ghost btn--sm balance-card__open-btn"
           onClick={() => void openConsole()}
           disabled={
-            state.consoleOpen || state.status === "logging_in" || state.status === "no_session"
+            state.consoleOpen ||
+            state.status === "logging_in" ||
+            (!usesApiKeyBalance && state.status === "no_session")
           }
           title={
-            state.status === "no_session"
+            usesApiKeyBalance
+              ? `打开${line.name}后台`
+              : state.status === "no_session"
               ? "请先登录"
               : "用已保存的 cookies 打开后台 console，方便充值/查日志"
           }
         >
-          {state.consoleOpen ? "后台已打开（关闭窗口后此处恢复）" : "打开后台（免登录）"}
+          {state.consoleOpen
+            ? "后台已打开"
+            : usesApiKeyBalance
+              ? "打开后台"
+              : "打开后台（免登录）"}
         </button>
       </div>
     </div>

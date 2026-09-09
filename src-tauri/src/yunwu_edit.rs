@@ -114,9 +114,7 @@ async fn download_reference_image(
             }
         }
     }
-    Err(last_error.unwrap_or_else(|| {
-        format!("下载线路2第 {} 张参考图失败：unknown", index + 1)
-    }))
+    Err(last_error.unwrap_or_else(|| format!("下载线路2第 {} 张参考图失败：unknown", index + 1)))
 }
 
 async fn download_reference_image_once(

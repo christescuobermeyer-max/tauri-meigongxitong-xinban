@@ -4,7 +4,7 @@ use serde::Serialize;
 use serde_json::Value;
 use std::time::Duration;
 
-const TASK_API_BASE_URL: &str = "https://api.apimart.ai/v1/tasks";
+const TASK_API_BASE_URL: &str = "https://api.apib.ai/v1/tasks";
 const INITIAL_WAIT_SECS: u64 = 4;
 const POLL_INTERVAL_SECS: u64 = 2;
 const MAX_POLL_ATTEMPTS: usize = 120;
@@ -15,6 +15,16 @@ pub async fn submit_apimart_task<T: Serialize + ?Sized>(
     api_key: &str,
     payload: &T,
 ) -> Result<String, String> {
+    submit_apimart_task_with_label(client, api_url, api_key, payload, "线路5 APIMart").await
+}
+
+pub async fn submit_apimart_task_with_label<T: Serialize + ?Sized>(
+    client: &reqwest::Client,
+    api_url: &str,
+    api_key: &str,
+    payload: &T,
+    label: &str,
+) -> Result<String, String> {
     let response = client
         .post(api_url)
         .bearer_auth(api_key)
@@ -22,31 +32,26 @@ pub async fn submit_apimart_task<T: Serialize + ?Sized>(
         .json(payload)
         .send()
         .await
-        .map_err(|error| {
-            format!(
-                "调用线路5 APIMart接口失败：{}",
-                format_reqwest_error(&error)
-            )
-        })?;
+        .map_err(|error| format!("调用{label}接口失败：{}", format_reqwest_error(&error)))?;
 
     let status = response.status();
     let body_text = response
         .text()
         .await
-        .map_err(|error| format!("读取线路5 APIMart响应失败：{error}"))?;
+        .map_err(|error| format!("读取{label}响应失败：{error}"))?;
     eprintln!(
-        "[image-2:line5-apimart] response_status={status} response_preview={}",
+        "[apimart-task] label={label} response_status={status} response_preview={}",
         truncate_for_msg(&body_text, 240)
     );
 
     if !status.is_success() {
         return Err(format!(
-            "线路5 APIMart接口返回 {status}: {}",
+            "{label}接口返回 {status}: {}",
             truncate_for_msg(&body_text, 600)
         ));
     }
 
-    extract_task_id(&body_text)
+    extract_task_id(&body_text, label)
 }
 
 pub async fn poll_apimart_task(
@@ -54,32 +59,43 @@ pub async fn poll_apimart_task(
     api_key: &str,
     task_id: &str,
 ) -> Result<String, String> {
+    poll_apimart_task_with_base_url(client, api_key, task_id, TASK_API_BASE_URL, "线路5 APIMart")
+        .await
+}
+
+pub async fn poll_apimart_task_with_base_url(
+    client: &reqwest::Client,
+    api_key: &str,
+    task_id: &str,
+    task_api_base_url: &str,
+    label: &str,
+) -> Result<String, String> {
     tokio::time::sleep(Duration::from_secs(INITIAL_WAIT_SECS)).await;
 
     for attempt in 1..=MAX_POLL_ATTEMPTS {
-        let task_url = format!("{TASK_API_BASE_URL}/{task_id}");
-        let body_text = fetch_task_status(client, api_key, &task_url).await?;
+        let task_url = format!("{task_api_base_url}/{task_id}");
+        let body_text = fetch_task_status(client, api_key, &task_url, label).await?;
         let parsed: Value = serde_json::from_str(&body_text).map_err(|error| {
             format!(
-                "解析线路5 APIMart任务响应失败：{error}; 原始响应片段：{}",
+                "解析{label}任务响应失败：{error}; 原始响应片段：{}",
                 truncate_for_msg(&body_text, 400)
             )
         })?;
         let status = extract_task_status(&parsed).unwrap_or_else(|| "unknown".to_string());
-        eprintln!("[image-2:line5-apimart] poll={attempt} task_status={status}");
+        eprintln!("[apimart-task] label={label} poll={attempt} task_status={status}");
 
         if let Some(image) = extract_generated_image(&parsed) {
             return Ok(image);
         }
         if is_completed_status(&status) {
             return Err(format!(
-                "线路5 APIMart任务已完成但未找到图片：{}",
+                "{label}任务已完成但未找到图片：{}",
                 truncate_for_msg(&body_text, 600)
             ));
         }
         if is_failed_status(&status) {
             return Err(format!(
-                "线路5 APIMart任务失败：{}",
+                "{label}任务失败：{}",
                 truncate_for_msg(&body_text, 600)
             ));
         }
@@ -87,34 +103,30 @@ pub async fn poll_apimart_task(
         tokio::time::sleep(Duration::from_secs(POLL_INTERVAL_SECS)).await;
     }
 
-    Err("线路5 APIMart任务超时，请稍后重试".to_string())
+    Err(format!("{label}任务超时，请稍后重试"))
 }
 
 async fn fetch_task_status(
     client: &reqwest::Client,
     api_key: &str,
     task_url: &str,
+    label: &str,
 ) -> Result<String, String> {
     let response = client
         .get(task_url)
         .bearer_auth(api_key)
         .send()
         .await
-        .map_err(|error| {
-            format!(
-                "轮询线路5 APIMart任务失败：{}",
-                format_reqwest_error(&error)
-            )
-        })?;
+        .map_err(|error| format!("轮询{label}任务失败：{}", format_reqwest_error(&error)))?;
     let status = response.status();
     let body_text = response
         .text()
         .await
-        .map_err(|error| format!("读取线路5 APIMart任务响应失败：{error}"))?;
+        .map_err(|error| format!("读取{label}任务响应失败：{error}"))?;
 
     if !status.is_success() {
         return Err(format!(
-            "线路5 APIMart任务接口返回 {status}: {}",
+            "{label}任务接口返回 {status}: {}",
             truncate_for_msg(&body_text, 600)
         ));
     }
@@ -122,16 +134,16 @@ async fn fetch_task_status(
     Ok(body_text)
 }
 
-fn extract_task_id(body_text: &str) -> Result<String, String> {
+fn extract_task_id(body_text: &str, label: &str) -> Result<String, String> {
     let parsed: Value = serde_json::from_str(body_text).map_err(|error| {
         format!(
-            "解析线路5 APIMart创建任务响应失败：{error}; 原始响应片段：{}",
+            "解析{label}创建任务响应失败：{error}; 原始响应片段：{}",
             truncate_for_msg(body_text, 400)
         )
     })?;
     find_string_by_keys(&parsed, &["task_id", "taskId", "id"]).ok_or_else(|| {
         format!(
-            "线路5 APIMart创建任务响应中未找到 task_id：{}",
+            "{label}创建任务响应中未找到 task_id：{}",
             truncate_for_msg(body_text, 600)
         )
     })

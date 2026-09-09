@@ -97,7 +97,7 @@ equal(filterGenerationLogs(logs, { assetLabel: "海报", statDay: "2026-05-03" }
 equal(module.ASSET_LABEL.p_signboard, "P门头");
 equal(module.ASSET_LABEL.picture_wall, "图片墙");
 equal(module.ASSET_LABEL.detail_page, "详情页");
-equal(module.GENERATION_LINE_LABEL.line1, "线路1");
+equal(module.GENERATION_LINE_LABEL.line1, "已移除线路");
 equal(module.GENERATION_LINE_LABEL.line2, "线路2");
 equal(module.GENERATION_LINE_LABEL.line3, "线路3");
 equal(module.GENERATION_LINE_LABEL.line4, "线路4");

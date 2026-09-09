@@ -2,10 +2,6 @@ import { equal, ok } from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const typesSource = readFileSync(new URL("../src/types.ts", import.meta.url), "utf8");
-const lineCardSource = readFileSync(
-  new URL("../src/components/GenerationLineCard.tsx", import.meta.url),
-  "utf8"
-);
 const tauriSource = readFileSync(new URL("../src/lib/tauri.ts", import.meta.url), "utf8");
 const supabaseSource = readFileSync(new URL("../src/lib/supabase.ts", import.meta.url), "utf8");
 const historySource = readFileSync(new URL("../src/components/HistoryPanel.tsx", import.meta.url), "utf8");
@@ -29,12 +25,10 @@ const apiSource = readFileSync(new URL("../src-tauri/src/api.rs", import.meta.ur
 const envExample = readFileSync(new URL("../.env.example", import.meta.url), "utf8");
 const schemaSource = readFileSync(new URL("../supabase/schema.sql", import.meta.url), "utf8");
 
-equal(typesSource.includes('export type GenerationLine = "line1" | "line2" | "line3" | "line4" | "line5" | "line6" | "line7";'), true);
-equal(lineCardSource.includes("GenerationLineSelect"), false);
-equal(lineCardSource.includes("<LineHealthBar />"), true);
-equal(lineCardSource.includes("generation-line-card__hint"), false);
+equal(typesSource.includes('export type GenerationLine = "line2" | "line3" | "line4" | "line5" | "line6" | "line7";'), true);
+equal(typesSource.includes('export type HistoricalGenerationLine = "line1" | GenerationLine;'), true);
 equal(tauriSource.includes("线路4为 pockgo"), true);
-equal(supabaseSource.includes('"line1" | "line2" | "line3" | "line4" | "line5" | "line6" | "line7" | null'), true);
+equal(supabaseSource.includes("generation_line: HistoricalGenerationLine | null"), true);
 equal(historySource.includes('if (line === "line3") return "线路3";'), true);
 equal(historySource.includes('if (line === "line4") return "线路4";'), true);
 equal(adminLogListSource.includes('if (line === "line3") return "线路3";'), true);
@@ -67,6 +61,9 @@ ok(
   "线路3 存在参考图时应走独立的 vectorengine multipart 编辑分支",
 );
 ok(apiSource.includes("req.api_line == ImageApiLine::Line4"), "线路4应走 pockgo chat 分支");
+ok(imageProviderSource.includes("LINE7_API_URL"), "应定义线路7 novaeworld API URL");
+ok(imageProviderSource.includes("https://api.novaeworld.top/v1/images/generations"), "线路7应使用 novaeworld OpenAI 兼容 generations endpoint");
+ok(imageProviderSource.includes("NOVA_IMAGE_2_API_KEY"), "线路7应读取 novaeworld API key 环境变量");
 
 equal(envExample.includes("VECTORENGINE_IMAGE_2_API_KEY="), true);
 ok(schemaSource.includes("'line3'") && schemaSource.includes("'line6'"));

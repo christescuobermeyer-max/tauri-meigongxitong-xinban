@@ -1,7 +1,9 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { HistoricalGenerationLine } from "../types";
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const env = import.meta.env ?? {};
+const url = env.VITE_SUPABASE_URL as string | undefined;
+const anonKey = env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
 if (!url || !anonKey) {
   console.warn(
@@ -50,7 +52,7 @@ export interface GenerationLogRow {
   shop_name: string;
   asset_kind: AssetKindDb;
   platform: PlatformDb;
-  generation_line: "line1" | "line2" | "line3" | "line4" | "line5" | "line6" | "line7" | null;
+  generation_line: HistoricalGenerationLine | null;
   oss_url: string;
   oss_key: string | null;
   created_at: string;

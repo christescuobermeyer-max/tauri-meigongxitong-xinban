@@ -199,9 +199,7 @@ pub async fn admin_soft_delete_user(
 
     let now_iso = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
     let profile_response = client
-        .patch(format!(
-            "{supabase_url}/rest/v1/profiles?id=eq.{target_id}"
-        ))
+        .patch(format!("{supabase_url}/rest/v1/profiles?id=eq.{target_id}"))
         .header("apikey", &service_role)
         .header(AUTHORIZATION, format!("Bearer {service_role}"))
         .header(CONTENT_TYPE, "application/json")
@@ -212,10 +210,7 @@ pub async fn admin_soft_delete_user(
         .map_err(|e| format!("更新 profiles 失败：{e}"))?;
     if !profile_response.status().is_success() {
         let detail = profile_response.text().await.unwrap_or_default();
-        return Err(format!(
-            "更新 profiles 失败：{}",
-            truncate(&detail, 240)
-        ));
+        return Err(format!("更新 profiles 失败：{}", truncate(&detail, 240)));
     }
 
     eprintln!(
@@ -233,9 +228,10 @@ fn generate_random_password(len: usize) -> String {
     use rand::RngCore;
     let mut buf = vec![0u8; len];
     rand::thread_rng().fill_bytes(&mut buf);
-    const CHARSET: &[u8] =
-        b"ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*";
-    buf.iter().map(|b| CHARSET[(*b as usize) % CHARSET.len()] as char).collect()
+    const CHARSET: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*";
+    buf.iter()
+        .map(|b| CHARSET[(*b as usize) % CHARSET.len()] as char)
+        .collect()
 }
 
 async fn verify_caller_is_admin(

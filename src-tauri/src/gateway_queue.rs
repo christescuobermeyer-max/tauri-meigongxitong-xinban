@@ -36,9 +36,6 @@ enum QueueRequest {
         size: String,
         exclude: HashSet<String>,
     },
-    Line {
-        line: String,
-    },
 }
 
 pub struct QueuedGenerationPermit {
@@ -93,27 +90,6 @@ impl GatewayGenerationQueue {
             QueueRequest::Auto {
                 size: size.to_string(),
                 exclude,
-            },
-            user_id,
-        )
-        .await
-    }
-
-    pub async fn acquire_line(
-        self: &Arc<Self>,
-        line: &str,
-    ) -> Result<QueuedGenerationPermit, String> {
-        self.acquire_line_for_user("anonymous", line).await
-    }
-
-    pub async fn acquire_line_for_user(
-        self: &Arc<Self>,
-        user_id: &str,
-        line: &str,
-    ) -> Result<QueuedGenerationPermit, String> {
-        self.acquire(
-            QueueRequest::Line {
-                line: line.to_string(),
             },
             user_id,
         )
@@ -237,19 +213,6 @@ impl GatewayGenerationQueue {
                     .line
                     .map(str::to_string)
             }
-            QueueRequest::Line { line } => {
-                if !state.limiter.can_queue_line(&line) {
-                    state.waiting.remove(own_position);
-                    drop(state);
-                    self.notify.notify_waiters();
-                    return Err(format!("{line} 当前已暂停，请切换线路或稍后再试"));
-                }
-                if state.limiter.try_acquire(&line).allowed {
-                    Some(line)
-                } else {
-                    None
-                }
-            }
         };
         let Some(acquired_line) = acquired_line else {
             return Ok(None);
@@ -303,9 +266,6 @@ impl GatewayGenerationQueue {
                         let mut excl: Vec<String> = exclude.iter().cloned().collect();
                         excl.sort();
                         ("auto".to_string(), size.clone(), excl)
-                    }
-                    QueueRequest::Line { line } => {
-                        ("line".to_string(), line.clone(), Vec::new())
                     }
                 };
                 WaitingTicketSnapshot {
@@ -435,14 +395,12 @@ impl QueueRequest {
             QueueRequest::Auto { size, exclude } => {
                 limiter.has_auto_candidate_excluding(size, health, exclude)
             }
-            QueueRequest::Line { line } => limiter.can_queue_line(line),
         }
     }
 
     fn unavailable_message(&self) -> String {
         match self {
             QueueRequest::Auto { .. } => "当前没有可用生图线路，请稍后重新提交".to_string(),
-            QueueRequest::Line { line } => format!("{line} 当前已暂停，请切换线路或稍后再试"),
         }
     }
 }
@@ -469,7 +427,6 @@ impl QueueTicket {
                         .select_generation_line_excluding(size, health, exclude)
                         .is_some()
             }
-            QueueRequest::Line { line } => limiter.can_acquire_line(line),
         }
     }
 }
@@ -495,7 +452,7 @@ mod tests {
     fn test_queue(global_limit: usize) -> Arc<GatewayGenerationQueue> {
         let health = Arc::new(LineHealthRegistry::new());
         Arc::new(GatewayGenerationQueue::new(
-            GatewayLimiter::new(global_limit, HashMap::from([("line1", 2), ("line2", 1)])),
+            GatewayLimiter::new(global_limit, HashMap::from([("line2", 2), ("line3", 1)])),
             health,
             3,
         ))

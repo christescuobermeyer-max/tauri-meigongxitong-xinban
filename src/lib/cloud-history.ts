@@ -5,7 +5,8 @@ import {
   getHistoryQueryRange,
 } from "./history-pagination.js";
 import { supabase, type GenerationLogRow, type GenerationTotalRow } from "./supabase";
-import type { AssetKind, Platform } from "../types";
+import { callBackendGateway, getBackendGatewayUrl } from "./tauri";
+import type { AssetKind, GenerationLine, Platform } from "../types";
 
 export interface RecordGenerationLogInput {
   userId: string;
@@ -13,7 +14,7 @@ export interface RecordGenerationLogInput {
   assetKind: AssetKind;
   platform: Platform;
   ossUrl: string;
-  generationLine?: "line1" | "line2" | "line3" | "line4" | "line5" | "line6" | "line7" | null;
+  generationLine?: GenerationLine | null;
   elapsedMs?: number | null;
 }
 
@@ -123,6 +124,40 @@ export async function fetchTotalCount(userId: string): Promise<number> {
     return fetchCurrentGenerationLogCount(userId);
   }
   return ((data as Pick<GenerationTotalRow, "total_count"> | null)?.total_count) ?? 0;
+}
+
+/** 读取所有账号累计的生图数量（后台管理「所有账户」累计生图口径）。 */
+export async function fetchGlobalTotalCount(): Promise<number> {
+  if (getBackendGatewayUrl()) {
+    try {
+      const response = await callBackendGateway<{ total_count: number }>(
+        "/api/global-generation-total",
+        {},
+        { timeoutMs: 15_000 }
+      );
+      return response.total_count ?? 0;
+    } catch (error: unknown) {
+      console.warn(
+        "[cloud-history] fetchGlobalTotalCount via gateway failed:",
+        error instanceof Error ? error.message : String(error)
+      );
+    }
+  }
+  return sumGlobalGenerationTotals();
+}
+
+export async function sumGlobalGenerationTotals(): Promise<number> {
+  const { data, error } = await supabase
+    .from("generation_totals")
+    .select("total_count");
+  if (error) {
+    console.warn("[cloud-history] sumGlobalGenerationTotals failed:", error.message);
+    return 0;
+  }
+  return ((data as Pick<GenerationTotalRow, "total_count">[] | null) ?? []).reduce(
+    (sum, row) => sum + (row.total_count ?? 0),
+    0
+  );
 }
 
 async function fetchCurrentGenerationLogCount(userId: string): Promise<number> {

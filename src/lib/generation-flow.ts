@@ -30,7 +30,7 @@ export function buildGenerationPayload(
   avatarMode: AvatarReferenceMode = "image",
   avatarCategory = "",
   promptOverride?: string,
-  generationLine: GenerationLine = "line1",
+  generationLine: GenerationLine = "line5",
   appearance: AppearanceOptions = {}
 ) {
   const prompt =

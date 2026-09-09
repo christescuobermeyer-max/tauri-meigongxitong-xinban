@@ -1,4 +1,5 @@
 import type { GenerationLogRow } from "./supabase";
+import type { HistoricalGenerationLine } from "../types";
 
 export type AssetKindLabel =
   | "全部"
@@ -26,11 +27,8 @@ export const ASSET_LABEL: Record<string, string> = {
   patrol_script: "巡店话术",
 };
 
-export const GENERATION_LINE_LABEL: Record<
-  "line1" | "line2" | "line3" | "line4" | "line5" | "line6" | "line7",
-  string
-> = {
-  line1: "线路1",
+export const GENERATION_LINE_LABEL: Record<HistoricalGenerationLine, string> = {
+  line1: "已移除线路",
   line2: "线路2",
   line3: "线路3",
   line4: "线路4",

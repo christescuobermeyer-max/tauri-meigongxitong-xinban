@@ -239,7 +239,7 @@ fn build_strict_user_prompt(prompt: &str, aspect_ratio: &str) -> String {
 fn format_pockgo_status_error(status: u16, body_text: &str) -> String {
     if body_text.contains("file upload init failed") && body_text.contains("token_expired") {
         return format!(
-            "线路4 pockgo上游文件上传授权已过期：请求已成功到达线路4服务端，不是本地API key或OSS链接配置问题。请暂时切换线路1/线路2/线路3，或联系线路4服务商刷新上游授权。原始返回：{}",
+            "线路4 pockgo上游文件上传授权已过期：请求已成功到达线路4服务端，不是本地API key或OSS链接配置问题。请暂时切换线路2/线路3，或联系线路4服务商刷新上游授权。原始返回：{}",
             truncate_for_msg(body_text, 360)
         );
     }
@@ -269,7 +269,7 @@ mod tests {
 
         assert!(message.contains("上游文件上传授权已过期"));
         assert!(message.contains("不是本地API key或OSS链接配置问题"));
-        assert!(message.contains("切换线路1/线路2/线路3"));
+        assert!(message.contains("切换线路2/线路3"));
     }
 
     #[test]

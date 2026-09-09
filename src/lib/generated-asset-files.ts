@@ -3,18 +3,20 @@ import type { AssetKind, GenerationItem, PlatformSpec } from "../types";
 
 interface AssetExportSpec {
   fileName: string;
-  targetWidth: number;
-  targetHeight: number;
+  targetWidth?: number;
+  targetHeight?: number;
   maxBytes?: number;
+  saveOriginal?: boolean;
 }
 
 export interface BatchDownloadPlan {
   kind: "avatar" | "storefront" | "poster";
   rawBase64: string;
   outputPath: string;
-  targetWidth: number;
-  targetHeight: number;
+  targetWidth?: number;
+  targetHeight?: number;
   maxBytes?: number;
+  saveOriginal?: boolean;
 }
 
 export function canBatchDownloadAssets(items: GenerationItem[]) {
@@ -41,11 +43,9 @@ export function getGeneratedAssetExportSpec(
   }
 
   if (kind === "poster") {
-    const target = currentPlatform.poster.export;
     return {
-      fileName: `${stem}_${currentPlatform.id}_poster_${target.w}x${target.h}.png`,
-      targetWidth: target.w,
-      targetHeight: target.h,
+      fileName: `${stem}_${currentPlatform.id}_poster_original.png`,
+      saveOriginal: true,
     };
   }
 
@@ -99,6 +99,7 @@ export function buildBatchDownloadPlans(
       targetWidth: spec.targetWidth,
       targetHeight: spec.targetHeight,
       maxBytes: spec.maxBytes,
+      saveOriginal: spec.saveOriginal,
     };
   });
 }

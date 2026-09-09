@@ -26,11 +26,11 @@ fn is_supported_size_for_line(req: &GenerateRequest) -> bool {
             req.size.as_str(),
             "1024x1024" | "1024x1536" | "1536x1024" | "1792x1024" | "16:9" | "21:9" | "3:4"
         ),
-        // line2/6 的 supports 表必须和 gateway_limiter::supports_provider_size 保持一致，
+        // supports 表必须和 gateway_limiter::supports_provider_size 保持一致，
         // 否则 limiter 选中线路+映射 size 后，validation 又拒绝，产生 "不支持的尺寸" 内部错误。
         ImageApiLine::Line2 => matches!(
             req.size.as_str(),
-            "1024x1024" | "1024x1536" | "1536x1024" | "1792x768"
+            "1024x1024" | "1024x1536" | "1536x1024" | "16:9" | "21:9" | "1792x768"
         ),
         ImageApiLine::Line6 => matches!(
             req.size.as_str(),
@@ -43,13 +43,13 @@ fn is_supported_size_for_line(req: &GenerateRequest) -> bool {
                 | "1024x1360"
                 | "2384x1024"
         ),
-        ImageApiLine::Line1 | ImageApiLine::Line3 => matches!(
+        ImageApiLine::Line3 => matches!(
             req.size.as_str(),
             "1024x1024" | "1024x1536" | "1536x1024" | "21:9" | "3:4"
         ),
         ImageApiLine::Line7 => matches!(
             req.size.as_str(),
-            "1024x1024" | "1024x1792" | "1792x1024"
+            "1024x1024" | "1024x1536" | "1536x1024" | "1792x768"
         ),
     }
 }
@@ -57,7 +57,6 @@ fn is_supported_size_for_line(req: &GenerateRequest) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::image_provider::resolve_image_provider;
 
     #[test]
     fn reject_more_than_five_reference_images() {
@@ -65,7 +64,7 @@ mod tests {
             prompt: "测试".into(),
             size: "1024x1024".into(),
             product_images: vec!["x".into(); 6],
-            api_line: ImageApiLine::Line1,
+            api_line: ImageApiLine::Line2,
         };
 
         let err = validate_generate_request(&req).unwrap_err();
@@ -74,22 +73,12 @@ mod tests {
     }
 
     #[test]
-    fn use_wlai_api_endpoint() {
-        let provider = resolve_image_provider(ImageApiLine::Line1);
-
-        assert_eq!(
-            provider.api_url,
-            "https://api3.wlai.vip/v1/images/generations"
-        );
-    }
-
-    #[test]
     fn allow_generate_without_reference_images() {
         let req = GenerateRequest {
             prompt: "测试".into(),
             size: "1024x1024".into(),
             product_images: vec![],
-            api_line: ImageApiLine::Line1,
+            api_line: ImageApiLine::Line2,
         };
 
         assert!(validate_generate_request(&req).is_ok());
@@ -101,7 +90,7 @@ mod tests {
             prompt: "测试".into(),
             size: "21:9".into(),
             product_images: vec!["https://example.com/storefront.png".into()],
-            api_line: ImageApiLine::Line1,
+            api_line: ImageApiLine::Line3,
         };
 
         assert!(validate_generate_request(&req).is_ok());
@@ -120,6 +109,42 @@ mod tests {
     }
 
     #[test]
+    fn allow_manxiaobai_wide_pixel_size() {
+        let req = GenerateRequest {
+            prompt: "测试".into(),
+            size: "2384x1024".into(),
+            product_images: vec!["https://example.com/storefront.png".into()],
+            api_line: ImageApiLine::Line6,
+        };
+
+        assert!(validate_generate_request(&req).is_ok());
+    }
+
+    #[test]
+    fn allow_novaeworld_poster_pixel_size() {
+        let req = GenerateRequest {
+            prompt: "测试".into(),
+            size: "1792x768".into(),
+            product_images: vec!["https://example.com/storefront.png".into()],
+            api_line: ImageApiLine::Line7,
+        };
+
+        assert!(validate_generate_request(&req).is_ok());
+    }
+
+    #[test]
+    fn reject_legacy_wide_size_for_manxiaobai() {
+        let req = GenerateRequest {
+            prompt: "测试".into(),
+            size: "1792x768".into(),
+            product_images: vec!["https://example.com/storefront.png".into()],
+            api_line: ImageApiLine::Line6,
+        };
+
+        assert!(validate_generate_request(&req).is_err());
+    }
+
+    #[test]
     fn allow_pockgo_storefront_16_9_ratio_size() {
         let req = GenerateRequest {
             prompt: "测试".into(),
@@ -134,10 +159,10 @@ mod tests {
     #[test]
     fn reject_1792_storefront_size_for_image_generation_lines() {
         for api_line in [
-            ImageApiLine::Line1,
             ImageApiLine::Line2,
             ImageApiLine::Line3,
             ImageApiLine::Line5,
+            ImageApiLine::Line7,
         ] {
             let req = GenerateRequest {
                 prompt: "测试".into(),

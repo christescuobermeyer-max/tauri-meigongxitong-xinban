@@ -11,7 +11,10 @@ export interface AccountSummary extends ProfileRow {
   is_all?: boolean;
 }
 
-export function buildAllAccountsSummary(accounts: AccountSummary[]): AccountSummary {
+export function buildAllAccountsSummary(
+  accounts: AccountSummary[],
+  totalCountOverride?: number
+): AccountSummary {
   const lastLogin = accounts
     .map((account) => account.last_login_at)
     .filter((value): value is string => Boolean(value))
@@ -25,7 +28,7 @@ export function buildAllAccountsSummary(accounts: AccountSummary[]): AccountSumm
     is_active: true,
     created_at: "",
     deleted_at: null,
-    total_count: accounts.reduce((sum, account) => sum + account.total_count, 0),
+    total_count: totalCountOverride ?? accounts.reduce((sum, account) => sum + account.total_count, 0),
     today_count: accounts.reduce((sum, account) => sum + account.today_count, 0),
     is_all: true,
   };

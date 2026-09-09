@@ -65,7 +65,7 @@ export async function fetchGatewayStats(): Promise<GatewayStatsResponse> {
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    const response = await fetch(`${baseUrl}/api/admin/gateway-stats`, {
+    const response = await fetch(`${baseUrl}/api/gateway-stats`, {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
       signal: controller.signal,

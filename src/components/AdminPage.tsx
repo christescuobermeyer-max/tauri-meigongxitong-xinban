@@ -10,6 +10,7 @@ import {
   type AccountSummary,
 } from "../lib/admin";
 import type { AssetKindLabel } from "../lib/admin-log-filters";
+import { fetchGlobalTotalCount } from "../lib/cloud-history";
 import { supabase, type DailyStatRow, type GenerationLogRow } from "../lib/supabase";
 import AdminAccountsTable from "./admin/AdminAccountsTable";
 import AdminBalancePanel from "./admin/AdminBalancePanel";
@@ -26,6 +27,7 @@ export default function AdminPage() {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<AccountSummary[]>([]);
+  const [globalTotalCount, setGlobalTotalCount] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<string>(ALL_ACCOUNTS_ID);
   const [logs, setLogs] = useState<GenerationLogRow[]>([]);
   const [dailyStats, setDailyStats] = useState<DailyStatRow[]>([]);
@@ -47,8 +49,12 @@ export default function AdminPage() {
   async function refresh() {
     setLoading(true);
     try {
-      const list = await listAccountSummaries();
+      const [list, totalCount] = await Promise.all([
+        listAccountSummaries(),
+        fetchGlobalTotalCount(),
+      ]);
       setAccounts(list);
+      setGlobalTotalCount(totalCount);
       setSelectedId((current) =>
         current === ALL_ACCOUNTS_ID || list.some((account) => account.id === current)
           ? current
@@ -85,7 +91,10 @@ export default function AdminPage() {
     };
   }, [selectedId, selectedDate, toast]);
 
-  const allAccountsSummary = buildAllAccountsSummary(accounts);
+  const allAccountsSummary = buildAllAccountsSummary(
+    accounts,
+    globalTotalCount ?? undefined
+  );
   const accountRows = accounts.length > 0 ? [allAccountsSummary, ...accounts] : [];
   const selected =
     selectedId === ALL_ACCOUNTS_ID

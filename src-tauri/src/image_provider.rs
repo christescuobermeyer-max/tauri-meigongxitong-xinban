@@ -6,18 +6,9 @@ pub enum ReferenceImageJsonField {
     ReferenceImages,
 }
 
-const LINE1_API_URL: &str = "https://api3.wlai.vip/v1/images/generations";
-const LINE1_MODEL: &str = "gpt-image-2-all";
-const LINE1_API_KEY_ENV_KEYS: [&str; 4] = [
-    "IMAGE_2_API_KEY",
-    "GPT_IMAGE_2_API_KEY",
-    "WLAI_IMAGE_2_API_KEY",
-    "NEW_PICTURE_WALL_IMAGE2_API_KEY",
-];
-
-const LINE2_API_URL: &str = "https://yunwu.ai/v1/images/generations";
-const LINE2_EDIT_API_URL: &str = "https://yunwu.ai/v1/images/edits";
-const LINE2_MODEL: &str = "gpt-image-2";
+const LINE2_API_URL: &str = "https://img.zikl.dev/v1/images/generations";
+const LINE2_EDIT_API_URL: &str = "https://img.zikl.dev/v1/images/edits";
+const LINE2_MODEL: &str = "gpt-image-2.5-flare";
 const LINE2_API_KEY_ENV_KEYS: [&str; 2] = ["IMAGE_2_LINE2_API_KEY", "YUNWU_IMAGE_2_LINE2_API_KEY"];
 
 const LINE4_API_URL: &str = "https://newapi.aicohere.org/v1/chat/completions";
@@ -37,29 +28,24 @@ const LINE3_API_KEY_ENV_KEYS: [&str; 3] = [
     "IMAGE_2_LINE3_API_KEY",
 ];
 
-const LINE5_API_URL: &str = "https://api.apimart.ai/v1/images/generations";
+const LINE5_API_URL: &str = "https://api.apib.ai/v1/images/generations";
 const LINE5_MODEL: &str = "gpt-image-2";
 const LINE5_API_KEY_ENV_KEYS: [&str; 2] = ["APIMART_IMAGE_2_API_KEY", "IMAGE_2_LINE5_API_KEY"];
 
 const LINE6_API_URL: &str = "https://api.manxiaobai.online/v1/images/generations";
 const LINE6_EDIT_API_URL: &str = "https://api.manxiaobai.online/v1/images/edits";
-const LINE6_MODEL: &str = "gpt-image-2-1k";
-const LINE6_API_KEY_ENV_KEYS: [&str; 2] =
-    ["MANXIAOBAI_IMAGE_2_API_KEY", "IMAGE_2_LINE6_API_KEY"];
+const LINE6_MODEL: &str = "gpt-image-2.5";
+const LINE6_API_KEY_ENV_KEYS: [&str; 2] = ["MANXIAOBAI_IMAGE_2_API_KEY", "IMAGE_2_LINE6_API_KEY"];
 
-// 线路7：otuapi。文档：https://6l0ket291i.apifox.cn/447357296e0.md
-// 与其他线路的核心差异：generations 端点本身接受 image 字段做参考图，
-// 不需要独立的 edits 端点；响应只返回 b64_json。模型名 image2（无 gpt- 前缀）。
-const LINE7_API_URL: &str = "https://otuapi.com/v1/images/generations";
-const LINE7_MODEL: &str = "image2";
-const LINE7_API_KEY_ENV_KEYS: [&str; 2] = ["OTUAPI_IMAGE_2_API_KEY", "IMAGE_2_LINE7_API_KEY"];
+const LINE7_API_URL: &str = "https://api.novaeworld.top/v1/images/generations";
+const LINE7_EDIT_API_URL: &str = "https://api.novaeworld.top/v1/images/edits";
+const LINE7_MODEL: &str = "gpt-image-2";
+const LINE7_API_KEY_ENV_KEYS: [&str; 2] = ["NOVA_IMAGE_2_API_KEY", "IMAGE_2_LINE7_API_KEY"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum ImageApiLine {
     #[serde(rename = "auto")]
     Auto,
-    #[serde(rename = "line1")]
-    Line1,
     #[serde(rename = "line2")]
     Line2,
     #[serde(rename = "line3")]
@@ -84,7 +70,6 @@ impl ImageApiLine {
     pub fn as_str(self) -> &'static str {
         match self {
             ImageApiLine::Auto => "auto",
-            ImageApiLine::Line1 => "line1",
             ImageApiLine::Line2 => "line2",
             ImageApiLine::Line3 => "line3",
             ImageApiLine::Line4 => "line4",
@@ -97,7 +82,6 @@ impl ImageApiLine {
     pub fn from_str(value: &str) -> Option<Self> {
         match value {
             "auto" => Some(ImageApiLine::Auto),
-            "line1" => Some(ImageApiLine::Line1),
             "line2" => Some(ImageApiLine::Line2),
             "line3" => Some(ImageApiLine::Line3),
             "line4" => Some(ImageApiLine::Line4),
@@ -124,17 +108,6 @@ pub struct ImageProvider {
 pub fn resolve_image_provider(line: ImageApiLine) -> ImageProvider {
     match line {
         ImageApiLine::Auto => panic!("auto image line must be resolved by backend gateway"),
-        ImageApiLine::Line1 => ImageProvider {
-            api_url: LINE1_API_URL,
-            edit_api_url: None,
-            model: LINE1_MODEL,
-            log_label: "image-2:line1",
-            user_label: "线路1",
-            api_key_env_keys: &LINE1_API_KEY_ENV_KEYS,
-            quality: None,
-            format: None,
-            reference_image_json_field: ReferenceImageJsonField::Image,
-        },
         ImageApiLine::Line2 => ImageProvider {
             api_url: LINE2_API_URL,
             edit_api_url: Some(LINE2_EDIT_API_URL),
@@ -142,7 +115,7 @@ pub fn resolve_image_provider(line: ImageApiLine) -> ImageProvider {
             log_label: "image-2:line2",
             user_label: "线路2",
             api_key_env_keys: &LINE2_API_KEY_ENV_KEYS,
-            quality: Some("high"),
+            quality: Some("low"),
             format: Some("png"),
             reference_image_json_field: ReferenceImageJsonField::Image,
         },
@@ -153,7 +126,7 @@ pub fn resolve_image_provider(line: ImageApiLine) -> ImageProvider {
             log_label: "image-2:line3-vectorengine",
             user_label: "线路3 vectorengine",
             api_key_env_keys: &LINE3_API_KEY_ENV_KEYS,
-            quality: Some("high"),
+            quality: Some("low"),
             format: Some("png"),
             reference_image_json_field: ReferenceImageJsonField::Image,
         },
@@ -192,10 +165,10 @@ pub fn resolve_image_provider(line: ImageApiLine) -> ImageProvider {
         },
         ImageApiLine::Line7 => ImageProvider {
             api_url: LINE7_API_URL,
-            edit_api_url: None,
+            edit_api_url: Some(LINE7_EDIT_API_URL),
             model: LINE7_MODEL,
-            log_label: "image-2:line7-otuapi",
-            user_label: "线路7 otuapi",
+            log_label: "image-2:line7-novaeworld",
+            user_label: "线路7 novaeworld",
             api_key_env_keys: &LINE7_API_KEY_ENV_KEYS,
             quality: None,
             format: None,
@@ -209,30 +182,21 @@ mod tests {
     use super::{resolve_image_provider, ImageApiLine, ReferenceImageJsonField};
 
     #[test]
-    fn line1_uses_default_image_2_provider() {
-        let provider = resolve_image_provider(ImageApiLine::Line1);
+    fn line2_uses_zikl_gpt_image_2_provider() {
+        let provider = resolve_image_provider(ImageApiLine::Line2);
 
         assert_eq!(
             provider.api_url,
-            "https://api3.wlai.vip/v1/images/generations"
+            "https://img.zikl.dev/v1/images/generations"
         );
-        assert_eq!(provider.model, "gpt-image-2-all");
-        assert_eq!(provider.log_label, "image-2:line1");
-    }
-
-    #[test]
-    fn line2_uses_yunwu_gpt_image_2_provider() {
-        let provider = resolve_image_provider(ImageApiLine::Line2);
-
-        assert_eq!(provider.api_url, "https://yunwu.ai/v1/images/generations");
         assert_eq!(
             provider.edit_api_url,
-            Some("https://yunwu.ai/v1/images/edits")
+            Some("https://img.zikl.dev/v1/images/edits")
         );
-        assert_eq!(provider.model, "gpt-image-2");
+        assert_eq!(provider.model, "gpt-image-2.5-flare");
         assert_eq!(provider.log_label, "image-2:line2");
         assert_eq!(provider.api_key_env_keys[0], "IMAGE_2_LINE2_API_KEY");
-        assert_eq!(provider.quality, Some("high"));
+        assert_eq!(provider.quality, Some("low"));
         assert_eq!(provider.format, Some("png"));
     }
 
@@ -250,7 +214,7 @@ mod tests {
         );
         assert_eq!(provider.model, "gpt-image-2");
         assert_eq!(provider.log_label, "image-2:line3-vectorengine");
-        assert_eq!(provider.quality, Some("high"));
+        assert_eq!(provider.quality, Some("low"));
         assert_eq!(provider.format, Some("png"));
         assert_eq!(
             provider.reference_image_json_field,
@@ -277,22 +241,11 @@ mod tests {
 
         assert_eq!(
             provider.api_url,
-            "https://api.apimart.ai/v1/images/generations"
+            "https://api.apib.ai/v1/images/generations"
         );
         assert_eq!(provider.model, "gpt-image-2");
         assert_eq!(provider.log_label, "image-2:line5-apimart");
         assert_eq!(provider.api_key_env_keys[0], "APIMART_IMAGE_2_API_KEY");
-    }
-
-    #[test]
-    fn line7_uses_otuapi_provider() {
-        let provider = resolve_image_provider(ImageApiLine::Line7);
-
-        assert_eq!(provider.api_url, "https://otuapi.com/v1/images/generations");
-        assert_eq!(provider.edit_api_url, None);
-        assert_eq!(provider.model, "image2");
-        assert_eq!(provider.log_label, "image-2:line7-otuapi");
-        assert_eq!(provider.api_key_env_keys[0], "OTUAPI_IMAGE_2_API_KEY");
     }
 
     #[test]
@@ -307,10 +260,27 @@ mod tests {
             provider.edit_api_url,
             Some("https://api.manxiaobai.online/v1/images/edits")
         );
-        assert_eq!(provider.model, "gpt-image-2-1k");
+        assert_eq!(provider.model, "gpt-image-2.5");
         assert_eq!(provider.log_label, "image-2:line6-manxiaobai");
         assert_eq!(provider.api_key_env_keys[0], "MANXIAOBAI_IMAGE_2_API_KEY");
         assert_eq!(provider.quality, Some("high"));
         assert_eq!(provider.format, Some("png"));
+    }
+
+    #[test]
+    fn line7_uses_novaeworld_provider() {
+        let provider = resolve_image_provider(ImageApiLine::Line7);
+
+        assert_eq!(
+            provider.api_url,
+            "https://api.novaeworld.top/v1/images/generations"
+        );
+        assert_eq!(
+            provider.edit_api_url,
+            Some("https://api.novaeworld.top/v1/images/edits")
+        );
+        assert_eq!(provider.model, "gpt-image-2");
+        assert_eq!(provider.log_label, "image-2:line7-novaeworld");
+        assert_eq!(provider.api_key_env_keys[0], "NOVA_IMAGE_2_API_KEY");
     }
 }

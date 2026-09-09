@@ -6,6 +6,7 @@ const workspaceSource = readFileSync(
   "utf8"
 );
 const apiSource = readFileSync(new URL("../src-tauri/src/api.rs", import.meta.url), "utf8");
+const apiValidationSource = readFileSync(new URL("../src-tauri/src/api_validation.rs", import.meta.url), "utf8");
 const pockgoFormatSource = readFileSync(
   new URL("../src-tauri/src/pockgo_chat_format.rs", import.meta.url),
   "utf8"
@@ -22,8 +23,8 @@ ok(
   workspaceSource.includes('api_line: "auto"'),
   "海报生成应和其他 image-2 任务一样交给网关自动分配线路"
 );
-ok(apiSource.includes('"21:9"'), "Rust image-2 请求校验应允许 21:9 海报尺寸");
-ok(apiSource.includes('"1792x768"'), "Rust image-2 请求校验应允许线路2海报像素尺寸");
+ok(apiValidationSource.includes('"21:9"'), "Rust image-2 请求校验应允许 21:9 海报尺寸");
+ok(apiValidationSource.includes('"1792x768"'), "Rust image-2 请求校验应兼容线路2旧海报像素尺寸");
 ok(
   pockgoFormatSource.includes('"21:9" => "21:9"'),
   "线路4 pockgo 的比例映射应支持 21:9"

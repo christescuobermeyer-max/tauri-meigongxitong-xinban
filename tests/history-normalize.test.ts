@@ -65,7 +65,7 @@ const legacyProductEntries = buildHistoryEntriesFromGenerationLogs([
 
 deepEqual(
   legacyProductEntries.map((item) => [item.kind, item.title, item.generationLine]),
-  [["product", "产品图", "line1"]]
+  [["product", "产品图", "line5"]]
 );
 
 const legacyPictureWallEntries = buildHistoryEntriesFromGenerationLogs([

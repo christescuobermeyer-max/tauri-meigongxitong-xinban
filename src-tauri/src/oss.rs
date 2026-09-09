@@ -163,7 +163,9 @@ async fn put_object_with_retry(
 ) -> Result<(), String> {
     let mut last_error: Option<String> = None;
     for attempt in 0..=OSS_PUT_RETRY_ATTEMPTS {
-        let builder = RequestBuilder::new().with_content_type(mime).with_expire(600);
+        let builder = RequestBuilder::new()
+            .with_content_type(mime)
+            .with_expire(600);
         let fut = oss.pub_object_from_buffer(key, bytes, builder);
         match tokio::time::timeout(Duration::from_secs(OSS_PUT_TIMEOUT_SECS), fut).await {
             Ok(Ok(())) => {

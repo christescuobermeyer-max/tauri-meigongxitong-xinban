@@ -1,6 +1,6 @@
 import type { GenerationLogRow, PlatformDb } from "./supabase";
 import { pruneExpiredHistoryEntries } from "./history-retention.js";
-import type { AssetKind, Platform } from "../types";
+import type { AssetKind, HistoricalGenerationLine, Platform } from "../types";
 
 export interface HistoryEntry {
   id: string;
@@ -9,7 +9,7 @@ export interface HistoryEntry {
   shopName: string;
   remoteUrl: string;
   platform: Platform;
-  generationLine?: "line1" | "line2" | "line3" | "line4" | "line5" | "line6" | "line7" | null;
+  generationLine?: HistoricalGenerationLine | null;
   previewUrl?: string;
   createdAt: string;
 }
@@ -143,10 +143,10 @@ function normalizePlatform(platform: PlatformDb | Platform | null | undefined): 
 
 function normalizeGenerationLine(
   kind: AssetKind,
-  line?: "line1" | "line2" | "line3" | "line4" | "line5" | "line6" | "line7" | null
-): "line1" | "line2" | "line3" | "line4" | "line5" | "line6" | "line7" | null {
+  line?: HistoricalGenerationLine | null
+): HistoricalGenerationLine | null {
   if (line === "line1" || line === "line2" || line === "line3" || line === "line4" || line === "line5" || line === "line6" || line === "line7") return line;
-  return kind === "picture_wall" ? null : "line1";
+  return kind === "picture_wall" ? null : "line5";
 }
 
 function inferHistoryKindFromUrl(remoteUrl: string): AssetKind | null {

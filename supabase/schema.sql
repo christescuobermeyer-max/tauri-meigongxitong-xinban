@@ -23,11 +23,16 @@ create table if not exists public.profiles (
   login_count     integer not null default 0,
   last_login_at   timestamptz,
   is_active       boolean not null default true,
-  created_at      timestamptz not null default now()
+  created_at      timestamptz not null default now(),
+  deleted_at      timestamptz
 );
 
 comment on table public.profiles is '用户档案，1:1 关联 auth.users';
 comment on column public.profiles.role is 'user 普通账号 / admin 管理员';
+comment on column public.profiles.deleted_at is '软删除时间；非空时从后台账号列表和对接 API 过滤';
+
+alter table public.profiles
+  add column if not exists deleted_at timestamptz;
 
 -- -----------------------------------------------------------------------------
 -- 2. 生图记录 generation_logs
@@ -39,7 +44,7 @@ create table if not exists public.generation_logs (
   shop_name     text not null,
   asset_kind    text not null check (asset_kind in ('avatar', 'storefront', 'poster', 'product', 'p_signboard', 'picture_wall', 'detail_page', 'brand_story', 'data_analysis', 'patrol_script')),
   platform      text not null check (platform in ('meituan', 'taobao')),
-  generation_line text check (generation_line in ('line1', 'line2', 'line3', 'line4', 'line5', 'line6', 'line7')),
+  generation_line text check (generation_line in ('line1', 'line2', 'line3', 'line4', 'line5', 'line6', 'line7', 'line8')),
   oss_url       text not null,
   oss_key       text,
   created_at    timestamptz not null default now()
@@ -60,7 +65,7 @@ alter table public.generation_logs
 
 alter table public.generation_logs
   add constraint generation_logs_generation_line_check
-  check (generation_line in ('line1', 'line2', 'line3', 'line4', 'line5', 'line6', 'line7'));
+  check (generation_line in ('line1', 'line2', 'line3', 'line4', 'line5', 'line6', 'line7', 'line8'));
 
 create index if not exists generation_logs_user_id_created_at_idx
   on public.generation_logs (user_id, created_at desc);
@@ -71,8 +76,8 @@ create index if not exists generation_logs_created_at_idx
 comment on table public.generation_logs is '生图记录，每张图一条';
 
 -- -----------------------------------------------------------------------------
--- 3. 永久累计 generation_totals
---    generation_logs 只保留近 7 天；本表只增不随历史清理减少
+-- 3. 永久累计 generation_totals + 月度累计 generation_monthly_totals
+--    generation_logs 只保留近 7 天；累计表只增不随历史清理减少
 -- -----------------------------------------------------------------------------
 create table if not exists public.generation_totals (
   user_id     uuid primary key references public.profiles(id) on delete cascade,
@@ -83,6 +88,18 @@ create table if not exists public.generation_totals (
 comment on table public.generation_totals is '每个用户永久累计成功归档到 OSS 的生图数量';
 comment on column public.generation_totals.total_count is '永久累计值，只在 generation_logs 插入时递增，不随 7 天历史清理递减';
 
+create table if not exists public.generation_monthly_totals (
+  user_id     uuid not null references public.profiles(id) on delete cascade,
+  stat_month  date not null,
+  month_count integer not null default 0 check (month_count >= 0),
+  updated_at  timestamptz not null default now(),
+  primary key (user_id, stat_month)
+);
+
+comment on table public.generation_monthly_totals is '每个用户按 Asia/Shanghai 自然月累计成功归档到 OSS 的生图数量';
+comment on column public.generation_monthly_totals.stat_month is '上海时区自然月第一天，例如 2026-07-01';
+comment on column public.generation_monthly_totals.month_count is '月度累计值，只在 generation_logs 插入时递增，不随 7 天历史清理递减';
+
 insert into public.generation_totals (user_id, total_count, updated_at)
 select user_id, count(*)::integer as total_count, now()
 from public.generation_logs
@@ -91,12 +108,26 @@ on conflict (user_id) do update
   set total_count = greatest(public.generation_totals.total_count, excluded.total_count),
       updated_at = now();
 
-create or replace function public.increment_generation_total()
+insert into public.generation_monthly_totals (user_id, stat_month, month_count, updated_at)
+select
+  user_id,
+  date_trunc('month', created_at at time zone 'Asia/Shanghai')::date as stat_month,
+  count(*)::integer as month_count,
+  now()
+from public.generation_logs
+group by user_id, stat_month
+on conflict (user_id, stat_month) do update
+  set month_count = greatest(public.generation_monthly_totals.month_count, excluded.month_count),
+      updated_at = now();
+
+create or replace function public.increment_generation_counters()
 returns trigger
 language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  shanghai_month date := date_trunc('month', new.created_at at time zone 'Asia/Shanghai')::date;
 begin
   insert into public.generation_totals (user_id, total_count, updated_at)
   values (new.user_id, 1, now())
@@ -104,14 +135,21 @@ begin
     set total_count = public.generation_totals.total_count + 1,
         updated_at = now();
 
+  insert into public.generation_monthly_totals (user_id, stat_month, month_count, updated_at)
+  values (new.user_id, shanghai_month, 1, now())
+  on conflict (user_id, stat_month) do update
+    set month_count = public.generation_monthly_totals.month_count + 1,
+        updated_at = now();
+
   return new;
 end;
 $$;
 
 drop trigger if exists on_generation_log_insert_increment_total on public.generation_logs;
-create trigger on_generation_log_insert_increment_total
+drop trigger if exists on_generation_log_insert_increment_counters on public.generation_logs;
+create trigger on_generation_log_insert_increment_counters
   after insert on public.generation_logs
-  for each row execute function public.increment_generation_total();
+  for each row execute function public.increment_generation_counters();
 
 -- -----------------------------------------------------------------------------
 -- 4. 登录日志 login_logs（可选，用于审计）
@@ -247,12 +285,37 @@ group by user_id, stat_day;
 comment on view public.daily_generation_stats is '按用户与日期聚合的生图数量；security_invoker=true 表示沿用调用者的 RLS';
 
 -- -----------------------------------------------------------------------------
--- 7. 行级安全（RLS）
+-- 7. 桌面软件强制更新配置 app_update_config
+-- -----------------------------------------------------------------------------
+create table if not exists public.app_update_config (
+  id text primary key default 'desktop',
+  latest_version text not null,
+  force_update boolean not null default false,
+  installer_url text not null default '',
+  release_notes text not null default '',
+  updated_at timestamptz not null default now(),
+  constraint app_update_config_singleton check (id = 'desktop')
+);
+
+comment on table public.app_update_config is '桌面软件强制更新配置';
+comment on column public.app_update_config.latest_version is '最新桌面版本号，需高于本机版本才触发强制更新';
+comment on column public.app_update_config.force_update is '是否强制低版本客户端更新';
+comment on column public.app_update_config.installer_url is '可公开访问的 .msi 或 .exe 安装包地址';
+comment on column public.app_update_config.release_notes is '启动弹窗展示的更新内容，每行一条';
+
+insert into public.app_update_config (id, latest_version, force_update, installer_url, release_notes)
+values ('desktop', '3.0.1', false, '', '')
+on conflict (id) do nothing;
+
+-- -----------------------------------------------------------------------------
+-- 8. 行级安全（RLS）
 -- -----------------------------------------------------------------------------
 alter table public.profiles        enable row level security;
 alter table public.generation_logs enable row level security;
 alter table public.generation_totals enable row level security;
+alter table public.generation_monthly_totals enable row level security;
 alter table public.login_logs      enable row level security;
+alter table public.app_update_config enable row level security;
 
 -- ---- profiles ---------------------------------------------------------------
 drop policy if exists "profiles: self read"    on public.profiles;
@@ -303,6 +366,8 @@ create policy "logs: admin read"
 -- ---- generation_totals ------------------------------------------------------
 drop policy if exists "totals: self read"  on public.generation_totals;
 drop policy if exists "totals: admin read" on public.generation_totals;
+drop policy if exists "monthly_totals: self read"  on public.generation_monthly_totals;
+drop policy if exists "monthly_totals: admin read" on public.generation_monthly_totals;
 
 create policy "totals: self read"
   on public.generation_totals for select
@@ -311,6 +376,22 @@ create policy "totals: self read"
 create policy "totals: admin read"
   on public.generation_totals for select
   using (public.is_admin(auth.uid()));
+
+create policy "monthly_totals: self read"
+  on public.generation_monthly_totals for select
+  using (user_id = auth.uid());
+
+create policy "monthly_totals: admin read"
+  on public.generation_monthly_totals for select
+  using (public.is_admin(auth.uid()));
+
+-- ---- app_update_config ------------------------------------------------------
+drop policy if exists "app_update_config: public read" on public.app_update_config;
+
+create policy "app_update_config: public read"
+  on public.app_update_config for select
+  to anon, authenticated
+  using (true);
 
 -- ---- login_logs -------------------------------------------------------------
 drop policy if exists "login: self insert" on public.login_logs;

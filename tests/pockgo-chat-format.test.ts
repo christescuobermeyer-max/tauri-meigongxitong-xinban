@@ -8,12 +8,14 @@ const pockgoTransportSource = readFileSync(new URL("../src-tauri/src/pockgo_tran
 const formatSource = readFileSync(new URL("../src-tauri/src/pockgo_chat_format.rs", import.meta.url), "utf8");
 
 ok(
-  providerSource.includes('const LINE2_API_URL: &str = "https://yunwu.ai/v1/images/generations"'),
-  "线路2应使用 yunwu.ai 生图接口地址"
+  providerSource.includes(
+    'const LINE2_API_URL: &str = "https://img.zikl.dev/v1/images/generations"'
+  ),
+  "线路2应使用 Zikl 生图接口地址"
 );
 ok(
-  providerSource.includes('const LINE2_MODEL: &str = "gpt-image-2"'),
-  "线路2应使用 yunwu 的 gpt-image-2 模型"
+  providerSource.includes('const LINE2_MODEL: &str = "gpt-image-2.5-flare"'),
+  "线路2应使用 gpt-image-2.5-flare 模型"
 );
 ok(
   providerSource.includes('const LINE2_API_KEY_ENV_KEYS: [&str; 2]') &&

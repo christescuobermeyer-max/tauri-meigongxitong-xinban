@@ -10,7 +10,6 @@ function read(path: string) {
 }
 
 const typesSource = read("src/types.ts");
-const cardSource = read("src/components/GenerationLineCard.tsx");
 const topbarSource = read("src/components/TopBarStatus.tsx");
 const supabaseSource = read("src/lib/supabase.ts");
 const historySource = read("src/lib/history.ts");
@@ -29,9 +28,8 @@ const apimartCombinedSource = [
 const envExample = read(".env.example");
 
 ok(typesSource.includes('"line5"'), "前端 GenerationLine 类型应包含线路5");
-ok(!cardSource.includes("GenerationLineSelect"), "生图线路卡片不应展示手动线路切换");
-ok(cardSource.includes("<LineHealthBar />"), "生图线路卡片应保留线路状态");
-ok(topbarSource.includes("自动分配线路"), "顶部应显示自动分配线路");
+ok(!topbarSource.includes("自动分配线路"), "顶部不应再显示自动分配线路文案块");
+ok(!topbarSource.includes("自动分配线路"), "顶部不应再显示自动分配线路文案块");
 
 ok(supabaseSource.includes('"line5"'), "云端生图记录类型应允许线路5");
 ok(historySource.includes('"line5"'), "历史记录规范化应保留线路5");
@@ -40,7 +38,7 @@ ok(adminLogListSource.includes('if (line === "line5") return "线路5";'), "后�
 ok(schemaSource.includes("'line5'"), "Supabase 约束应允许写入线路5");
 
 ok(providerSource.includes('#[serde(rename = "line5")]'), "Rust 生图线路枚举应包含 line5");
-ok(providerSource.includes('const LINE5_API_URL: &str = "https://api.apimart.ai/v1/images/generations"'));
+ok(providerSource.includes('const LINE5_API_URL: &str = "https://api.apib.ai/v1/images/generations"'));
 ok(providerSource.includes('const LINE5_MODEL: &str = "gpt-image-2"'));
 ok(providerSource.includes("APIMART_IMAGE_2_API_KEY"));
 ok(apiSource.includes("generate_apimart_image"), "线路5应走 APIMart 专用异步调用分支");
@@ -49,6 +47,7 @@ ok(apimartSource.includes('resolution: "1k"'), "APIMart 请求体应固定 resol
 ok(apimartSource.includes('size == "auto"') && apimartSource.includes('"3:2"'), "APIMart 应把门头 auto 尺寸转为 3:2");
 ok(apimartCombinedSource.includes("task_id"), "APIMart 应解析创建任务返回的 task_id");
 ok(apimartCombinedSource.includes("/v1/tasks"), "APIMart 应轮询任务接口拿生成结果");
+ok(apimartCombinedSource.includes('const TASK_API_BASE_URL: &str = "https://api.apib.ai/v1/tasks"'));
 ok(apimartCombinedSource.includes("data:image/jpeg;base64,"), "线路5参考图应压缩为 base64 data URL 后上传");
 ok(envExample.includes("APIMART_IMAGE_2_API_KEY="), "环境变量示例应包含线路5密钥");
 

@@ -1,13 +1,14 @@
 import { DETAIL_PAGE_EXPORT_SIZE } from "./detail-page";
 import { DATA_ANALYSIS_EXPORT_SIZE } from "./data-analysis";
-import { PATROL_SCRIPT_EXPORT_SIZE } from "./patrol-script";
 import { BRAND_STORY_IMAGE_CONFIGS, BRAND_STORY_MAX_BYTES } from "./brand-story";
 import { getGeneratedAssetExportSpec } from "./generated-asset-files";
 import type { HistoryEntry } from "./history";
 import { PICTURE_WALL_EXPORT_SIZE, PICTURE_WALL_SOURCE_SIZE } from "./picture-wall";
 import { getPlatform } from "./platforms";
-import { pickDirectoryPath, pickSavePath, resizeAndSaveImage } from "./tauri";
+import { pickDirectoryPath, pickSavePath, resizeAndSaveImage, saveBase64Image } from "./tauri";
 import { replaceFileExtension, safeFileName } from "./utils";
+
+const PATROL_SCRIPT_HISTORY_EXPORT_SIZE = { w: 1024, h: 1536 } as const;
 
 async function fetchAsBase64(url: string): Promise<string> {
   const response = await fetch(url);
@@ -96,15 +97,15 @@ export async function downloadHistoryEntry(entry: HistoryEntry): Promise<string[
   }
 
   if (entry.kind === "patrol_script") {
-    const fileName = `${stem}_巡店话术_${PATROL_SCRIPT_EXPORT_SIZE.w}x${PATROL_SCRIPT_EXPORT_SIZE.h}.png`;
+    const fileName = `${stem}_巡店话术_${PATROL_SCRIPT_HISTORY_EXPORT_SIZE.w}x${PATROL_SCRIPT_HISTORY_EXPORT_SIZE.h}.png`;
     const selectedPath = await pickSavePath(fileName);
     if (!selectedPath) return null;
     const base64 = await fetchAsBase64(entry.remoteUrl);
     return [
       await resizeAndSaveImage({
         base64_data: base64,
-        target_width: PATROL_SCRIPT_EXPORT_SIZE.w,
-        target_height: PATROL_SCRIPT_EXPORT_SIZE.h,
+        target_width: PATROL_SCRIPT_HISTORY_EXPORT_SIZE.w,
+        target_height: PATROL_SCRIPT_HISTORY_EXPORT_SIZE.h,
         output_path: selectedPath,
       }),
     ];
@@ -141,8 +142,8 @@ export async function downloadHistoryEntry(entry: HistoryEntry): Promise<string[
     return [
       await resizeAndSaveImage({
         base64_data: base64,
-        target_width: spec.targetWidth,
-        target_height: spec.targetHeight,
+        target_width: requireTargetSize(spec.targetWidth, "宽度"),
+        target_height: requireTargetSize(spec.targetHeight, "高度"),
         output_path: outputPath,
         max_bytes: spec.maxBytes,
       }),
@@ -154,14 +155,27 @@ export async function downloadHistoryEntry(entry: HistoryEntry): Promise<string[
   const selectedPath = await pickSavePath(spec.fileName);
   if (!selectedPath) return null;
   const base64 = await fetchAsBase64(entry.remoteUrl);
+  if (spec.saveOriginal) {
+    return [
+      await saveBase64Image({
+        base64_data: base64,
+        output_path: selectedPath,
+      }),
+    ];
+  }
   return [
     await resizeAndSaveImage({
       base64_data: base64,
-      target_width: spec.targetWidth,
-      target_height: spec.targetHeight,
+      target_width: requireTargetSize(spec.targetWidth, "宽度"),
+      target_height: requireTargetSize(spec.targetHeight, "高度"),
       output_path: selectedPath,
     }),
   ];
+}
+
+function requireTargetSize(value: number | undefined, label: string) {
+  if (!value) throw new Error(`导出尺寸缺少${label}`);
+  return value;
 }
 
 function resolveBrandStoryHistoryConfig(remoteUrl: string) {

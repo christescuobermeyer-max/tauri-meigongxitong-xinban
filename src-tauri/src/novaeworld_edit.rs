@@ -1,3 +1,9 @@
+//! 线路7 novaeworld 图生图/改图接口。
+//!
+//! novaeworld 的 OpenAI Images 兼容格式要求：文生图走
+//! /v1/images/generations；只要带参考图，就必须用
+//! multipart/form-data 调用 /v1/images/edits，并重复 image 字段上传多张参考图。
+
 use crate::gemini_response::truncate_for_msg;
 use crate::http_client::format_reqwest_error;
 use crate::image_api_response::extract_image_from_response_body;
@@ -12,7 +18,7 @@ struct ReferenceImageFile {
     file_name: String,
 }
 
-pub async fn generate_vectorengine_edit_image(
+pub async fn generate_novaeworld_edit_image(
     client: &reqwest::Client,
     api_url: &str,
     api_key: &str,
@@ -27,7 +33,8 @@ pub async fn generate_vectorengine_edit_image(
         .text("model", model.to_string())
         .text("prompt", prompt.to_string())
         .text("size", size.to_string())
-        .text("n", "1".to_string());
+        .text("n", "1".to_string())
+        .text("response_format", "b64_json".to_string());
 
     if let Some(quality) = quality {
         form = form.text("quality", quality.to_string());
@@ -41,7 +48,7 @@ pub async fn generate_vectorengine_edit_image(
         let part = Part::bytes(file.bytes)
             .file_name(file.file_name)
             .mime_str(&file.mime)
-            .map_err(|error| format!("构建线路3参考图表单失败：{error}"))?;
+            .map_err(|error| format!("构建线路7参考图表单失败：{error}"))?;
         form = form.part("image", part);
     }
 
@@ -51,22 +58,22 @@ pub async fn generate_vectorengine_edit_image(
         .multipart(form)
         .send()
         .await
-        .map_err(|error| format!("调用线路3编辑接口失败：{}", format_reqwest_error(&error)))?;
+        .map_err(|error| format!("调用线路7编辑接口失败：{}", format_reqwest_error(&error)))?;
 
     let status = response.status();
-    eprintln!("[image-2:line3-edit] response_status={status}");
+    eprintln!("[image-2:line7-edit] response_status={status}");
     let body_text = response
         .text()
         .await
-        .map_err(|error| format!("读取线路3编辑响应失败：{error}"))?;
+        .map_err(|error| format!("读取线路7编辑响应失败：{error}"))?;
     eprintln!(
-        "[image-2:line3-edit] response_preview={}",
+        "[image-2:line7-edit] response_preview={}",
         truncate_for_msg(&body_text, 240)
     );
 
     if !status.is_success() {
         return Err(format!(
-            "线路3编辑接口返回 {status}: {}",
+            "线路7编辑接口返回 {status}: {}",
             truncate_for_msg(&body_text, 600)
         ));
     }
@@ -90,7 +97,6 @@ async fn download_reference_image(
     url: &str,
     index: usize,
 ) -> Result<ReferenceImageFile, String> {
-    // 同 line2：OSS 偶发提前 EOF / stale connection，立即重试一次即可。
     const ATTEMPTS: usize = 2;
     let mut last_error: Option<String> = None;
     for attempt in 0..ATTEMPTS {
@@ -98,7 +104,7 @@ async fn download_reference_image(
             Ok(file) => {
                 if attempt > 0 {
                     eprintln!(
-                        "[line3-ref] download succeeded on retry {} index={}",
+                        "[line7-ref] download succeeded on retry {} index={}",
                         attempt,
                         index + 1
                     );
@@ -113,7 +119,7 @@ async fn download_reference_image(
             }
         }
     }
-    Err(last_error.unwrap_or_else(|| format!("下载线路3第 {} 张参考图失败：unknown", index + 1)))
+    Err(last_error.unwrap_or_else(|| format!("下载线路7第 {} 张参考图失败：unknown", index + 1)))
 }
 
 async fn download_reference_image_once(
@@ -128,7 +134,7 @@ async fn download_reference_image_once(
         .await
         .map_err(|error| {
             format!(
-                "下载线路3第 {} 张参考图失败：{}",
+                "下载线路7第 {} 张参考图失败：{}",
                 index + 1,
                 format_reqwest_error(&error)
             )
@@ -145,10 +151,10 @@ async fn download_reference_image_once(
         .to_string();
     let bytes = response
         .error_for_status()
-        .map_err(|error| format!("下载线路3第 {} 张参考图失败：{error}", index + 1))?
+        .map_err(|error| format!("下载线路7第 {} 张参考图失败：{error}", index + 1))?
         .bytes()
         .await
-        .map_err(|error| format!("读取线路3第 {} 张参考图失败：{error}", index + 1))?;
+        .map_err(|error| format!("读取线路7第 {} 张参考图失败：{error}", index + 1))?;
 
     Ok(ReferenceImageFile {
         bytes: bytes.to_vec(),
@@ -161,7 +167,7 @@ fn decode_reference_image(image_ref: &str, index: usize) -> Result<ReferenceImag
     let (mime, b64) = split_data_url(image_ref).unwrap_or(("image/png", image_ref));
     let bytes = STANDARD
         .decode(b64.trim())
-        .map_err(|error| format!("解析线路3第 {} 张 base64 参考图失败：{error}", index + 1))?;
+        .map_err(|error| format!("解析线路7第 {} 张 base64 参考图失败：{error}", index + 1))?;
     Ok(ReferenceImageFile {
         bytes,
         mime: mime.to_string(),

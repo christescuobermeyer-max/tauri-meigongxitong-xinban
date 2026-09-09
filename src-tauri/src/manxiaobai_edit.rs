@@ -1,6 +1,6 @@
 //! 线路6 manxiaobai (满小白) 编辑接口。
 //!
-//! 协议与线路2 yunwu 一致：multipart/form-data 调用 OpenAI 兼容的
+//! 协议与线路2 Zikl 一致：multipart/form-data 调用 OpenAI 兼容的
 //! /v1/images/edits。区别是 manxiaobai 当前是"备用线路"，
 //! 上游池经常出现 `insufficient_quota` / `model_cooldown` 429，
 //! 因此在网关层直接做 3 次自动重试，失败间隔 1.5s。
@@ -69,12 +69,7 @@ pub async fn generate_manxiaobai_edit_image(
             .multipart(form)
             .send()
             .await
-            .map_err(|error| {
-                format!(
-                    "调用线路6编辑接口失败：{}",
-                    format_reqwest_error(&error)
-                )
-            });
+            .map_err(|error| format!("调用线路6编辑接口失败：{}", format_reqwest_error(&error)));
 
         let response = match response {
             Ok(r) => r,
@@ -89,9 +84,7 @@ pub async fn generate_manxiaobai_edit_image(
         };
 
         let status = response.status();
-        eprintln!(
-            "[image-2:line6-edit] attempt={attempt}/{MAX_ATTEMPTS} response_status={status}"
-        );
+        eprintln!("[image-2:line6-edit] attempt={attempt}/{MAX_ATTEMPTS} response_status={status}");
         let body_text = match response.text().await {
             Ok(t) => t,
             Err(error) => {
@@ -118,8 +111,7 @@ pub async fn generate_manxiaobai_edit_image(
         ));
 
         // 429/5xx 才重试；4xx（非 429）通常是参数问题，重试无意义。
-        let should_retry =
-            status.as_u16() == 429 || status.is_server_error();
+        let should_retry = status.as_u16() == 429 || status.is_server_error();
         if !should_retry || attempt == MAX_ATTEMPTS {
             break;
         }
@@ -168,9 +160,7 @@ async fn download_reference_image(
             }
         }
     }
-    Err(last_error.unwrap_or_else(|| {
-        format!("下载线路6第 {} 张参考图失败：unknown", index + 1)
-    }))
+    Err(last_error.unwrap_or_else(|| format!("下载线路6第 {} 张参考图失败：unknown", index + 1)))
 }
 
 async fn download_reference_image_once(

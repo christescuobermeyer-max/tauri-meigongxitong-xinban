@@ -169,6 +169,7 @@ function Pagination({
 }
 
 function getGenerationLineTone(line: GenerationLogRow["generation_line"]) {
+  if (line === "line1") return "warning";
   if (line === "line2") return "success";
   if (line === "line3") return "info";
   if (line === "line4") return "warning";
@@ -182,14 +183,14 @@ export function getGenerationLineLabel(
   kind: GenerationLogRow["asset_kind"],
   line: GenerationLogRow["generation_line"]
 ) {
-  if (line === "line1") return "线路1";
+  if (line === "line1") return "已移除线路";
   if (line === "line2") return "线路2";
   if (line === "line3") return "线路3";
   if (line === "line4") return "线路4";
   if (line === "line5") return "线路5";
   if (line === "line6") return "线路6";
   if (line === "line7") return "线路7";
-  return kind === "picture_wall" ? "专用接口" : "线路1";
+  return kind === "picture_wall" ? "专用接口" : "未知线路";
 }
 
 function formatElapsed(ms: number | null): string {

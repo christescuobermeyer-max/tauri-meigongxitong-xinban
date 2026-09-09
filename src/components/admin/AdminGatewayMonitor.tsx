@@ -196,9 +196,6 @@ export default function AdminGatewayMonitor() {
                   <tr key={line.line} data-paused={paused ? "true" : undefined}>
                     <td>
                       <strong>{line.line}</strong>
-                      {line.line === "line1" ? (
-                        <span className="badge badge--muted" style={{ marginLeft: 6 }}>fallback</span>
-                      ) : null}
                       {paused ? (
                         <span
                           className="badge badge--danger"

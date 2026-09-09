@@ -63,9 +63,9 @@ pub const BRAND_STORY_THREAD_DEFINITIONS: [BrandStoryThreadDefinition; 4] = [
     BrandStoryThreadDefinition {
         id: BrandStoryThreadId::Thread1,
         name: "线路1",
-        description: "yunwu-API",
+        description: "向量引擎",
         protocol: BrandStoryProtocol::OpenAi,
-        text_model: "gemini-3.1-flash-lite-preview",
+        text_model: "gemini-3.1-flash-lite",
     },
     BrandStoryThreadDefinition {
         id: BrandStoryThreadId::Thread2,
@@ -79,7 +79,7 @@ pub const BRAND_STORY_THREAD_DEFINITIONS: [BrandStoryThreadDefinition; 4] = [
         name: "线路3",
         description: "向量-API",
         protocol: BrandStoryProtocol::Gemini,
-        text_model: "gemini-3.1-flash-lite-preview",
+        text_model: "gemini-3.1-flash-lite",
     },
     BrandStoryThreadDefinition {
         id: BrandStoryThreadId::Thread4,
@@ -93,11 +93,8 @@ pub const BRAND_STORY_THREAD_DEFINITIONS: [BrandStoryThreadDefinition; 4] = [
 fn thread_runtime_env(id: BrandStoryThreadId) -> ThreadRuntimeEnv {
     match id {
         BrandStoryThreadId::Thread1 => ThreadRuntimeEnv {
-            base_url_keys: &[
-                "BRAND_STORY_THREAD1_BASE_URL",
-                "API_BASE_URL",
-            ],
-            base_url_default: "https://yunwu.ai",
+            base_url_keys: &["BRAND_STORY_THREAD1_BASE_URL", "API_BASE_URL"],
+            base_url_default: "https://api.zhongzhuan.vip",
             text_key_envs: &[
                 "BRAND_STORY_THREAD1_TEXT_API_KEY",
                 "TEXT_API_KEY",
@@ -217,17 +214,13 @@ pub async fn brand_story_generate_text(
     for (key, value) in &request.headers {
         builder = builder.header(key, value);
     }
-    let response = builder
-        .json(&request.body)
-        .send()
-        .await
-        .map_err(|error| {
-            format!(
-                "{} 文案接口请求失败：{}",
-                definition.name,
-                format_reqwest_error(&error)
-            )
-        })?;
+    let response = builder.json(&request.body).send().await.map_err(|error| {
+        format!(
+            "{} 文案接口请求失败：{}",
+            definition.name,
+            format_reqwest_error(&error)
+        )
+    })?;
 
     let status = response.status();
     let body = response

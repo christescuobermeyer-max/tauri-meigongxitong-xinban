@@ -91,18 +91,12 @@ impl PauseStateRegistry {
         drop(guard);
         if let Some(parent) = path.parent() {
             if let Err(error) = std::fs::create_dir_all(parent) {
-                eprintln!(
-                    "[pause-state] 创建 {} 目录失败：{error}",
-                    parent.display()
-                );
+                eprintln!("[pause-state] 创建 {} 目录失败：{error}", parent.display());
                 return;
             }
         }
         if let Err(error) = std::fs::write(path, serialized) {
-            eprintln!(
-                "[pause-state] 写入 {} 失败：{error}",
-                path.display()
-            );
+            eprintln!("[pause-state] 写入 {} 失败：{error}", path.display());
         }
     }
 
@@ -188,10 +182,8 @@ mod tests {
 
     #[test]
     fn persists_and_reloads_across_instances() {
-        let tmp = std::env::temp_dir().join(format!(
-            "csgh-pause-state-test-{}.json",
-            std::process::id()
-        ));
+        let tmp =
+            std::env::temp_dir().join(format!("csgh-pause-state-test-{}.json", std::process::id()));
         let _ = std::fs::remove_file(&tmp);
 
         let reg1 = PauseStateRegistry::new(Some(tmp.clone()));

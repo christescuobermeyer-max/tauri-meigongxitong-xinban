@@ -65,9 +65,7 @@ async fn download_reference_bytes(
             }
         }
     }
-    Err(last_error.unwrap_or_else(|| {
-        format!("下载线路5第 {} 张参考图失败：unknown", index + 1)
-    }))
+    Err(last_error.unwrap_or_else(|| format!("下载线路5第 {} 张参考图失败：unknown", index + 1)))
 }
 
 async fn download_reference_bytes_once(
