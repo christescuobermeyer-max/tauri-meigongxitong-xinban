@@ -1,7 +1,7 @@
 {
   "name": "csgh-image-studio",
   "private": true,
-  "version": "2.0.2",
+  "version": "3.0.30",
   "type": "module",
   "description": "呈尚策划 · 美工生图系统PRO — 基于 GPT-Image-2 的外卖店招/头像生成桌面应用",
   "scripts": {
@@ -16,7 +16,8 @@
     "tauri": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./run-dev.ps1 cli",
     "tauri:doctor": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./run-dev.ps1 doctor",
     "tauri:dev": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./run-dev.ps1 dev",
-    "tauri:build": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./run-dev.ps1 build"
+    "tauri:build": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./run-dev.ps1 build",
+    "tauri:build:nsis": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./run-dev.ps1 build --bundles nsis"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.1",
