@@ -2,6 +2,7 @@ import { equal, ok } from "node:assert/strict";
 import {
   buildAvatarPrompt,
   buildAvatarCategoryPrompt,
+  buildProductBatchPrompt,
   buildPosterPrompt,
   buildProductPrompt,
   buildStorefrontPrompt,
@@ -110,3 +111,17 @@ equal(productPromptWithoutProductName.includes("招牌鸡排饭"), false);
 
 const taobaoProductPrompt = buildProductPrompt("鲜椒鸡排", "招牌鸡排饭", "taobao");
 ok(taobaoProductPrompt.includes("产品名称“招牌鸡排饭”"));
+
+const brandedDrinkProductPrompt = buildProductPrompt("鲜活饮品", "500ml康师傅冰红茶", "meituan");
+ok(brandedDrinkProductPrompt.includes("产品名称：500ml冰红茶"));
+ok(brandedDrinkProductPrompt.includes("通用无品牌饮料"));
+ok(brandedDrinkProductPrompt.includes("不要复制、复刻或保留参考图上的第三方品牌商标"));
+equal(brandedDrinkProductPrompt.includes("康师傅"), false);
+equal(brandedDrinkProductPrompt.includes("保持上传产品图中的主体食物不变"), false);
+
+const brandedDrinkBatchPrompt = buildProductBatchPrompt("鲜活饮品", "听可口可乐", "meituan");
+ok(brandedDrinkBatchPrompt.includes("产品名称：可乐"));
+ok(brandedDrinkBatchPrompt.includes("通用无品牌饮料"));
+ok(brandedDrinkBatchPrompt.includes("不要复制或保留第2张图上的品牌商标"));
+equal(brandedDrinkBatchPrompt.includes("可口可乐"), false);
+equal(brandedDrinkBatchPrompt.includes("必须保留第2张图中的真实产品主体"), false);
