@@ -26,78 +26,6 @@ function buildAppearanceClause(themeColor?: ThemeColor, brandStyle?: BrandStyle)
   return parts.length ? parts.join("；") + "。" : "";
 }
 
-const BEVERAGE_BRAND_OR_PRODUCT_PATTERN =
-  /康师傅|统一|可口可乐|coca[-\s]?cola|百事可乐|百事|pepsi|雪碧|sprite|芬达|fanta|美年达|农夫山泉|怡宝|娃哈哈|王老吉|加多宝|红牛|东鹏特饮?|脉动|尖叫|元气森林|汇源|美汁源|果粒橙|冰露|景田|百岁山|乐虎|健力宝|雀巢|三得利|乌苏|青岛|雪花|哈尔滨|燕京|崂山|波克|魔爪/i;
-
-const BEVERAGE_GENERIC_PATTERN =
-  /冰红茶|红茶|绿茶|乌龙茶|茉莉蜜茶|柠檬茶|可乐|汽水|橙汁|果汁|矿泉水|纯净水|苏打水|凉茶|啤酒|奶茶|饮料|咖啡|拿铁|美式|酸梅汤|豆浆|椰汁|牛奶|乳酸菌|酸奶|能量饮料|运动饮料/i;
-
-const BEVERAGE_PACKAGE_PATTERN = /\d+(?:\.\d+)?\s*(?:ml|毫升|l|升)|瓶|罐|听|盒|支|杯|装|饮料|汽水|啤酒|可乐|冰红茶|红茶|绿茶|乌龙茶|柠檬茶|果汁|矿泉水|纯净水|苏打水|凉茶/i;
-
-const BEVERAGE_BRAND_REPLACEMENTS: RegExp[] = [
-  /康师傅|统一|农夫山泉|怡宝|娃哈哈|王老吉|加多宝|红牛|东鹏特饮?|脉动|尖叫|元气森林|汇源|美汁源|果粒橙|冰露|景田|百岁山|乐虎|健力宝|雀巢|三得利|乌苏|青岛|雪花|哈尔滨|燕京|崂山|波克|魔爪/gi,
-  /可口可乐|coca[-\s]?cola|百事可乐|百事|pepsi/gi,
-  /雪碧|sprite|芬达|fanta|美年达/gi,
-];
-
-function inferGenericBeverageName(product: string): string | null {
-  if (/雪碧|sprite|柠檬.*汽水/i.test(product)) return "柠檬味汽水";
-  if (/可口可乐|百事可乐|百事|pepsi|coca[-\s]?cola|可乐/i.test(product)) return "可乐";
-  if (/芬达|fanta|美年达/i.test(product)) return "橙味汽水";
-  if (/绿茶|茉莉蜜茶/i.test(product)) return "绿茶";
-  if (/冰红茶|红茶/i.test(product)) return "冰红茶";
-  if (/乌龙茶|乌龙/i.test(product)) return "乌龙茶";
-  if (/柠檬茶/i.test(product)) return "柠檬茶";
-  if (/果粒橙|橙汁|果汁/i.test(product)) return "果汁饮料";
-  if (/怡宝|纯净水|冰露/i.test(product)) return "纯净水";
-  if (/农夫山泉|矿泉水|景田|百岁山/i.test(product)) return "矿泉水";
-  if (/王老吉|加多宝|凉茶/i.test(product)) return "凉茶";
-  if (/乌苏|青岛|雪花|哈尔滨|燕京|崂山|波克|啤酒/i.test(product)) return "啤酒";
-  if (/红牛|东鹏|乐虎|魔爪|能量饮料/i.test(product)) return "能量饮料";
-  if (/脉动|运动饮料/i.test(product)) return "运动饮料";
-  if (/奶茶/i.test(product)) return "奶茶";
-  if (/咖啡|拿铁|美式/i.test(product)) return "咖啡";
-  if (/酸梅汤/i.test(product)) return "酸梅汤";
-  if (/豆浆/i.test(product)) return "豆浆";
-  if (/椰汁/i.test(product)) return "椰汁";
-  if (/牛奶|乳酸菌|酸奶/i.test(product)) return "乳饮料";
-  if (/饮料/i.test(product)) return "饮料";
-  return null;
-}
-
-function normalizeBeverageName(product: string): string {
-  return product
-    .replace(/[（）()【】\[\]「」『』]/g, " ")
-    .replace(/[·•、，,。；;:：_\-]+/g, " ")
-    .replace(/\s+/g, "")
-    .trim();
-}
-
-function resolveBeverageSafeName(product: string): string | null {
-  const original = product.trim();
-  if (!original) return null;
-
-  const isKnownBrand = BEVERAGE_BRAND_OR_PRODUCT_PATTERN.test(original);
-  const isPackagedBeverage = BEVERAGE_GENERIC_PATTERN.test(original) && BEVERAGE_PACKAGE_PATTERN.test(original);
-  if (!isKnownBrand && !isPackagedBeverage) return null;
-
-  const inferredName = inferGenericBeverageName(original) ?? "饮料";
-  const size = original.match(/\d+(?:\.\d+)?\s*(?:ml|毫升|l|升)/i)?.[0]?.replace(/\s+/g, "") ?? "";
-  let safeName = original;
-  for (const pattern of BEVERAGE_BRAND_REPLACEMENTS) {
-    safeName = safeName.replace(pattern, "");
-  }
-  safeName = normalizeBeverageName(safeName);
-
-  if (!safeName || !BEVERAGE_GENERIC_PATTERN.test(safeName)) {
-    return `${size}${inferredName}`;
-  }
-  return safeName;
-}
-
-const BEVERAGE_REFERENCE_SAFETY_CLAUSE =
-  "检测到该产品可能是瓶装、罐装或盒装饮料。参考图只用于识别饮料类型、液体颜色、容器轮廓和摆放角度；最终主体必须重绘为通用无品牌饮料，不要复制、复刻或保留参考图上的第三方品牌商标、logo、品牌字体、瓶贴/罐身/杯身包装版式、图案、条码、注册商标符号或任何可识别商业包装。";
-
 export function buildAvatarPrompt(shopName: string, appearance: AppearanceOptions = {}): string {
   const name = shopName.trim();
   const appearanceClause = buildAppearanceClause(appearance.themeColor, appearance.brandStyle);
@@ -148,26 +76,17 @@ export function buildProductPrompt(
 ): string {
   const name = shopName.trim();
   const product = productName.trim();
-  const beverageSafeName = resolveBeverageSafeName(product);
-  const displayProductName = beverageSafeName ?? product;
   const layout =
     platform === "meituan"
       ? "横版产品图"
       : "正方形产品图";
   const appearanceClause = buildAppearanceClause(appearance.themeColor, appearance.brandStyle);
   const includeProductName = options.includeProductName !== false;
-  const productNameIntro = includeProductName ? `产品名称：${displayProductName}。` : "生成时产品名称为空。";
-  const productNameInstruction = beverageSafeName
-    ? includeProductName
-      ? `画面文字只允许使用通用产品名称“${displayProductName}”或口味描述，不要写入参考图中的第三方品牌名、logo文字或包装文字。`
-      : "不要写入产品名称文字，也不要保留参考产品图中的原产品名、第三方品牌名、logo文字或包装文字。"
-    : includeProductName
-      ? `并写入产品名称“${product}”在图中。`
-      : "不要写入产品名称文字，也不要保留参考产品图中的原产品名或其他产品名称文字。";
-  const subjectInstruction = beverageSafeName
-    ? `${BEVERAGE_REFERENCE_SAFETY_CLAUSE}只强化背景氛围、光影层次和整体视觉吸引力，生成一张适合外卖平台展示的${layout}。`
-    : `保持上传产品图中的主体食物不变，只强化背景氛围、光影层次和整体视觉吸引力，生成一张适合外卖平台展示的${layout}。`;
-  return `输入的店铺名：${name}。${productNameIntro}请参考输入的店铺名，将上传的产品图中的主题背景重新设计更加具有视觉冲击力和吸引力的背景图，${productNameInstruction}${subjectInstruction}${appearanceClause}`;
+  const productNameIntro = includeProductName ? `产品名称：${product}。` : "生成时产品名称为空。";
+  const productNameInstruction = includeProductName
+    ? `并写入产品名称“${product}”在图中。`
+    : "不要写入产品名称文字，也不要保留参考产品图中的原产品名或其他产品名称文字。";
+  return `输入的店铺名：${name}。${productNameIntro}请参考输入的店铺名，将上传的产品图中的主题背景重新设计更加具有视觉冲击力和吸引力的背景图，${productNameInstruction}保持上传产品图中的主体食物不变，只强化背景氛围、光影层次和整体视觉吸引力，生成一张适合外卖平台展示的${layout}。${appearanceClause}`;
 }
 
 export function buildProductBatchPrompt(
@@ -179,21 +98,12 @@ export function buildProductBatchPrompt(
 ): string {
   const name = shopName.trim();
   const product = productName.trim();
-  const beverageSafeName = resolveBeverageSafeName(product);
-  const displayProductName = beverageSafeName ?? product;
   const layout = platform === "meituan" ? "横版产品图" : "正方形产品图";
   const appearanceClause = buildAppearanceClause(appearance.themeColor, appearance.brandStyle);
   const includeProductName = options.includeProductName !== false;
-  const productNameIntro = includeProductName ? `产品名称：${displayProductName}。` : "生成时产品名称为空。";
-  const subjectTransfer = beverageSafeName
-    ? `把第2张产品图中的饮料类型、液体颜色、容器轮廓和摆放角度迁移到第1张图的产品主体位置，但最终主体必须重绘为通用无品牌饮料；不要复制或保留第2张图上的品牌商标、logo、品牌字体、瓶贴/罐身/杯身包装版式、图案、条码或任何可识别商业包装，也不能继续保留第1张图中的原产品主体。`
-    : "把第2张产品图中的真实食物主体替换进第1张图的产品主体位置，必须保留第2张图中的真实产品主体，不能凭空更换成其他食物，也不能继续保留第1张图中的原产品主体。";
-  const copyReplacement = beverageSafeName
-    ? includeProductName
-      ? `请把第1张图中的店铺名、产品名或其他原有产品文案替换为店铺名“${name}”和通用产品名称“${displayProductName}”，并自然融入原参考图的文案排版区域；画面文字不要写入第2张参考图中的第三方品牌名、logo文字或包装文字。`
-      : `请把第1张图中的店铺名、产品名或其他原有产品文案替换为店铺名“${name}”；生成时产品名称为空，不要写入产品名称文字，也不要保留参考设计风格图或第2张参考图里的原产品名、第三方品牌名、logo文字或包装文字。`
-    : includeProductName
-      ? `请把第1张图中的店铺名、产品名或其他原有产品文案替换为店铺名“${name}”和产品名称“${product}”，并自然融入原参考图的文案排版区域。`
-      : `请把第1张图中的店铺名、产品名或其他原有产品文案替换为店铺名“${name}”；生成时产品名称为空，不要写入产品名称文字，也不要保留参考设计风格图里的原产品名。`;
-  return `输入的店铺名：${name}。${productNameIntro}本次请求只包含两张参考图：第1张传给系统的参考图为参考设计风格图，第2张传给系统的参考图为当前需要生成的产品图。这里的第1张和第2张只代表本次单张生成请求中的两张参考图，不是产品图列表中的第1张或第2张；即使用户一次上传多张产品图，每次只从产品图列表中取当前正在生成的这一张产品图，与同一张参考设计风格图组成两图请求。请严格区分两张图的用途：以第1张参考设计风格图作为最终画面的版式模板，必须保留第1张图的背景氛围、构图结构、光影层次、配色方向和文案排版位置，让最终图一眼能看出延续了第1张图的设计风格。${subjectTransfer}${copyReplacement}生成一张适合外卖平台展示的${layout}。不要只根据第2张产品图单独重新设计背景，不要忽略第1张参考设计风格图，不要出现促销价格、满减信息、二维码、地址、电话、联系方式或其他无关营销元素。${appearanceClause}`;
+  const productNameIntro = includeProductName ? `产品名称：${product}。` : "生成时产品名称为空。";
+  const copyReplacement = includeProductName
+    ? `请把第1张图中的店铺名、产品名或其他原有产品文案替换为店铺名“${name}”和产品名称“${product}”，并自然融入原参考图的文案排版区域。`
+    : `请把第1张图中的店铺名、产品名或其他原有产品文案替换为店铺名“${name}”；生成时产品名称为空，不要写入产品名称文字，也不要保留参考设计风格图里的原产品名。`;
+  return `输入的店铺名：${name}。${productNameIntro}本次请求只包含两张参考图：第1张传给系统的参考图为参考设计风格图，第2张传给系统的参考图为当前需要生成的产品图。这里的第1张和第2张只代表本次单张生成请求中的两张参考图，不是产品图列表中的第1张或第2张；即使用户一次上传多张产品图，每次只从产品图列表中取当前正在生成的这一张产品图，与同一张参考设计风格图组成两图请求。请严格区分两张图的用途：以第1张参考设计风格图作为最终画面的版式模板，必须保留第1张图的背景氛围、构图结构、光影层次、配色方向和文案排版位置，让最终图一眼能看出延续了第1张图的设计风格。把第2张产品图中的真实食物主体替换进第1张图的产品主体位置，必须保留第2张图中的真实产品主体，不能凭空更换成其他食物，也不能继续保留第1张图中的原产品主体。${copyReplacement}生成一张适合外卖平台展示的${layout}。不要只根据第2张产品图单独重新设计背景，不要忽略第1张参考设计风格图，不要出现促销价格、满减信息、二维码、地址、电话、联系方式或其他无关营销元素。${appearanceClause}`;
 }
