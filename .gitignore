@@ -17,6 +17,8 @@ output
 *.tsbuildinfo
 start-test.txt
 vsdev-start-test.txt
+__pycache__/
+*.pyc
 
 # Editor / OS
 .vscode/*
@@ -34,6 +36,7 @@ Thumbs.db
 # Tauri
 src-tauri/target
 src-tauri/gen/schemas
+src-tauri/binaries/
 
 # Env
 .env
@@ -47,6 +50,7 @@ src-tauri/gen/schemas
 # 临时调试产物 / 测试素材（大量图片或临时压缩包，不应入仓）
 tmp/
 测试图/
+视频店招报错
 
 # 本地凭证文档（含真实密码/连接串）
 运维凭证.local.md
@@ -54,6 +58,9 @@ tmp/
 
 # Balance monitor session/cookies (contains real auth tokens — never commit)
 scripts/balance/out/
+抖音cookie.txt
+小红书cookie.txt
 
 # 本地 MSI / NSIS 打包产物（数十 MB 的安装包，不应入仓）
 release/
+release-*/
