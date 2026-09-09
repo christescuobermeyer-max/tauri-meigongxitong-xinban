@@ -8,6 +8,9 @@ const THEME_COLOR_HINTS: Record<ThemeColor, string> = {
   red: "整体采用红色主题配色，以红色作为画面主色调，营造热情诱人、食欲浓烈的氛围",
   yellow: "整体采用黄色主题配色，以黄色作为画面主色调，营造温暖明亮、活力诱人的氛围",
   orange: "整体采用橙色主题配色，以橙色作为画面主色调，营造食欲诱人的暖橙氛围",
+  blue: "整体采用深蓝主题配色。主背景色以深蓝 #262C75 为主，暗部和边缘可用更深的 #20245F，形成稳重的外卖品牌头图底色；辅助色使用低饱和蓝灰 #6F77A8，用于小字、品牌标识、细线和弱化装饰，文字要克制、清晰；食物区域色使用暖白、奶白、浅米白 #F4F0E7 和 #FFF8ED，承托碗盘、菜品和留白区域，避免纯白刺眼。整体风格参考高质感外卖店铺头图：上半部是干净深蓝品牌区，下半部是暖白食物展示区，食物主体突出，旁边可搭配少量小盘或圆形辅图，画面干净商业化，不要做成霓虹科技风、赛博科技风或彩色渐变",
+  pink: "整体采用浅粉色主题配色，以明亮柔和、低饱和的暖浅粉、奶油粉、樱花粉（约 #F7D6DC、#FBE5E3）作为大面积主题背景，搭配少量暖白 #FFF7F2 自然过渡，营造清新轻盈、柔和通透的视觉氛围；该主题色只约束画面背景与环境氛围，不规定文字内容、版式、构图、装饰元素或食物摆放，避免玫红、荧光粉、紫粉和大面积高饱和艳粉",
+  deepSea: "整体采用深海冰川蓝主题配色，可用于任何菜品，不限定食物品类。主色使用深海墨蓝 #062333 作为大面积背景与暗部，辅色使用冰川浅青 #BFEAF2 用于背景冷调层次、局部高光、边缘光和装饰性光影，并搭配少量冷白 #F5FCFF 提升洁净通透感；保留产品主体本身的真实自然色彩，让食物成为视觉焦点。整体营造清凉、纯净、通透、有质感的商业食品氛围，不要使用暖黄、土棕或过度饱和的背景色，不要做成赛博科技风或霓虹渐变；该主题色只约束画面背景与环境氛围，不改变真实产品主体、文字内容、版式或构图",
 };
 
 const BRAND_STYLE_HINTS: Record<BrandStyle, string> = {
@@ -68,7 +71,8 @@ export function buildProductPrompt(
   shopName: string,
   productName: string,
   platform: Platform,
-  appearance: AppearanceOptions = {}
+  appearance: AppearanceOptions = {},
+  options: { includeProductName?: boolean } = {}
 ): string {
   const name = shopName.trim();
   const product = productName.trim();
@@ -77,18 +81,29 @@ export function buildProductPrompt(
       ? "横版产品图"
       : "正方形产品图";
   const appearanceClause = buildAppearanceClause(appearance.themeColor, appearance.brandStyle);
-  return `输入的店铺名：${name}。产品名称：${product}。请参考输入的店铺名，将上传的产品图中的主题背景重新设计更加具有视觉冲击力和吸引力的背景图，并写入产品名称“${product}”在图中。保持上传产品图中的主体食物不变，只强化背景氛围、光影层次和整体视觉吸引力，生成一张适合外卖平台展示的${layout}。${appearanceClause}`;
+  const includeProductName = options.includeProductName !== false;
+  const productNameIntro = includeProductName ? `产品名称：${product}。` : "生成时产品名称为空。";
+  const productNameInstruction = includeProductName
+    ? `并写入产品名称“${product}”在图中。`
+    : "不要写入产品名称文字，也不要保留参考产品图中的原产品名或其他产品名称文字。";
+  return `输入的店铺名：${name}。${productNameIntro}请参考输入的店铺名，将上传的产品图中的主题背景重新设计更加具有视觉冲击力和吸引力的背景图，${productNameInstruction}保持上传产品图中的主体食物不变，只强化背景氛围、光影层次和整体视觉吸引力，生成一张适合外卖平台展示的${layout}。${appearanceClause}`;
 }
 
 export function buildProductBatchPrompt(
   shopName: string,
   productName: string,
   platform: Platform,
-  appearance: AppearanceOptions = {}
+  appearance: AppearanceOptions = {},
+  options: { includeProductName?: boolean } = {}
 ): string {
   const name = shopName.trim();
   const product = productName.trim();
   const layout = platform === "meituan" ? "横版产品图" : "正方形产品图";
   const appearanceClause = buildAppearanceClause(appearance.themeColor, appearance.brandStyle);
-  return `输入的店铺名：${name}。产品名称：${product}。本次请求只包含两张参考图：第1张传给系统的参考图为参考设计风格图，第2张传给系统的参考图为当前需要生成的产品图。这里的第1张和第2张只代表本次单张生成请求中的两张参考图，不是产品图列表中的第1张或第2张；即使用户一次上传多张产品图，每次只从产品图列表中取当前正在生成的这一张产品图，与同一张参考设计风格图组成两图请求。请严格区分两张图的用途：以第1张参考设计风格图作为最终画面的版式模板，必须保留第1张图的背景氛围、构图结构、光影层次、配色方向和文案排版位置，让最终图一眼能看出延续了第1张图的设计风格。把第2张产品图中的真实食物主体替换进第1张图的产品主体位置，必须保留第2张图中的真实产品主体，不能凭空更换成其他食物，也不能继续保留第1张图中的原产品主体。请把第1张图中的店铺名、产品名或其他原有产品文案替换为店铺名“${name}”和产品名称“${product}”，并自然融入原参考图的文案排版区域。生成一张适合外卖平台展示的${layout}。不要只根据第2张产品图单独重新设计背景，不要忽略第1张参考设计风格图，不要出现促销价格、满减信息、二维码、地址、电话、联系方式或其他无关营销元素。${appearanceClause}`;
+  const includeProductName = options.includeProductName !== false;
+  const productNameIntro = includeProductName ? `产品名称：${product}。` : "生成时产品名称为空。";
+  const copyReplacement = includeProductName
+    ? `请把第1张图中的店铺名、产品名或其他原有产品文案替换为店铺名“${name}”和产品名称“${product}”，并自然融入原参考图的文案排版区域。`
+    : `请把第1张图中的店铺名、产品名或其他原有产品文案替换为店铺名“${name}”；生成时产品名称为空，不要写入产品名称文字，也不要保留参考设计风格图里的原产品名。`;
+  return `输入的店铺名：${name}。${productNameIntro}本次请求只包含两张参考图：第1张传给系统的参考图为参考设计风格图，第2张传给系统的参考图为当前需要生成的产品图。这里的第1张和第2张只代表本次单张生成请求中的两张参考图，不是产品图列表中的第1张或第2张；即使用户一次上传多张产品图，每次只从产品图列表中取当前正在生成的这一张产品图，与同一张参考设计风格图组成两图请求。请严格区分两张图的用途：以第1张参考设计风格图作为最终画面的版式模板，必须保留第1张图的背景氛围、构图结构、光影层次、配色方向和文案排版位置，让最终图一眼能看出延续了第1张图的设计风格。把第2张产品图中的真实食物主体替换进第1张图的产品主体位置，必须保留第2张图中的真实产品主体，不能凭空更换成其他食物，也不能继续保留第1张图中的原产品主体。${copyReplacement}生成一张适合外卖平台展示的${layout}。不要只根据第2张产品图单独重新设计背景，不要忽略第1张参考设计风格图，不要出现促销价格、满减信息、二维码、地址、电话、联系方式或其他无关营销元素。${appearanceClause}`;
 }

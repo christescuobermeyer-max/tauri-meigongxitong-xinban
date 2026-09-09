@@ -1,6 +1,5 @@
 import { IconSparkles, IconStore, IconImage } from "./Icons";
 import BrandStoryResults from "./BrandStoryResults";
-import GenerationLineCard from "./GenerationLineCard";
 import type { BrandStoryImageEntry } from "../lib/brand-story";
 import type { BrandCopy } from "../types";
 
@@ -53,7 +52,6 @@ export default function BrandStoryPage({
   return (
     <>
       <div className="panel-stack">
-        <GenerationLineCard />
         <section className="card">
           <div className="card__header">
             <div className="card__heading">

@@ -10,7 +10,7 @@ interface Props {
   globalBusy?: boolean;
 }
 
-const TAB_LABELS = ["店铺1", "店铺2", "店铺3", "店铺4", "店铺5"];
+const TAB_LABELS = ["店铺1", "店铺2", "店铺3", "店铺4", "店铺5", "店铺6", "店铺7", "店铺8"];
 
 export default function ProductImageWorkspacePage({ slots, elapsed, globalBusy = false }: Props) {
   const [active, setActive] = useState(0);
@@ -30,6 +30,8 @@ export default function ProductImageWorkspacePage({ slots, elapsed, globalBusy =
         setShopName={pi.setShopName}
         productName={pi.productName}
         setProductName={pi.setProductName}
+        productNameMode={pi.productNameMode}
+        setProductNameMode={pi.setProductNameMode}
         platform={pi.platform}
         setPlatform={pi.setPlatform}
         themeColor={pi.themeColor}

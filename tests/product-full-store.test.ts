@@ -35,6 +35,20 @@ ok(batchPrompt.includes("店铺名“鲜椒鸡排”"));
 ok(batchPrompt.includes("产品名称“招牌牛肉汉堡”"));
 ok(batchPrompt.includes("横版产品图"));
 
+const batchPromptWithoutProductName = promptsModule.buildProductBatchPrompt(
+  "鲜椒鸡排",
+  "招牌牛肉汉堡",
+  "meituan",
+  {},
+  { includeProductName: false }
+);
+ok(batchPromptWithoutProductName.includes("输入的店铺名：鲜椒鸡排"));
+ok(batchPromptWithoutProductName.includes("生成时产品名称为空"));
+ok(batchPromptWithoutProductName.includes("不要写入产品名称文字"));
+ok(!batchPromptWithoutProductName.includes("产品名称：招牌牛肉汉堡"));
+ok(!batchPromptWithoutProductName.includes("产品名称“招牌牛肉汉堡”"));
+ok(!batchPromptWithoutProductName.includes("招牌牛肉汉堡"));
+
 const sidebarSource = readFileSync(
   new URL("../src/components/Sidebar.tsx", import.meta.url),
   "utf8"
@@ -51,6 +65,10 @@ equal(batchPanelSource.includes("参考设计风格图"), true);
 equal(batchPanelSource.includes("maxCount={10}"), true);
 equal(batchPanelSource.includes("每次生成只发送 1 张参考设计风格图 + 当前这一张产品图"), true);
 equal(batchPanelSource.includes("不是产品图列表的第 1 张、第 2 张"), true);
+equal(batchPanelSource.includes("产品名称显示方式"), true);
+equal(batchPanelSource.includes("带产品名称"), true);
+equal(batchPanelSource.includes("不带产品名称"), true);
+equal(batchPanelSource.includes("productNameMode"), true);
 equal(batchPanelSource.includes("buildProductBatchPrompt"), false);
 equal(batchPanelSource.includes("传给系统的参考图"), true);
 equal(batchPanelSource.includes("传给模型的参考图"), false);

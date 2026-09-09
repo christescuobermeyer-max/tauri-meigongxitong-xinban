@@ -83,7 +83,8 @@ deepEqual(
   plans.map((item) => ({
     kind: item.kind,
     outputPath: item.outputPath,
-    size: `${item.targetWidth}x${item.targetHeight}`,
+    size: item.saveOriginal ? "original" : `${item.targetWidth}x${item.targetHeight}`,
+    saveOriginal: item.saveOriginal ?? false,
     maxBytes: item.maxBytes ?? null,
   })),
   [
@@ -91,18 +92,21 @@ deepEqual(
       kind: "avatar",
       outputPath: "C:\\Exports\\阿牛黄焖鸡米饭（火车站店）_meituan_avatar_512x512.png",
       size: "512x512",
+      saveOriginal: false,
       maxBytes: null,
     },
     {
       kind: "storefront",
       outputPath: "C:\\Exports\\阿牛黄焖鸡米饭（火车站店）_meituan_storefront_686x320.png",
       size: "686x320",
+      saveOriginal: false,
       maxBytes: null,
     },
     {
       kind: "poster",
-      outputPath: "C:\\Exports\\阿牛黄焖鸡米饭（火车站店）_meituan_poster_720x240.png",
-      size: "720x240",
+      outputPath: "C:\\Exports\\阿牛黄焖鸡米饭（火车站店）_meituan_poster_original.png",
+      size: "original",
+      saveOriginal: true,
       maxBytes: null,
     },
   ]

@@ -139,13 +139,18 @@ export default function useDataAnalysisWorkspace({
             {
               asset_kind: DATA_ANALYSIS_ASSET_KIND,
               file_name_stem: `${safeFileName(snapshot.storeName)}-data-analysis`,
+              shop_name: snapshot.storeName,
+              platform: DATA_ANALYSIS_PLATFORM,
             }
           );
           return {
             rawBase64: response.image,
+            rawDataUrl: response.imageDataUrl,
             generationLine: response.generationLine,
             archiveUrl: response.archiveUrl,
             archiveError: response.archiveError,
+            historyRecorded: response.historyRecorded,
+            historyError: response.historyError,
           };
         },
       });
@@ -158,12 +163,14 @@ export default function useDataAnalysisWorkspace({
       const itemWithRemoteUrl: GenerationItem = {
         kind: DATA_ANALYSIS_ASSET_KIND,
         rawBase64: result.rawBase64,
-        rawDataUrl: `data:image/png;base64,${result.rawBase64}`,
+        rawDataUrl: result.rawDataUrl ?? `data:image/png;base64,${result.rawBase64}`,
         remoteUrl,
         status: "succeeded",
         generationLine: result.generationLine,
         elapsedMs: Date.now() - started,
         attempt: result.attempt,
+        historyRecorded: result.historyRecorded,
+        historyError: result.historyError,
       };
       setItem({
         ...itemWithRemoteUrl,

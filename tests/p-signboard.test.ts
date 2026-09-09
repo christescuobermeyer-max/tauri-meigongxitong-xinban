@@ -46,7 +46,7 @@ async function runWithAutoRetry(options) {
 `)
   .replace(
     'import { resolvePSignboardGenerationSize } from "./generation-size";',
-    'function resolvePSignboardGenerationSize(line = "line1") { return line === "line5" ? "auto" : line === "line4" ? "16:9" : "1536x1024"; }'
+    'function resolvePSignboardGenerationSize(line = "line5") { return line === "line5" ? "auto" : line === "line4" ? "16:9" : "1536x1024"; }'
   )
   .replace('import { safeFileName } from "./utils";', 'function safeFileName(input) { return input.trim() || "shop"; }')
   .replace('import type { GenerationItem, GenerationLine, UploadedImage } from "../types";', "");
@@ -95,7 +95,7 @@ const calls = libModule.__getCalls();
 equal(calls.filter((call: { type: string }) => call.type === "upload").length, 1);
 equal(calls[0].req.folder, "uploads");
 equal(calls[1].type, "generate");
-equal(calls[1].req.size, "1536x1024");
+equal(calls[1].req.size, "auto");
 equal(calls[1].req.api_line, "auto");
 equal(calls[1].req.product_images[0].startsWith("https://oss.example.com/"), true);
 equal(calls[1].archive.asset_kind, "p_signboard");
@@ -107,7 +107,7 @@ ok(calls[1].req.prompt.includes("新文字内容“呈尚小厨”"));
 equal(calls[2].type, "archive");
 equal(calls[2].kind, "p_signboard");
 ok(calls[2].fileNameStem.includes("p-signboard"));
-equal(item.generationLine, "line2");
+equal(item.generationLine, "line5");
 
 await libModule.generatePSignboardItem(
   {

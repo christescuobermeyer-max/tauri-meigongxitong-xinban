@@ -41,6 +41,7 @@ interface Options {
 }
 
 const noopSetter: Dispatch<SetStateAction<GenerationItem>> = () => undefined;
+export type ProductBatchProductNameMode = "with" | "without";
 
 export default function useProductBatchWorkspace({
   generationLine,
@@ -52,6 +53,7 @@ export default function useProductBatchWorkspace({
   const [platform, setPlatform] = useState<Platform | null>(null);
   const [themeColor, setThemeColor] = useState<ThemeColor | "">("");
   const [brandStyle, setBrandStyle] = useState<BrandStyle | "">("");
+  const [productNameMode, setProductNameMode] = useState<ProductBatchProductNameMode>("with");
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [styleImages, setStyleImages] = useState<UploadedImage[]>([]);
   const [entries, setEntries] = useState<ProductBatchEntry[]>([]);
@@ -108,9 +110,12 @@ export default function useProductBatchWorkspace({
       generationLine: GenerationLine;
       themeColor: ThemeColor | "";
       brandStyle: BrandStyle | "";
+      productNameMode: ProductBatchProductNameMode;
     }
   ): Promise<RunOneResult | null> {
-    const productName = sourceImage.productName.trim() || "未命名产品";
+    const resolvedProductName = sourceImage.productName.trim() || "未命名产品";
+    const includeProductName = snapshot.productNameMode === "with";
+    const productNameForGeneration = includeProductName ? resolvedProductName : "";
     const referenceImages = resolveProductBatchReferenceImages(syncedStyleImages, sourceImage);
     if (referenceImages.length < 2) {
       onToast("参考设计风格图或产品图上传状态异常，请重新上传后再试", "error");
@@ -126,7 +131,13 @@ export default function useProductBatchWorkspace({
       kind: "product",
       sourceImages: [sourceImage],
       referenceImages,
-      promptOverride: buildProductBatchPrompt(snapshot.shopName, productName, snapshot.platform, appearance),
+      promptOverride: buildProductBatchPrompt(
+        snapshot.shopName,
+        resolvedProductName,
+        snapshot.platform,
+        appearance,
+        { includeProductName }
+      ),
       setters: {
         avatar: noopSetter,
         storefront: noopSetter,
@@ -134,7 +145,7 @@ export default function useProductBatchWorkspace({
         product: createProductSetter(sourceImage.id),
       },
       shopName: snapshot.shopName,
-      productName,
+      productName: productNameForGeneration,
       platform: snapshot.platform,
       currentPlatform: snapshot.currentPlatform,
       avatar: emptyItem("avatar"),
@@ -158,6 +169,8 @@ export default function useProductBatchWorkspace({
         status: "succeeded",
         elapsedMs: result.elapsedMs,
         attempt: result.attempt,
+        historyRecorded: result.historyRecorded,
+        historyError: result.historyError,
       },
       snapshot.shopName,
       snapshot.platform
@@ -177,6 +190,7 @@ export default function useProductBatchWorkspace({
       generationLine,
       themeColor,
       brandStyle,
+      productNameMode,
     };
 
     setUploadingOss(true);
@@ -227,6 +241,7 @@ export default function useProductBatchWorkspace({
       generationLine,
       themeColor,
       brandStyle,
+      productNameMode,
     };
 
     setUploadingOss(true);
@@ -281,6 +296,8 @@ export default function useProductBatchWorkspace({
     setThemeColor,
     brandStyle,
     setBrandStyle,
+    productNameMode,
+    setProductNameMode,
     images,
     setImages,
     styleImages,

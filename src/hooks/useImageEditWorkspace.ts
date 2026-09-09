@@ -146,6 +146,8 @@ export default function useImageEditWorkspace(options: Options) {
         status: "succeeded",
         elapsedMs: generated.elapsedMs,
         attempt: generated.attempt,
+        historyRecorded: generated.historyRecorded,
+        historyError: generated.historyError,
       };
       patchEntry(kind, { item });
       onRecordHistory(kind, item, snapshot.shopName, snapshot.platform);

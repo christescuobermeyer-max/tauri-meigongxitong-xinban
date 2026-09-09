@@ -9,7 +9,7 @@ interface Props {
   globalBusy?: boolean;
 }
 
-const TAB_LABELS = ["店铺1", "店铺2", "店铺3", "店铺4", "店铺5"] as const;
+const TAB_LABELS = ["店铺1", "店铺2", "店铺3", "店铺4", "店铺5", "店铺6", "店铺7", "店铺8"] as const;
 
 export default function ProductBatchWorkspacePage({ slots, elapsed, globalBusy = false }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -51,6 +51,8 @@ export default function ProductBatchWorkspacePage({ slots, elapsed, globalBusy =
         setThemeColor={slot.setThemeColor}
         brandStyle={slot.brandStyle}
         setBrandStyle={slot.setBrandStyle}
+        productNameMode={slot.productNameMode}
+        setProductNameMode={slot.setProductNameMode}
         images={slot.images}
         setImages={slot.setImages}
         styleImages={slot.styleImages}

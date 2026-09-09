@@ -29,6 +29,8 @@ ok(prompt.includes("外卖店铺30天流量数据截图"));
 ok(prompt.includes("曝光人数"));
 ok(prompt.includes("进店人数"));
 ok(prompt.includes("下单人数"));
+ok(prompt.includes("只提取数字后面紧跟“人”的数据"));
+ok(prompt.includes("数字后面紧跟“次”的数据是次数"));
 ok(prompt.includes("不要虚构截图中不存在的具体数值"));
 ok(!prompt.includes("图2"));
 ok(!prompt.includes("模板参考图"));
@@ -46,8 +48,8 @@ equal(module.DATA_ANALYSIS_PLATFORM, "meituan");
 const workspaceSource = read("src/hooks/useGenerationWorkspace.ts");
 ok(workspaceSource.includes('| "dataAnalysis"'));
 ok(workspaceSource.includes("useDataAnalysisWorkspace"));
-ok(workspaceSource.includes("dataAnalysis.busy"));
-ok(workspaceSource.includes("dataAnalysis,"));
+ok(workspaceSource.includes("dataAnalysisSlots"));
+ok(workspaceSource.includes("countBusySlots(dataAnalysisSlots)"));
 
 const shellSource = read("src/components/WorkspaceShell.tsx");
 ok(shellSource.includes('workspace.tab === "dataAnalysis"'));
@@ -62,8 +64,8 @@ ok(sidebarSource.includes('label: "数据分析"'));
 
 const pagesSource = read("src/components/WorkspacePages.tsx");
 ok(pagesSource.includes('workspace.tab === "dataAnalysis"'));
-ok(pagesSource.includes("<DataAnalysisPage"));
-ok(pagesSource.includes("workspace.dataAnalysis"));
+ok(pagesSource.includes("<DataAnalysisWorkspacePage"));
+ok(pagesSource.includes("workspace.dataAnalysisSlots"));
 
 const dataAnalysisPageSource = read("src/components/DataAnalysisPage.tsx");
 ok(dataAnalysisPageSource.includes("data-analysis-result-hero"));

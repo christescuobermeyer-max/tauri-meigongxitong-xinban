@@ -25,7 +25,7 @@ export async function generatePSignboardItem(
   options: PSignboardOptions
 ): Promise<GenerationItem> {
   const stem = safeFileName(options.shopName);
-  const generationLine = options.generationLine ?? "line1";
+  const generationLine = options.generationLine ?? "line5";
   const resultStem = `${stem}-p-signboard-${Date.now()}`;
   const sourceUpload = await uploadImageToOss({
     base64_data: image.productBase64,
@@ -47,13 +47,18 @@ export async function generatePSignboardItem(
         {
           asset_kind: "p_signboard",
           file_name_stem: resultStem,
+          shop_name: options.shopName,
+          platform: "meituan",
         }
       );
       return {
         rawBase64: response.image,
+        rawDataUrl: response.imageDataUrl,
         generationLine: response.generationLine,
         archiveUrl: response.archiveUrl,
         archiveError: response.archiveError,
+        historyRecorded: response.historyRecorded,
+        historyError: response.historyError,
       };
     },
   });
@@ -67,11 +72,13 @@ export async function generatePSignboardItem(
   return {
     kind: "p_signboard",
     rawBase64: generated.rawBase64,
-    rawDataUrl: `data:image/png;base64,${generated.rawBase64}`,
+    rawDataUrl: generated.rawDataUrl ?? `data:image/png;base64,${generated.rawBase64}`,
     remoteUrl,
     generationLine: generated.generationLine,
     status: "succeeded",
     elapsedMs: Date.now() - started,
     attempt: generated.attempt,
+    historyRecorded: generated.historyRecorded,
+    historyError: generated.historyError,
   };
 }

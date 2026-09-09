@@ -3,7 +3,6 @@ import { PICTURE_WALL_EXPORT_SIZE, PICTURE_WALL_SOURCE_SIZE } from "../lib/pictu
 import type { PictureWallDownloadProgress } from "../lib/picture-wall-download";
 import type { BrandStyle, ThemeColor, UploadedImage } from "../types";
 import AppearanceFields from "./AppearanceFields";
-import GenerationLineCard from "./GenerationLineCard";
 import ImageUpload from "./ImageUpload";
 import { IconSparkles } from "./Icons";
 import PictureWallProductNames from "./PictureWallProductNames";
@@ -57,7 +56,6 @@ export default function PictureWallPage({
   return (
     <>
       <div className="panel-stack">
-        <GenerationLineCard />
         <section className="card">
           <div className="card__header">
             <div className="card__title">图片墙生成</div>

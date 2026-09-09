@@ -17,7 +17,12 @@ export default function useAuth() {
       setState({ profile, loading: false });
     } catch (error) {
       console.error("[useAuth] refreshProfile failed:", error);
-      setState({ profile: null, loading: false });
+      const message = error instanceof Error ? error.message : String(error);
+      setState((previous) =>
+        message.includes("账号已被停用")
+          ? { profile: null, loading: false }
+          : { profile: previous.profile, loading: false }
+      );
     }
   }, []);
 

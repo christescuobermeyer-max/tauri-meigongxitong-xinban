@@ -1,5 +1,6 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { getPlatform } from "../lib/platforms";
+import { buildProductPrompt } from "../lib/prompts";
 import { saveGeneratedAsset } from "../lib/save-generated-asset";
 import {
   emptyItem,
@@ -20,6 +21,7 @@ import type {
 } from "../types";
 
 const noopSetter: Dispatch<SetStateAction<GenerationItem>> = () => undefined;
+export type ProductImageProductNameMode = "with" | "without";
 
 interface Options {
   generationLine: GenerationLine;
@@ -37,6 +39,7 @@ export default function useProductImageWorkspace(options: Options) {
   const { generationLine, setGenerationLine, onToast, onRecordHistory } = options;
   const [shopName, setShopName] = useState("");
   const [productName, setProductName] = useState("");
+  const [productNameMode, setProductNameMode] = useState<ProductImageProductNameMode>("with");
   // 记录上一次从图片自动填入 productName 的值；用户手动改过后这里不变，于是再换图也不会覆盖用户输入。
   const [autoFilledProductName, setAutoFilledProductName] = useState("");
   const [platform, setPlatform] = useState<Platform | null>(null);
@@ -80,7 +83,7 @@ export default function useProductImageWorkspace(options: Options) {
       onToast("请先选择投放平台：美团或淘宝闪购", "error");
       return false;
     }
-    if (!productName.trim()) {
+    if (productNameMode === "with" && !productName.trim()) {
       onToast("请填写产品名称", "error");
       return false;
     }
@@ -105,6 +108,8 @@ export default function useProductImageWorkspace(options: Options) {
       status: "succeeded",
       elapsedMs: result.elapsedMs,
       attempt: result.attempt,
+      historyRecorded: result.historyRecorded,
+      historyError: result.historyError,
     };
     onRecordHistory("product", item, shopNameSnapshot, platformSnapshot);
   }
@@ -117,7 +122,15 @@ export default function useProductImageWorkspace(options: Options) {
     generationLine: GenerationLine;
     themeColor: ThemeColor | "";
     brandStyle: BrandStyle | "";
+    productNameMode: ProductImageProductNameMode;
   }) {
+    const includeProductName = snapshot.productNameMode === "with";
+    const productNameForGeneration = includeProductName ? snapshot.productName : "";
+    const appearance = {
+      themeColor: snapshot.themeColor || undefined,
+      brandStyle: snapshot.brandStyle || undefined,
+    };
+
     let syncedImages: UploadedImage[];
     try {
       syncedImages = await syncImagesToOss();
@@ -134,7 +147,7 @@ export default function useProductImageWorkspace(options: Options) {
       sourceImages: syncedImages,
       setters: buildSetters(),
       shopName: snapshot.shopName,
-      productName: snapshot.productName,
+      productName: productNameForGeneration,
       platform: snapshot.platform,
       currentPlatform: snapshot.currentPlatform,
       avatar: emptyItem("avatar"),
@@ -142,10 +155,14 @@ export default function useProductImageWorkspace(options: Options) {
       avatarMode: "image",
       avatarCategory: "",
       generationLine: snapshot.generationLine,
-      appearance: {
-        themeColor: snapshot.themeColor || undefined,
-        brandStyle: snapshot.brandStyle || undefined,
-      },
+      promptOverride: buildProductPrompt(
+        snapshot.shopName,
+        snapshot.productName,
+        snapshot.platform,
+        appearance,
+        { includeProductName }
+      ),
+      appearance,
       onToast,
     });
 
@@ -164,6 +181,7 @@ export default function useProductImageWorkspace(options: Options) {
       generationLine,
       themeColor,
       brandStyle,
+      productNameMode,
     };
 
     setProduct({ ...emptyItem("product"), status: "queued" });
@@ -183,6 +201,7 @@ export default function useProductImageWorkspace(options: Options) {
       generationLine,
       themeColor,
       brandStyle,
+      productNameMode,
     };
 
     return await runProduct(snapshot);
@@ -213,6 +232,8 @@ export default function useProductImageWorkspace(options: Options) {
     setShopName,
     productName,
     setProductName,
+    productNameMode,
+    setProductNameMode,
     platform,
     setPlatform,
     currentPlatform,

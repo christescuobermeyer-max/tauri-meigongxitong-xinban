@@ -94,5 +94,19 @@ equal(meituanProductPrompt.includes("一句简短有吸引力的产品卖点文�
 equal(meituanProductPrompt.includes("不能空白无字"), false);
 equal(meituanProductPrompt.includes("1536×1024横版构图"), false);
 
+const productPromptWithoutProductName = buildProductPrompt(
+  "鲜椒鸡排",
+  "招牌鸡排饭",
+  "meituan",
+  {},
+  { includeProductName: false }
+);
+ok(productPromptWithoutProductName.includes("输入的店铺名：鲜椒鸡排"));
+ok(productPromptWithoutProductName.includes("生成时产品名称为空"));
+ok(productPromptWithoutProductName.includes("不要写入产品名称文字"));
+equal(productPromptWithoutProductName.includes("产品名称：招牌鸡排饭"), false);
+equal(productPromptWithoutProductName.includes("产品名称“招牌鸡排饭”"), false);
+equal(productPromptWithoutProductName.includes("招牌鸡排饭"), false);
+
 const taobaoProductPrompt = buildProductPrompt("鲜椒鸡排", "招牌鸡排饭", "taobao");
 ok(taobaoProductPrompt.includes("产品名称“招牌鸡排饭”"));

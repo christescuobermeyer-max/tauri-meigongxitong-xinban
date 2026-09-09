@@ -13,6 +13,9 @@ const THEME_COLOR_OPTIONS: Array<{ value: ThemeColor; label: string }> = [
   { value: "red", label: "红色主题色" },
   { value: "yellow", label: "黄色主题色" },
   { value: "orange", label: "橙色主题色" },
+  { value: "blue", label: "深蓝主题色" },
+  { value: "pink", label: "浅粉主题色" },
+  { value: "deepSea", label: "深海冰川主题色" },
 ];
 
 const BRAND_STYLE_OPTIONS: Array<{ value: BrandStyle; label: string }> = [

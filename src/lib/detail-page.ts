@@ -114,13 +114,18 @@ export async function generateDetailPageItem(
         {
           asset_kind: "detail_page",
           file_name_stem: `${safeFileName(shopName)}-detail-page-${pageIndex + 1}`,
+          shop_name: shopName,
+          platform: "meituan",
         }
       );
       return {
         rawBase64: response.image,
+        rawDataUrl: response.imageDataUrl,
         generationLine: response.generationLine,
         archiveUrl: response.archiveUrl,
         archiveError: response.archiveError,
+        historyRecorded: response.historyRecorded,
+        historyError: response.historyError,
       };
     },
   });
@@ -129,11 +134,13 @@ export async function generateDetailPageItem(
   return {
     kind: "detail_page" as const,
     rawBase64: generated.rawBase64,
-    rawDataUrl: `data:image/png;base64,${generated.rawBase64}`,
+    rawDataUrl: generated.rawDataUrl ?? `data:image/png;base64,${generated.rawBase64}`,
     remoteUrl,
     generationLine: generated.generationLine,
     status: "succeeded" as const,
     attempt: generated.attempt,
+    historyRecorded: generated.historyRecorded,
+    historyError: generated.historyError,
   };
 }
 
@@ -153,6 +160,8 @@ async function archiveDetailPageResult(
     rawBase64: string;
     archiveUrl?: string;
     archiveError?: string;
+    historyRecorded?: boolean;
+    historyError?: string;
   },
   shopName: string,
   pageIndex: number

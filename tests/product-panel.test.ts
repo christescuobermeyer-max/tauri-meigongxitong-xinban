@@ -20,6 +20,10 @@ const productResultSource = readFileSync(
 
 equal(productGenerateSource.includes("maxCount={1}"), true);
 equal(productGenerateSource.includes("调用系统制作设计图"), true);
+equal(productGenerateSource.includes("产品名称显示方式"), true);
+equal(productGenerateSource.includes("带产品名称"), true);
+equal(productGenerateSource.includes("不带产品名称"), true);
+equal(productGenerateSource.includes("productNameMode"), true);
 equal(productGenerateSource.includes("调用 image-2 制作设计图"), false);
 equal(generateSource.includes("用于告诉系统店铺主要卖什么"), true);
 equal(generateSource.includes("用于告诉模型店铺主要卖什么"), false);

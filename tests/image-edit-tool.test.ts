@@ -130,7 +130,7 @@ equal(hookSource.includes("saveGeneratedAsset(kind"), true);
 equal(inputCardSource.includes("getImageEditSourceMaxCount"), true);
 equal(inputCardSource.includes("maxCount={sourceMaxCount}"), true);
 equal(inputCardSource.includes("最多上传 4 张产品图"), true);
-equal(pageSource.includes("GenerationLineCard"), true);
+equal(pageSource.includes("GenerationLineCard"), false);
 equal(pageSource.includes("PlatformSelect"), true);
 equal(pageSource.includes("IMAGE_EDIT_KINDS.map"), false);
 equal(pageSource.includes("useState<ImageEditKind>"), true);

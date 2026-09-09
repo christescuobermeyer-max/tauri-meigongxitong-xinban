@@ -3,10 +3,10 @@ import type { ProductBatchEntry } from "../lib/product-batch";
 import { getPlatform } from "../lib/platforms";
 import AppearanceFields from "./AppearanceFields";
 import PlatformSelect from "./PlatformSelect";
-import GenerationLineCard from "./GenerationLineCard";
 import ImageUpload from "./ImageUpload";
 import { IconSparkles } from "./Icons";
 import ProgressSteps from "./ProgressSteps";
+import type { ProductBatchProductNameMode } from "../hooks/useProductBatchWorkspace";
 
 interface Props {
   shopName: string;
@@ -17,6 +17,8 @@ interface Props {
   setThemeColor: (value: ThemeColor | "") => void;
   brandStyle: BrandStyle | "";
   setBrandStyle: (value: BrandStyle | "") => void;
+  productNameMode: ProductBatchProductNameMode;
+  setProductNameMode: (value: ProductBatchProductNameMode) => void;
   images: UploadedImage[];
   setImages: (images: UploadedImage[]) => void;
   styleImages: UploadedImage[];
@@ -38,6 +40,8 @@ export default function ProductBatchGeneratePanel({
   setThemeColor,
   brandStyle,
   setBrandStyle,
+  productNameMode,
+  setProductNameMode,
   images,
   setImages,
   styleImages,
@@ -60,7 +64,6 @@ export default function ProductBatchGeneratePanel({
 
   return (
     <div className="panel-stack">
-      <GenerationLineCard />
       <div className="card">
         <div className="card__header">
           <div className="card__heading">
@@ -93,9 +96,19 @@ export default function ProductBatchGeneratePanel({
           </div>
 
           <div className="field">
-            <label className="field__label">产品名称</label>
-            <div className="product-name-list">
-              {entries.length > 0 ? (
+            <label className="field__label">产品名称显示方式</label>
+            <select
+              className="input"
+              value={productNameMode}
+              onChange={(event) => setProductNameMode(event.target.value as ProductBatchProductNameMode)}
+            >
+              <option value="with">带产品名称</option>
+              <option value="without">不带产品名称</option>
+            </select>
+            <div className="product-name-list" data-muted={productNameMode === "without"}>
+              {productNameMode === "without" ? (
+                <span className="field__hint">已选择不带产品名称，生成时产品名称为空</span>
+              ) : entries.length > 0 ? (
                 entries.map((entry) => (
                   <span className="product-name-chip" key={entry.sourceImageId}>
                     {entry.productName}
@@ -105,7 +118,11 @@ export default function ProductBatchGeneratePanel({
                 <span className="field__hint">上传产品图后会按各文件名自动提取产品名称</span>
               )}
             </div>
-            <span className="field__hint">生成时会把各产品名称分别替换到对应的全店图文案中</span>
+            <span className="field__hint">
+              {productNameMode === "with"
+                ? "默认会把各产品名称分别替换到对应的全店图文案中"
+                : "不带产品名称时，只替换店铺名，不向画面写入产品名称"}
+            </span>
           </div>
 
           <AppearanceFields

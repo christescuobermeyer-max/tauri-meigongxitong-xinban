@@ -11,7 +11,7 @@ export default function SettingsPanel() {
             系统：<strong>图片生成系统</strong>
           </span>
           <span>
-            接口：<strong>https://api3.wlai.vip/v1/images/generations</strong>
+            接口：<strong>云端网关自动分配线路2-7</strong>
           </span>
           <span>
             原图尺寸：<strong>头像 1024×1024 · 店招 1792×1024</strong>

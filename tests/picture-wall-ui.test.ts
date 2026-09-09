@@ -11,7 +11,7 @@ const workspaceHookSource = readFileSync(
 equal(workspaceHookSource.includes('"pictureWall"'), true);
 equal(workspaceHookSource.includes("usePictureWallWorkspace"), true);
 equal(workspaceHookSource.includes("onRecordHistory: recordHistory"), true);
-equal(workspaceHookSource.includes("pictureWall,"), true);
+equal(workspaceHookSource.includes("pictureWallSlots"), true);
 equal(workspaceHookSource.includes("resetPictureWall"), false);
 
 const pictureWallHookSource = readFileSync(
@@ -30,7 +30,7 @@ const shellSource = readFileSync(new URL("../src/components/WorkspaceShell.tsx",
 equal(shellSource.includes('? "图片墙生成"'), true);
 
 const pagesSource = readFileSync(new URL("../src/components/WorkspacePages.tsx", import.meta.url), "utf8");
-equal(pagesSource.includes("PictureWallPage"), true);
+equal(pagesSource.includes("PictureWallWorkspacePage"), true);
 equal(pagesSource.includes("PictureWallTabsPage"), false);
 equal(pagesSource.includes('className="page picture-wall-page"'), true);
 
@@ -41,7 +41,7 @@ equal(pageSource.includes("生成图片墙"), true);
 equal(pageSource.includes("补生成失败图片"), true);
 equal(pageSource.includes("PICTURE_WALL_EXPORT_SIZE"), true);
 equal(pageSource.includes("downloadStatus"), true);
-equal(pageSource.includes("GenerationLineCard"), true);
+equal(pageSource.includes("GenerationLineCard"), false);
 equal(pageSource.includes('className="panel-stack"'), true);
 equal(pageSource.includes('className="picture-wall-panel"'), false);
 equal(pageSource.includes("PictureWallProductNames"), true);

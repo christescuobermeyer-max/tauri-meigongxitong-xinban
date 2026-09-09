@@ -1,4 +1,3 @@
-import GenerationLineCard from "./GenerationLineCard";
 import GenerationResultTile from "./GenerationResultTile";
 import ImageUpload from "./ImageUpload";
 import MerchantCopyCard from "./MerchantCopyCard";
@@ -36,7 +35,6 @@ export default function DataAnalysisPage({
   return (
     <>
       <div className="panel-stack">
-        <GenerationLineCard />
         <section className="card">
           <div className="card__header">
             <div className="card__heading">

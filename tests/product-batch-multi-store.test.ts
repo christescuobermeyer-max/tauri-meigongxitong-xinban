@@ -32,19 +32,22 @@ ok(
   "hook 不应再自管理 generationLine state",
 );
 
-// workspace 应实例化 5 个 slot
+// workspace 应实例化 8 个 slot
 ok(workspaceSource.includes("productBatchSlot1 = useProductBatchWorkspace"));
 ok(workspaceSource.includes("productBatchSlot2 = useProductBatchWorkspace"));
 ok(workspaceSource.includes("productBatchSlot3 = useProductBatchWorkspace"));
 ok(workspaceSource.includes("productBatchSlot4 = useProductBatchWorkspace"));
 ok(workspaceSource.includes("productBatchSlot5 = useProductBatchWorkspace"));
+ok(workspaceSource.includes("productBatchSlot6 = useProductBatchWorkspace"));
+ok(workspaceSource.includes("productBatchSlot7 = useProductBatchWorkspace"));
+ok(workspaceSource.includes("productBatchSlot8 = useProductBatchWorkspace"));
 ok(
   workspaceSource.includes("countBusySlots(productBatchSlots)"),
-  "全局 busy 应聚合 5 个 slot",
+  "全局 busy 应聚合 8 个 slot",
 );
 
-// 页面应渲染 5 个 tab
-for (const label of ["店铺1", "店铺2", "店铺3", "店铺4", "店铺5"]) {
+// 页面应渲染 8 个 tab
+for (const label of ["店铺1", "店铺2", "店铺3", "店铺4", "店铺5", "店铺6", "店铺7", "店铺8"]) {
   ok(pageSource.includes(label), `页面应包含 ${label}`);
 }
 ok(pageSource.includes('role="tab"'));
@@ -63,8 +66,8 @@ ok(
   "tab 容器应横跨 .page 两列",
 );
 ok(
-  /\.multi-store-tabs\s*\{[\s\S]*?grid-template-columns:\s*repeat\(5/.test(cssSource),
-  "tab 应为 5 列等宽",
+  /\.multi-store-tabs\s*\{[\s\S]*?grid-template-columns:\s*repeat\(8/.test(cssSource),
+  "tab 应为 8 列等宽",
 );
 
 console.log("product batch multi-store contract: OK");

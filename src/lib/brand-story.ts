@@ -202,13 +202,18 @@ export async function generateBrandStoryImage(options: {
         {
           asset_kind: "brand_story",
           file_name_stem: `${safeFileName(options.storeName)}-brand-story-${options.index}`,
+          shop_name: options.storeName,
+          platform: "meituan",
         }
       );
       return {
         rawBase64: response.image,
+        rawDataUrl: response.imageDataUrl,
         generationLine: response.generationLine,
         archiveUrl: response.archiveUrl,
         archiveError: response.archiveError,
+        historyRecorded: response.historyRecorded,
+        historyError: response.historyError,
       };
     },
   });
@@ -223,10 +228,12 @@ export async function generateBrandStoryImage(options: {
   return {
     kind: "brand_story",
     rawBase64: generated.rawBase64,
-    rawDataUrl: `data:image/png;base64,${generated.rawBase64}`,
+    rawDataUrl: generated.rawDataUrl ?? `data:image/png;base64,${generated.rawBase64}`,
     remoteUrl,
     generationLine: generated.generationLine,
     status: "succeeded",
     attempt: generated.attempt,
+    historyRecorded: generated.historyRecorded,
+    historyError: generated.historyError,
   };
 }

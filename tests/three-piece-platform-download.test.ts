@@ -17,6 +17,14 @@ const workspaceHook = readFileSync(
   new URL("../src/hooks/useGenerationWorkspace.ts", import.meta.url),
   "utf8"
 );
+const threePieceWorkspace = readFileSync(
+  new URL("../src/components/workspace/ThreePieceWorkspacePage.tsx", import.meta.url),
+  "utf8"
+);
+const threePieceHook = readFileSync(
+  new URL("../src/hooks/useThreePieceWorkspace.ts", import.meta.url),
+  "utf8"
+);
 const threePiecePage = workspacePages.slice(
   workspacePages.indexOf("<GeneratePanel"),
   workspacePages.indexOf('if (workspace.tab === "productImage")')
@@ -43,16 +51,15 @@ equal(
 ok(resultPanel.includes('onBatchDownload("meituan")'), "美团批量下载按钮应指定美团平台");
 ok(resultPanel.includes('onBatchDownload("taobao")'), "淘宝闪购批量下载按钮应指定淘宝平台");
 ok(
-  workspacePages.includes("workspace.handleDownload(kind, platform)"),
+  threePieceWorkspace.includes("tp.handleDownload(kind as \"avatar\" | \"storefront\" | \"poster\", platform)"),
   "三件套单张下载应使用下拉菜单选择的平台导出"
 );
 ok(
-  workspaceHook.includes("handleBatchDownload(targetPlatform"),
+  threePieceHook.includes("handleBatchDownload(targetPlatform"),
   "批量下载处理函数应支持传入目标平台"
 );
 ok(
-  workspaceHook.includes('pushHistoryEntry("avatar", avatar, "meituan")') &&
-    workspaceHook.includes('pushHistoryEntry("storefront", storefront, "meituan")') &&
-    workspaceHook.includes('pushHistoryEntry("poster", poster, "meituan")'),
+  threePieceHook.includes('const THREE_PIECE_PLATFORM: Platform = "meituan"') &&
+    threePieceHook.includes("onRecordHistory(kind, item, shopNameSnapshot, THREE_PIECE_PLATFORM)"),
   "三件套云端记录不应沿用其他工具隐藏的平台状态"
 );

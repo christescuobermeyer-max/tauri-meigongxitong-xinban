@@ -8,16 +8,18 @@ import type {
 import { getPlatform } from "../lib/platforms";
 import AppearanceFields from "./AppearanceFields";
 import PlatformSelect from "./PlatformSelect";
-import GenerationLineCard from "./GenerationLineCard";
 import ImageUpload from "./ImageUpload";
 import { IconSparkles } from "./Icons";
 import ProgressSteps from "./ProgressSteps";
+import type { ProductImageProductNameMode } from "../hooks/useProductImageWorkspace";
 
 interface Props {
   shopName: string;
   setShopName: (v: string) => void;
   productName: string;
   setProductName: (v: string) => void;
+  productNameMode: ProductImageProductNameMode;
+  setProductNameMode: (v: ProductImageProductNameMode) => void;
   platform: Platform | null;
   setPlatform: (p: Platform) => void;
   themeColor: ThemeColor | "";
@@ -38,6 +40,8 @@ export default function ProductGeneratePanel({
   setShopName,
   productName,
   setProductName,
+  productNameMode,
+  setProductNameMode,
   platform,
   setPlatform,
   themeColor,
@@ -53,8 +57,9 @@ export default function ProductGeneratePanel({
   product,
 }: Props) {
   const platformSpec = platform ? getPlatform(platform) : null;
+  const includeProductName = productNameMode === "with";
   const canSubmit =
-    Boolean(platform) && shopName.trim().length > 0 && productName.trim().length > 0 && images.length > 0 && !submitDisabled;
+    Boolean(platform) && shopName.trim().length > 0 && (!includeProductName || productName.trim().length > 0) && images.length > 0 && !submitDisabled;
   const source = platformSpec?.product.source;
   const target = platformSpec?.product.export;
   const fileHint = platformSpec?.product.maxBytes
@@ -63,7 +68,6 @@ export default function ProductGeneratePanel({
 
   return (
     <div className="panel-stack">
-      <GenerationLineCard />
       <div className="card">
         <div className="card__header">
           <div className="card__heading">
@@ -96,15 +100,37 @@ export default function ProductGeneratePanel({
           </div>
 
           <div className="field">
+            <label className="field__label">产品名称显示方式</label>
+            <select
+              className="input"
+              value={productNameMode}
+              onChange={(event) => setProductNameMode(event.target.value as ProductImageProductNameMode)}
+            >
+              <option value="with">带产品名称</option>
+              <option value="without">不带产品名称</option>
+            </select>
+            <span className="field__hint">
+              {includeProductName
+                ? "默认会把产品名称写入设计图文案中"
+                : "不带产品名称时，只参考店铺名和产品图，不向画面写入产品名称"}
+            </span>
+          </div>
+
+          <div className="field">
             <label className="field__label">产品名称</label>
             <input
               className="input"
               placeholder="会从第 1 张产品图文件名自动带出"
               value={productName}
               onChange={(e) => setProductName(e.target.value)}
+              disabled={!includeProductName}
               maxLength={40}
             />
-            <span className="field__hint">默认从上传文件名提取，可手动修改，生成时会写入图中</span>
+            <span className="field__hint">
+              {includeProductName
+                ? "默认从上传文件名提取，可手动修改，生成时会写入图中"
+                : "已选择不带产品名称，生成时产品名称为空"}
+            </span>
           </div>
 
           <AppearanceFields

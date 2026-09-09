@@ -1,7 +1,6 @@
 import type { DetailPageEntry } from "../lib/detail-page";
 import { DETAIL_PAGE_EXPORT_SIZE, DETAIL_PAGE_GENERATION_SIZE } from "../lib/detail-page";
 import type { UploadedImage } from "../types";
-import GenerationLineCard from "./GenerationLineCard";
 import ImageUpload from "./ImageUpload";
 import { IconSparkles } from "./Icons";
 import DetailPageResults from "./DetailPageResults";
@@ -40,7 +39,6 @@ export default function DetailPagePage({
   return (
     <>
       <div className="panel-stack">
-        <GenerationLineCard />
         <section className="card">
           <div className="card__header">
             <div className="card__heading">

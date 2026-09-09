@@ -21,10 +21,6 @@ const source = readFileSync(new URL("../src/lib/history-download.ts", import.met
     "const DATA_ANALYSIS_EXPORT_SIZE = { w: 1536, h: 1024 };"
   )
   .replace(
-    'import { PATROL_SCRIPT_EXPORT_SIZE } from "./patrol-script";',
-    "const PATROL_SCRIPT_EXPORT_SIZE = { w: 1024, h: 1536 };"
-  )
-  .replace(
     /import \{[^}]*\} from "\.\/brand-story";/,
     `const BRAND_STORY_MAX_BYTES = 2 * 1024 * 1024;
 const BRAND_STORY_IMAGE_CONFIGS = [
@@ -53,8 +49,9 @@ const PICTURE_WALL_SOURCE_SIZE = { w: 1536, h: 1024 };`
 }`
   )
   .replace(
-    'import { pickDirectoryPath, pickSavePath, resizeAndSaveImage } from "./tauri";',
+    'import { pickDirectoryPath, pickSavePath, resizeAndSaveImage, saveBase64Image } from "./tauri";',
     `let resizeCalls = [];
+let originalSaveCalls = [];
 let saveNames = [];
 async function pickDirectoryPath() { return "C:\\\\downloads"; }
 async function pickSavePath(defaultName) {
@@ -65,7 +62,12 @@ async function resizeAndSaveImage(req) {
   resizeCalls.push(req);
   return req.output_path;
 }
+async function saveBase64Image(req) {
+  originalSaveCalls.push(req);
+  return req.output_path;
+}
 export function __getResizeCalls() { return resizeCalls; }
+export function __getOriginalSaveCalls() { return originalSaveCalls; }
 export function __getSaveNames() { return saveNames; }`
   )
   .replace(

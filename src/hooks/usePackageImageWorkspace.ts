@@ -181,5 +181,7 @@ function itemFromResult(result: RunOneResult): GenerationItem {
     status: "succeeded",
     elapsedMs: result.elapsedMs,
     attempt: result.attempt,
+    historyRecorded: result.historyRecorded,
+    historyError: result.historyError,
   };
 }

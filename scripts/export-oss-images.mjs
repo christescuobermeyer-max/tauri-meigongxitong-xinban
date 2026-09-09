@@ -13,9 +13,23 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
   process.exit(1);
 }
 
-const ROOT_OUTPUT = path.resolve("数据导出");
+function beijingDateFolder(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+const ROOT_OUTPUT = path.resolve("U:\\数据导出");
+const EXPORT_DATE_FOLDER = beijingDateFolder();
 const SHOP_ROOT = path.join(ROOT_OUTPUT, "按店铺分类");
 const ALL_IMAGES_DIR = path.join(ROOT_OUTPUT, "全部图片");
+const SHOP_DATE_ROOT = path.join(SHOP_ROOT, EXPORT_DATE_FOLDER);
+const ALL_IMAGES_DATE_DIR = path.join(ALL_IMAGES_DIR, EXPORT_DATE_FOLDER);
 const EXCEL_PATH = path.join(ROOT_OUTPUT, "OSS图片汇总.xlsx");
 
 const ASSET_KIND_LABEL = {
@@ -131,6 +145,10 @@ async function main() {
   ensureDir(ROOT_OUTPUT);
   ensureDir(SHOP_ROOT);
   ensureDir(ALL_IMAGES_DIR);
+  ensureDir(SHOP_DATE_ROOT);
+  ensureDir(ALL_IMAGES_DATE_DIR);
+  console.log(`导出根目录: ${ROOT_OUTPUT}`);
+  console.log(`本次图片日期目录: ${EXPORT_DATE_FOLDER}\n`);
 
   console.log("[1/4] 从 Supabase 拉取 generation_logs…");
   const rows = await fetchAllLogs();
@@ -150,7 +168,7 @@ async function main() {
     const seq = String(idx + 1).padStart(4, "0");
     const baseName = `${seq}-${kindLabel}.${ext}`;
 
-    const shopDir = path.join(SHOP_ROOT, shop, category);
+    const shopDir = path.join(SHOP_DATE_ROOT, shop, category);
     let shopFile = path.join(shopDir, baseName);
     const shopKey = shopFile.toLowerCase();
     if (usedShopFileNames.has(shopKey)) {
@@ -163,7 +181,7 @@ async function main() {
       allName = `${seq}-${shop}-${kindLabel}-${idx}.${ext}`;
     }
     usedAllNames.add(allName.toLowerCase());
-    const allFile = path.join(ALL_IMAGES_DIR, allName);
+    const allFile = path.join(ALL_IMAGES_DATE_DIR, allName);
 
     return {
       ...row,
@@ -346,6 +364,7 @@ async function main() {
   console.log("完成 ✓");
   console.log(`  店铺目录:    ${SHOP_ROOT}`);
   console.log(`  全部图片:    ${ALL_IMAGES_DIR}`);
+  console.log(`  本次日期目录: ${EXPORT_DATE_FOLDER}`);
   console.log(`  汇总表格:    ${EXCEL_PATH}`);
 }
 

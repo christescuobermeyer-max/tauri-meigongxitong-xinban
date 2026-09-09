@@ -60,8 +60,8 @@ export async function downloadProductBatchItems(options: DownloadOptions) {
       );
       await resizeAndSaveImage({
         base64_data: entry.item.rawBase64!,
-        target_width: spec.targetWidth,
-        target_height: spec.targetHeight,
+        target_width: requireTargetSize(spec.targetWidth, "宽度"),
+        target_height: requireTargetSize(spec.targetHeight, "高度"),
         output_path: replaceFileExtension(joinPath(directoryPath, spec.fileName), "jpg"),
         max_bytes: spec.maxBytes,
       });
@@ -75,4 +75,9 @@ export async function downloadProductBatchItems(options: DownloadOptions) {
 function joinPath(directoryPath: string, fileName: string) {
   if (directoryPath.endsWith("\\") || directoryPath.endsWith("/")) return `${directoryPath}${fileName}`;
   return `${directoryPath}\\${fileName}`;
+}
+
+function requireTargetSize(value: number | undefined, label: string) {
+  if (!value) throw new Error(`导出尺寸缺少${label}`);
+  return value;
 }

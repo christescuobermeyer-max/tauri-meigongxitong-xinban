@@ -1,6 +1,5 @@
 import { getPlatform } from "../lib/platforms";
 import type { GenerationItem, Platform, PlatformSpec, UploadedImage } from "../types";
-import GenerationLineCard from "./GenerationLineCard";
 import GenerationResultTile from "./GenerationResultTile";
 import ImageUpload from "./ImageUpload";
 import { IconDownload, IconSparkles } from "./Icons";
@@ -57,7 +56,6 @@ export default function PackageImagePage({
   return (
     <>
       <div className="panel-stack">
-        <GenerationLineCard />
         <section className="card">
           <div className="card__header">
             <div className="card__heading">

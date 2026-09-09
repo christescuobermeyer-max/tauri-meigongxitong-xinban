@@ -42,20 +42,20 @@ equal(detailUrl, "https://oss.example.com/红冠松滋鸡-detail_page.jpg");
 // 调用顺序：compress → upload，每次归档共 2 个 calls
 equal(calls.length, 6);
 
-// avatar：768 / q82
+// avatar：1024 / q90，作为正式交付输入时不得低于 800x800 导出尺寸
 equal(calls[0].type, "compress");
 equal(calls[0].req.base64_data, "raw-avatar");
-equal(calls[0].req.max_dimension, 768);
-equal(calls[0].req.quality, 82);
+equal(calls[0].req.max_dimension, 1024);
+equal(calls[0].req.quality, 90);
 equal(calls[1].file_name, "红冠松滋鸡-avatar.jpg");
 equal(calls[1].folder, "generated");
 equal(calls[1].mime_type, "image/jpeg");
 
-// product：1024 / q88
+// product：1024 / q90
 equal(calls[2].type, "compress");
 equal(calls[2].req.base64_data, "raw-product");
 equal(calls[2].req.max_dimension, 1024);
-equal(calls[2].req.quality, 88);
+equal(calls[2].req.quality, 90);
 equal(calls[3].file_name, "红冠松滋鸡-product.jpg");
 
 // detail_page：2048 / q92

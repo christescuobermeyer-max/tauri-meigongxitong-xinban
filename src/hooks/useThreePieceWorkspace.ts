@@ -90,6 +90,8 @@ export default function useThreePieceWorkspace(options: Options) {
       status: "succeeded",
       elapsedMs: result.elapsedMs,
       attempt: result.attempt,
+      historyRecorded: result.historyRecorded,
+      historyError: result.historyError,
     };
     onRecordHistory(kind, item, shopNameSnapshot, THREE_PIECE_PLATFORM);
   }

@@ -18,6 +18,9 @@ const THEME_COLOR_HINTS_PW: Record<ThemeColor, string> = {
   red: "整体采用红色主题配色，以红色作为画面主色调，营造热情诱人、食欲浓烈的氛围",
   yellow: "整体采用黄色主题配色，以黄色作为画面主色调，营造温暖明亮、活力诱人的氛围",
   orange: "整体采用橙色主题配色，以橙色作为画面主色调，营造食欲诱人的暖橙氛围",
+  blue: "整体采用深蓝主题配色。主背景色以深蓝 #262C75 为主，暗部和边缘可用更深的 #20245F，形成稳重的外卖品牌头图底色；辅助色使用低饱和蓝灰 #6F77A8，用于小字、品牌标识、细线和弱化装饰，文字要克制、清晰；食物区域色使用暖白、奶白、浅米白 #F4F0E7 和 #FFF8ED，承托碗盘、菜品和留白区域，避免纯白刺眼。整体风格参考高质感外卖店铺头图：上半部是干净深蓝品牌区，下半部是暖白食物展示区，食物主体突出，旁边可搭配少量小盘或圆形辅图，画面干净商业化，不要做成霓虹科技风、赛博科技风或彩色渐变",
+  pink: "整体采用浅粉色主题配色，以明亮柔和、低饱和的暖浅粉、奶油粉、樱花粉（约 #F7D6DC、#FBE5E3）作为大面积主题背景，搭配少量暖白 #FFF7F2 自然过渡，营造清新轻盈、柔和通透的视觉氛围；该主题色只约束画面背景与环境氛围，不规定文字内容、版式、构图、装饰元素或食物摆放，避免玫红、荧光粉、紫粉和大面积高饱和艳粉",
+  deepSea: "整体采用深海冰川蓝主题配色，可用于任何菜品，不限定食物品类。主色使用深海墨蓝 #062333 作为大面积背景与暗部，辅色使用冰川浅青 #BFEAF2 用于背景冷调层次、局部高光、边缘光和装饰性光影，并搭配少量冷白 #F5FCFF 提升洁净通透感；保留产品主体本身的真实自然色彩，让食物成为视觉焦点。整体营造清凉、纯净、通透、有质感的商业食品氛围，不要使用暖黄、土棕或过度饱和的背景色，不要做成赛博科技风或霓虹渐变；该主题色只约束画面背景与环境氛围，不改变真实产品主体、文字内容、版式或构图",
 };
 
 const BRAND_STYLE_HINTS_PW: Record<BrandStyle, string> = {
@@ -189,13 +192,18 @@ export async function generatePictureWallItem(
         {
           asset_kind: "picture_wall",
           file_name_stem: `${safeFileName(shopName)}-picture-wall-${sourceImage.id}`,
+          shop_name: shopName,
+          platform: "meituan",
         }
       );
       return {
         rawBase64: response.image,
+        rawDataUrl: response.imageDataUrl,
         generationLine: response.generationLine,
         archiveUrl: response.archiveUrl,
         archiveError: response.archiveError,
+        historyRecorded: response.historyRecorded,
+        historyError: response.historyError,
       };
     },
   });
@@ -203,11 +211,13 @@ export async function generatePictureWallItem(
   return {
     kind: "picture_wall" as const,
     rawBase64: generated.rawBase64,
-    rawDataUrl: `data:image/png;base64,${generated.rawBase64}`,
+    rawDataUrl: generated.rawDataUrl ?? `data:image/png;base64,${generated.rawBase64}`,
     remoteUrl: archive,
     generationLine: generated.generationLine,
     status: "succeeded" as const,
     attempt: generated.attempt,
+    historyRecorded: generated.historyRecorded,
+    historyError: generated.historyError,
   };
 }
 
@@ -220,6 +230,8 @@ async function archivePictureWallResult(
     rawBase64: string;
     archiveUrl?: string;
     archiveError?: string;
+    historyRecorded?: boolean;
+    historyError?: string;
   },
   shopName: string,
   sourceImageId: string

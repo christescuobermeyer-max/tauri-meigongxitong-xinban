@@ -39,9 +39,9 @@ const tools: Array<{ name: string; slots: string; page: string }> = [
 ];
 
 for (const tool of tools) {
-  // 每个 hook 应在 useGenerationWorkspace 实例化 5 个 slot
+  // 每个 hook 应在 useGenerationWorkspace 实例化 8 个 slot
   const matches = workspace.match(new RegExp(tool.name, "g")) ?? [];
-  ok(matches.length >= 5, `${tool.name} 应被调用 5 次（每店一次），实际 ${matches.length}`);
+  ok(matches.length >= 8, `${tool.name} 应被调用 8 次（每店一次），实际 ${matches.length}`);
   ok(workspace.includes(tool.slots), `应导出 ${tool.slots}`);
 
   // 页面已切换为 workspace page 组件
@@ -49,7 +49,7 @@ for (const tool of tools) {
   ok(pages.includes(`<${tool.page}`), `应渲染 <${tool.page}>`);
 }
 
-// 各工具页面都应包含 5 个店铺 tab
+// 各工具页面都应包含 8 个店铺 tab
 for (const file of [
   "ThreePieceWorkspacePage.tsx",
   "ProductImageWorkspacePage.tsx",
@@ -61,7 +61,7 @@ for (const file of [
     new URL(`../src/components/workspace/${file}`, import.meta.url),
     "utf8",
   );
-  for (const label of ["店铺1", "店铺2", "店铺3", "店铺4", "店铺5"]) {
+  for (const label of ["店铺1", "店铺2", "店铺3", "店铺4", "店铺5", "店铺6", "店铺7", "店铺8"]) {
     ok(src.includes(label), `${file} 缺失 ${label}`);
   }
   ok(src.includes("MultiStoreTabs"), `${file} 应使用通用 MultiStoreTabs 组件`);
@@ -78,4 +78,4 @@ for (const oldName of [
   ok(!pages.includes(oldName), `WorkspacePages 不应再有 ${oldName}`);
 }
 
-console.log("multi-store five-tools contract: OK");
+console.log("multi-store eight-tools contract: OK");

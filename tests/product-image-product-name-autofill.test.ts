@@ -40,4 +40,25 @@ ok(
   "productName 自动填充的 useEffect 应只依赖 [images]，不要把 productName 放进依赖（会回卷）",
 );
 
+ok(
+  source.includes('ProductImageProductNameMode = "with" | "without"'),
+  "制作1张设计图应支持带产品名称 / 不带产品名称两种模式",
+);
+ok(
+  source.includes('productNameMode === "with" && !productName.trim()'),
+  "只有带产品名称模式才应强制填写产品名称",
+);
+ok(
+  source.includes("includeProductName"),
+  "制作1张设计图生成时应把产品名称模式传入 prompt",
+);
+ok(
+  source.includes("productNameForGeneration"),
+  "不带产品名称模式下传给生成流程的产品名称应为空",
+);
+ok(
+  source.includes("promptOverride: buildProductPrompt"),
+  "制作1张设计图应显式构造 prompt，确保不带产品名称模式不会写入产品名",
+);
+
 console.log("product-image productName autofill contract: OK");

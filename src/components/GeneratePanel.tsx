@@ -7,7 +7,6 @@ import type {
 } from "../types";
 import { getAvatarGenerationErrorMessage } from "../lib/avatar-generation";
 import AppearanceFields from "./AppearanceFields";
-import GenerationLineCard from "./GenerationLineCard";
 import ImageUpload from "./ImageUpload";
 import { IconSparkles } from "./Icons";
 import ProgressSteps from "./ProgressSteps";
@@ -60,7 +59,6 @@ export default function GeneratePanel(props: Props) {
 
   return (
     <div className="panel-stack">
-      <GenerationLineCard />
       <div className="card">
         <div className="card__header">
           <div className="card__heading">

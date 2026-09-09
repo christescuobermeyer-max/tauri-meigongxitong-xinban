@@ -4,7 +4,6 @@ import { copyGeneratedItemImage } from "../lib/clipboard-image";
 import { getGenerationPreviewUrl, isArchivingToOss } from "../lib/generation-preview";
 import ImageUpload from "./ImageUpload";
 import GenerationStatusBadge from "./GenerationStatusBadge";
-import GenerationLineCard from "./GenerationLineCard";
 import { IconAlert, IconCheck, IconCopy, IconDownload, IconImage, IconRefresh, IconSparkles, IconStore } from "./Icons";
 import { useToast } from "./Toast";
 
@@ -70,7 +69,6 @@ export default function PSignboardPage({
   return (
     <div className="picture-wall-split">
       <div className="panel-stack">
-        <GenerationLineCard />
         <section className="card">
           <div className="card__header">
             <div className="card__heading">

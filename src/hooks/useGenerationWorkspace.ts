@@ -6,7 +6,6 @@ import useDetailPageWorkspace from "./useDetailPageWorkspace";
 import useImageEditWorkspace from "./useImageEditWorkspace";
 import usePackageImageWorkspace from "./usePackageImageWorkspace";
 import usePSignboardWorkspace from "./usePSignboardWorkspace";
-import usePatrolScriptWorkspace from "./usePatrolScriptWorkspace";
 import usePictureWallWorkspace from "./usePictureWallWorkspace";
 import useProductBatchWorkspace from "./useProductBatchWorkspace";
 import useProductImageWorkspace from "./useProductImageWorkspace";
@@ -14,6 +13,7 @@ import useThreePieceWorkspace from "./useThreePieceWorkspace";
 import {
   cleanupExpiredGenerationLogs,
   fetchGenerationLogsPage,
+  fetchGlobalTotalCount,
   fetchTodayCount,
   fetchTotalCount,
   recordGenerationLog,
@@ -50,12 +50,13 @@ export type WorkspaceTab =
   | "packageImage"
   | "pictureWall"
   | "pSignboard"
+  | "videoSignboard"
   | "imageEdit"
   | "detailPage"
   | "brandStory"
   | "dataAnalysis"
-  | "patrolScript"
   | "history"
+  | "gatewayMonitor"
   | "admin";
 
 interface WorkspaceOptions {
@@ -75,6 +76,7 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
   const [tab, setTab] = useState<WorkspaceTab>("avatarStorefront");
   const [todayCount, setTodayCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const [globalTotalCount, setGlobalTotalCount] = useState(0);
   const generationLine: GenerationLine = "line5";
   const setGenerationLine = (_line: GenerationLine) => undefined;
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
@@ -101,6 +103,7 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
       setHistoryPage(1);
       setTodayCount(0);
       setTotalCount(0);
+      setGlobalTotalCount(0);
       return () => {
         cancelled = true;
       };
@@ -111,17 +114,20 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     setHistoryTotalCount(0);
     setTodayCount(0);
     setTotalCount(0);
+    setGlobalTotalCount(0);
     setHistoryLoading(true);
     void (async () => {
       await cleanupExpiredGenerationLogs();
-      const [count, total, pageResult] = await Promise.all([
+      const [count, total, globalTotal, pageResult] = await Promise.all([
         fetchTodayCount(userId),
         fetchTotalCount(userId),
+        fetchGlobalTotalCount(),
         fetchGenerationLogsPage(userId, 1, HISTORY_PAGE_SIZE),
       ]);
       if (cancelled) return;
       setTodayCount(count);
       setTotalCount(total);
+      setGlobalTotalCount(globalTotal);
       setHistoryPage(pageResult.page);
       setHistoryTotalCount(pageResult.totalCount);
       setHistoryEntries(buildHistoryEntriesFromGenerationLogs(pageResult.logs));
@@ -153,7 +159,7 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
       return;
     }
     if (!markGenerationLogRecorded(recordedGenerationLogs.current, kind, remoteUrl)) return;
-    const recordedLine = item.generationLine ?? generationLine;
+    const recordedLine = normalizeRecordableGenerationLine(item.generationLine) ?? generationLine;
     const trimmedShopName = shopNameSnapshot.trim() || "未命名店铺";
     const previewUrl = remoteUrl;
 
@@ -175,6 +181,17 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
       return;
     }
 
+    if (item.historyRecorded && !item.historyError) {
+      setTodayCount((n) => n + 1);
+      setTotalCount((n) => n + 1);
+      setGlobalTotalCount((n) => n + 1);
+      setHistoryTotalCount((count) => count + 1);
+      setHistoryEntries((prev) => appendHistoryEntry(prev, localEntry));
+      if (tab === "history") void refreshCloudHistoryPage(historyPage);
+      void cleanupExpiredGenerationLogs();
+      return;
+    }
+
     void recordGenerationLog({
       userId,
       shopName: shopNameSnapshot,
@@ -190,6 +207,7 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
       }
       setTodayCount((n) => n + 1);
       setTotalCount((n) => n + 1);
+      setGlobalTotalCount((n) => n + 1);
       setHistoryTotalCount((count) => count + 1);
       if (tab === "history") await refreshCloudHistoryPage(historyPage);
       await cleanupExpiredGenerationLogs();
@@ -201,14 +219,38 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
   const threePieceSlot3 = useThreePieceWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const threePieceSlot4 = useThreePieceWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const threePieceSlot5 = useThreePieceWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const threePieceSlots = [threePieceSlot1, threePieceSlot2, threePieceSlot3, threePieceSlot4, threePieceSlot5] as const;
+  const threePieceSlot6 = useThreePieceWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const threePieceSlot7 = useThreePieceWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const threePieceSlot8 = useThreePieceWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const threePieceSlots = [
+    threePieceSlot1,
+    threePieceSlot2,
+    threePieceSlot3,
+    threePieceSlot4,
+    threePieceSlot5,
+    threePieceSlot6,
+    threePieceSlot7,
+    threePieceSlot8,
+  ] as const;
 
   const productImageSlot1 = useProductImageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const productImageSlot2 = useProductImageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const productImageSlot3 = useProductImageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const productImageSlot4 = useProductImageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const productImageSlot5 = useProductImageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const productImageSlots = [productImageSlot1, productImageSlot2, productImageSlot3, productImageSlot4, productImageSlot5] as const;
+  const productImageSlot6 = useProductImageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const productImageSlot7 = useProductImageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const productImageSlot8 = useProductImageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const productImageSlots = [
+    productImageSlot1,
+    productImageSlot2,
+    productImageSlot3,
+    productImageSlot4,
+    productImageSlot5,
+    productImageSlot6,
+    productImageSlot7,
+    productImageSlot8,
+  ] as const;
 
   const productBatchSlot1 = useProductBatchWorkspace({
     generationLine,
@@ -240,12 +282,33 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     onToast: toast.show,
     onRecordHistory: recordHistory,
   });
+  const productBatchSlot6 = useProductBatchWorkspace({
+    generationLine,
+    setGenerationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
+  const productBatchSlot7 = useProductBatchWorkspace({
+    generationLine,
+    setGenerationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
+  const productBatchSlot8 = useProductBatchWorkspace({
+    generationLine,
+    setGenerationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
   const productBatchSlots = [
     productBatchSlot1,
     productBatchSlot2,
     productBatchSlot3,
     productBatchSlot4,
     productBatchSlot5,
+    productBatchSlot6,
+    productBatchSlot7,
+    productBatchSlot8,
   ] as const;
 
   const packageImageSlot1 = usePackageImageWorkspace({
@@ -273,12 +336,30 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     onToast: toast.show,
     onRecordHistory: recordHistory,
   });
+  const packageImageSlot6 = usePackageImageWorkspace({
+    generationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
+  const packageImageSlot7 = usePackageImageWorkspace({
+    generationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
+  const packageImageSlot8 = usePackageImageWorkspace({
+    generationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
   const packageImageSlots = [
     packageImageSlot1,
     packageImageSlot2,
     packageImageSlot3,
     packageImageSlot4,
     packageImageSlot5,
+    packageImageSlot6,
+    packageImageSlot7,
+    packageImageSlot8,
   ] as const;
 
   const pictureWallSlot1 = usePictureWallWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
@@ -286,7 +367,19 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
   const pictureWallSlot3 = usePictureWallWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const pictureWallSlot4 = usePictureWallWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const pictureWallSlot5 = usePictureWallWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const pictureWallSlots = [pictureWallSlot1, pictureWallSlot2, pictureWallSlot3, pictureWallSlot4, pictureWallSlot5] as const;
+  const pictureWallSlot6 = usePictureWallWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const pictureWallSlot7 = usePictureWallWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const pictureWallSlot8 = usePictureWallWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const pictureWallSlots = [
+    pictureWallSlot1,
+    pictureWallSlot2,
+    pictureWallSlot3,
+    pictureWallSlot4,
+    pictureWallSlot5,
+    pictureWallSlot6,
+    pictureWallSlot7,
+    pictureWallSlot8,
+  ] as const;
 
   const pSignboardSlot1 = usePSignboardWorkspace({
     generationLine,
@@ -313,12 +406,30 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     onToast: toast.show,
     onRecordHistory: recordHistory,
   });
+  const pSignboardSlot6 = usePSignboardWorkspace({
+    generationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
+  const pSignboardSlot7 = usePSignboardWorkspace({
+    generationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
+  const pSignboardSlot8 = usePSignboardWorkspace({
+    generationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
   const pSignboardSlots = [
     pSignboardSlot1,
     pSignboardSlot2,
     pSignboardSlot3,
     pSignboardSlot4,
     pSignboardSlot5,
+    pSignboardSlot6,
+    pSignboardSlot7,
+    pSignboardSlot8,
   ] as const;
 
   const imageEditSlot1 = useImageEditWorkspace({
@@ -346,12 +457,30 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     onToast: toast.show,
     onRecordHistory: recordHistory,
   });
+  const imageEditSlot6 = useImageEditWorkspace({
+    generationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
+  const imageEditSlot7 = useImageEditWorkspace({
+    generationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
+  const imageEditSlot8 = useImageEditWorkspace({
+    generationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
   const imageEditSlots = [
     imageEditSlot1,
     imageEditSlot2,
     imageEditSlot3,
     imageEditSlot4,
     imageEditSlot5,
+    imageEditSlot6,
+    imageEditSlot7,
+    imageEditSlot8,
   ] as const;
 
   const detailPageSlot1 = useDetailPageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
@@ -359,14 +488,38 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
   const detailPageSlot3 = useDetailPageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const detailPageSlot4 = useDetailPageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const detailPageSlot5 = useDetailPageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const detailPageSlots = [detailPageSlot1, detailPageSlot2, detailPageSlot3, detailPageSlot4, detailPageSlot5] as const;
+  const detailPageSlot6 = useDetailPageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const detailPageSlot7 = useDetailPageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const detailPageSlot8 = useDetailPageWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const detailPageSlots = [
+    detailPageSlot1,
+    detailPageSlot2,
+    detailPageSlot3,
+    detailPageSlot4,
+    detailPageSlot5,
+    detailPageSlot6,
+    detailPageSlot7,
+    detailPageSlot8,
+  ] as const;
 
   const brandStorySlot1 = useBrandStoryWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const brandStorySlot2 = useBrandStoryWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const brandStorySlot3 = useBrandStoryWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const brandStorySlot4 = useBrandStoryWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
   const brandStorySlot5 = useBrandStoryWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
-  const brandStorySlots = [brandStorySlot1, brandStorySlot2, brandStorySlot3, brandStorySlot4, brandStorySlot5] as const;
+  const brandStorySlot6 = useBrandStoryWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const brandStorySlot7 = useBrandStoryWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const brandStorySlot8 = useBrandStoryWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory });
+  const brandStorySlots = [
+    brandStorySlot1,
+    brandStorySlot2,
+    brandStorySlot3,
+    brandStorySlot4,
+    brandStorySlot5,
+    brandStorySlot6,
+    brandStorySlot7,
+    brandStorySlot8,
+  ] as const;
 
   const dataAnalysisSlot1 = useDataAnalysisWorkspace({
     generationLine,
@@ -393,45 +546,30 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     onToast: toast.show,
     onRecordHistory: recordHistory,
   });
+  const dataAnalysisSlot6 = useDataAnalysisWorkspace({
+    generationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
+  const dataAnalysisSlot7 = useDataAnalysisWorkspace({
+    generationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
+  const dataAnalysisSlot8 = useDataAnalysisWorkspace({
+    generationLine,
+    onToast: toast.show,
+    onRecordHistory: recordHistory,
+  });
   const dataAnalysisSlots = [
     dataAnalysisSlot1,
     dataAnalysisSlot2,
     dataAnalysisSlot3,
     dataAnalysisSlot4,
     dataAnalysisSlot5,
-  ] as const;
-
-  const patrolScriptSlot1 = usePatrolScriptWorkspace({
-    generationLine,
-    onToast: toast.show,
-    onRecordHistory: recordHistory,
-  });
-  const patrolScriptSlot2 = usePatrolScriptWorkspace({
-    generationLine,
-    onToast: toast.show,
-    onRecordHistory: recordHistory,
-  });
-  const patrolScriptSlot3 = usePatrolScriptWorkspace({
-    generationLine,
-    onToast: toast.show,
-    onRecordHistory: recordHistory,
-  });
-  const patrolScriptSlot4 = usePatrolScriptWorkspace({
-    generationLine,
-    onToast: toast.show,
-    onRecordHistory: recordHistory,
-  });
-  const patrolScriptSlot5 = usePatrolScriptWorkspace({
-    generationLine,
-    onToast: toast.show,
-    onRecordHistory: recordHistory,
-  });
-  const patrolScriptSlots = [
-    patrolScriptSlot1,
-    patrolScriptSlot2,
-    patrolScriptSlot3,
-    patrolScriptSlot4,
-    patrolScriptSlot5,
+    dataAnalysisSlot6,
+    dataAnalysisSlot7,
+    dataAnalysisSlot8,
   ] as const;
 
   useEffect(() => {
@@ -472,8 +610,7 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     countBusySlots(imageEditSlots) +
     countBusySlots(detailPageSlots) +
     countBusySlots(brandStorySlots) +
-    countBusySlots(dataAnalysisSlots) +
-    countBusySlots(patrolScriptSlots);
+    countBusySlots(dataAnalysisSlots);
   const generationTaskLimit = FRONTEND_GENERATION_USER_LIMIT;
   const generationCapacityFull = activeGenerationTaskCount >= generationTaskLimit;
   const busy = activeGenerationTaskCount > 0;
@@ -498,6 +635,7 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     setGenerationLine,
     todayCount,
     totalCount,
+    globalTotalCount,
     busy,
     activeGenerationTaskCount,
     generationTaskLimit,
@@ -519,8 +657,14 @@ export default function useGenerationWorkspace({ userId }: WorkspaceOptions) {
     detailPageSlots,
     brandStorySlots,
     dataAnalysisSlots,
-    patrolScriptSlots,
   };
+}
+
+function normalizeRecordableGenerationLine(line: GenerationItem["generationLine"]): GenerationLine | null {
+  if (line === "line2" || line === "line3" || line === "line4" || line === "line5" || line === "line6" || line === "line7") {
+    return line;
+  }
+  return null;
 }
 
 export type GenerationWorkspace = ReturnType<typeof useGenerationWorkspace>;

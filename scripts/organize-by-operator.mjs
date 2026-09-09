@@ -14,11 +14,12 @@ if (!process.env.SUPABASE_DB_URL) {
   process.exit(1);
 }
 
-const ROOT_OUTPUT = path.resolve("数据导出");
+const ROOT_OUTPUT = path.resolve("U:\\数据导出");
 const SHOP_ROOT = path.join(ROOT_OUTPUT, "按店铺分类");
 const OPERATOR_ROOT = path.join(ROOT_OUTPUT, "按运营分类");
 const EXCEL_PATH = path.join(ROOT_OUTPUT, "OSS图片汇总.xlsx");
 const ATTRIBUTION_CACHE_PATH = path.join(ROOT_OUTPUT, ".operator-attribution.json");
+const DATE_FOLDER_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 const INVALID_CHARS = /[<>:"/\\|?*\x00-\x1f]/g;
 function safeName(name, fallback = "未命名") {
@@ -56,24 +57,44 @@ function saveAttributionCache(cacheMap) {
   fs.writeFileSync(ATTRIBUTION_CACHE_PATH, JSON.stringify(obj, null, 2), "utf-8");
 }
 
+function relShopFileDateFolder(relShopFile) {
+  const parts = String(relShopFile || "").split(/[\\/]+/);
+  return parts[0] === "按店铺分类" && DATE_FOLDER_RE.test(parts[1]) ? parts[1] : "";
+}
+
+function addOperatorDirAttribution(result, operator, operatorDir, dateFolder = "") {
+  walkFiles(operatorDir, (filePath) => {
+    const rel = path.relative(operatorDir, filePath); // "<店铺>\<分类>\<basename>"
+    const shopRel = dateFolder
+      ? path.join("按店铺分类", dateFolder, rel)
+      : path.join("按店铺分类", rel);
+    result.set(shopRel, operator);
+  });
+}
+
 /**
  * 从磁盘上 按运营分类/<运营>/<店铺>/<分类>/<basename> 反推归属，
  * 用于第一次启用缓存时的 bootstrap（兼容老的存量数据）。
  * 返回 Map: relShopFile → operator
- *   relShopFile 形如 "按店铺分类\\<店铺>\\<分类>\\<basename>"，与 Excel 列对齐
+ *   relShopFile 形如 "按店铺分类\\<店铺>\\<分类>\\<basename>"，与 Excel 列对齐。
+ * 新增日期目录后也兼容：
+ *   "按运营分类\\<日期>\\<运营>\\<店铺>\\<分类>\\<basename>"
+ *   → "按店铺分类\\<日期>\\<店铺>\\<分类>\\<basename>"
  */
 function bootstrapFromOperatorDir() {
   const result = new Map();
   if (!fs.existsSync(OPERATOR_ROOT)) return result;
-  for (const opEntry of fs.readdirSync(OPERATOR_ROOT, { withFileTypes: true })) {
-    if (!opEntry.isDirectory()) continue;
-    const operator = opEntry.name;
-    const opDir = path.join(OPERATOR_ROOT, operator);
-    walkFiles(opDir, (filePath) => {
-      const rel = path.relative(opDir, filePath); // "<店铺>\<分类>\<basename>"
-      const shopRel = path.join("按店铺分类", rel);
-      result.set(shopRel, operator);
-    });
+  for (const entry of fs.readdirSync(OPERATOR_ROOT, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const entryDir = path.join(OPERATOR_ROOT, entry.name);
+    if (DATE_FOLDER_RE.test(entry.name)) {
+      for (const opEntry of fs.readdirSync(entryDir, { withFileTypes: true })) {
+        if (!opEntry.isDirectory()) continue;
+        addOperatorDirAttribution(result, opEntry.name, path.join(entryDir, opEntry.name), entry.name);
+      }
+      continue;
+    }
+    addOperatorDirAttribution(result, entry.name, entryDir);
   }
   return result;
 }
@@ -204,7 +225,10 @@ async function main() {
     const operatorSafe = safeName(r.operator);
     const src = path.join(ROOT_OUTPUT, r.relShopFile);
     const baseName = path.basename(r.relShopFile);
-    const dst = path.join(OPERATOR_ROOT, operatorSafe, safeName(r.shop), r.category || "其他", baseName);
+    const dateFolder = relShopFileDateFolder(r.relShopFile);
+    const dst = dateFolder
+      ? path.join(OPERATOR_ROOT, dateFolder, operatorSafe, safeName(r.shop), r.category || "其他", baseName)
+      : path.join(OPERATOR_ROOT, operatorSafe, safeName(r.shop), r.category || "其他", baseName);
     return { ...r, operatorSafe, src, dst };
   });
 
@@ -222,6 +246,16 @@ async function main() {
     await fs.promises.copyFile(p.src, p.dst);
   });
   console.log(`  完成，失败 ${errors.length} 条\n`);
+  if (errors.length > 0) {
+    console.log("  复制失败明细：");
+    for (const e of errors) {
+      const rec = copyPlans[e.index];
+      console.log(
+        `    seq=${rec?.seq ?? ""} 店铺=${rec?.shop || ""} 分类=${rec?.category || ""} 路径=${rec?.relShopFile || ""} 错误=${e.error}`,
+      );
+    }
+    console.log("");
+  }
 
   console.log("[6/6] 在 Excel 追加 按运营统计 sheet…");
   // 移除既有同名 sheet（如果有），重新生成

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { type ImageEditKind } from "../lib/image-edit";
 import type { GenerationItem, Platform, PlatformSpec, UploadedImage } from "../types";
-import GenerationLineCard from "./GenerationLineCard";
 import ImageEditInputCard from "./ImageEditInputCard";
 import ImageEditKindSelect from "./ImageEditKindSelect";
 import ImageEditResults from "./ImageEditResults";
@@ -51,7 +50,6 @@ export default function ImageEditPage({
   return (
     <>
       <div className="panel-stack">
-        <GenerationLineCard />
         <section className="card image-edit-card">
           <div className="card__header image-edit-card__header">
             <div className="card__heading">

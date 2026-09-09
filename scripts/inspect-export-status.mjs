@@ -5,10 +5,11 @@ import fs from "node:fs";
 import path from "node:path";
 import ExcelJS from "exceljs";
 
-const ROOT = path.resolve("数据导出");
+const ROOT = path.resolve("U:\\数据导出");
 const EXCEL_PATH = path.join(ROOT, "OSS图片汇总.xlsx");
 const OPERATOR_DIR = path.join(ROOT, "按运营分类");
 const ATTRIBUTION_CACHE = path.join(ROOT, ".operator-attribution.json");
+const DATE_FOLDER_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function fmtBeijingDate(iso) {
   if (!iso) return "—";
@@ -38,6 +39,34 @@ function countFilesRecursive(dir) {
     else if (e.isDirectory()) count += countFilesRecursive(full);
   }
   return count;
+}
+
+function collectOperatorStats(operatorDir) {
+  const byOperator = new Map();
+  function addOperator(operator, dir) {
+    if (!byOperator.has(operator)) byOperator.set(operator, { op: operator, total: 0, shops: new Set() });
+    const stat = byOperator.get(operator);
+    stat.total += countFilesRecursive(dir);
+    for (const shopEntry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (shopEntry.isDirectory()) stat.shops.add(shopEntry.name);
+    }
+  }
+
+  for (const entry of fs.readdirSync(operatorDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const entryDir = path.join(operatorDir, entry.name);
+    if (DATE_FOLDER_RE.test(entry.name)) {
+      for (const opEntry of fs.readdirSync(entryDir, { withFileTypes: true })) {
+        if (opEntry.isDirectory()) addOperator(opEntry.name, path.join(entryDir, opEntry.name));
+      }
+    } else {
+      addOperator(entry.name, entryDir);
+    }
+  }
+
+  return [...byOperator.values()]
+    .map((s) => ({ op: s.op, total: s.total, shopCount: s.shops.size }))
+    .sort((a, b) => b.total - a.total);
 }
 
 async function main() {
@@ -95,33 +124,20 @@ async function main() {
     }
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     if (sub === "全部图片") {
-      const files = entries.filter((e) => e.isFile()).length;
+      const files = countFilesRecursive(dir);
       console.log(`   · ${sub}/  ${files} 张原图`);
     } else {
       const dirs = entries.filter((e) => e.isDirectory()).length;
-      console.log(`   · ${sub}/  ${dirs} 个分类目录`);
+      const files = countFilesRecursive(dir);
+      console.log(`   · ${sub}/  ${dirs} 个一级目录，${files} 张图片`);
     }
   }
 
   // 各运营张数（如有）
   if (fs.existsSync(OPERATOR_DIR)) {
-    const ops = fs
-      .readdirSync(OPERATOR_DIR, { withFileTypes: true })
-      .filter((e) => e.isDirectory())
-      .map((e) => e.name);
-    if (ops.length > 0) {
+    const stats = collectOperatorStats(OPERATOR_DIR);
+    if (stats.length > 0) {
       console.log(`\n👥 按运营分类现状：`);
-      const stats = [];
-      for (const op of ops) {
-        const opDir = path.join(OPERATOR_DIR, op);
-        let shopCount = 0;
-        for (const shopEntry of fs.readdirSync(opDir, { withFileTypes: true })) {
-          if (shopEntry.isDirectory()) shopCount++;
-        }
-        const total = countFilesRecursive(opDir);
-        stats.push({ op, total, shopCount });
-      }
-      stats.sort((a, b) => b.total - a.total);
       for (const s of stats) {
         console.log(`   · ${s.op.padEnd(12, " ")} ${String(s.total).padStart(5, " ")} 张 · ${s.shopCount} 家店铺`);
       }
