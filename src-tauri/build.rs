@@ -12,8 +12,11 @@ fn main() {
                 if let Some((key, value)) = line.split_once('=') {
                     let key = key.trim();
                     let value = value.trim();
-                    if !key.is_empty() && !value.is_empty() {
-                        println!("cargo:rustc-env={key}={value}");
+                    if !key.is_empty() {
+                        println!("cargo:rerun-if-env-changed={key}");
+                        if !value.is_empty() && std::env::var_os(key).is_none() {
+                            println!("cargo:rustc-env={key}={value}");
+                        }
                     }
                 }
             }

@@ -1,27 +1,34 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AppErrorBoundary from "./components/AppErrorBoundary";
 import LoginPage from "./components/LoginPage";
+import MandatoryUpdateGate from "./components/MandatoryUpdateGate";
 import WorkspaceShell from "./components/WorkspaceShell";
 import { ToastProvider } from "./components/Toast";
 import useAuth from "./hooks/useAuth";
 
 export default function App() {
+  const [workspaceBusy, setWorkspaceBusy] = useState(false);
+
   return (
     <AppErrorBoundary>
       <ToastProvider>
-        <AppRouter />
+        <AppRouter onWorkspaceBusyChange={setWorkspaceBusy} />
+        <MandatoryUpdateGate suspend={workspaceBusy} />
       </ToastProvider>
     </AppErrorBoundary>
   );
 }
 
-function AppRouter() {
-  const auth = useAuth();
-  const [refreshKey, setRefreshKey] = useState(0);
+interface AppRouterProps {
+  onWorkspaceBusyChange: (busy: boolean) => void;
+}
 
-  function handleRefresh() {
-    setRefreshKey((k) => k + 1);
-  }
+function AppRouter({ onWorkspaceBusyChange }: AppRouterProps) {
+  const auth = useAuth();
+
+  useEffect(() => {
+    if (!auth.profile) onWorkspaceBusyChange(false);
+  }, [auth.profile, onWorkspaceBusyChange]);
 
   if (auth.loading) {
     return (
@@ -40,11 +47,10 @@ function AppRouter() {
 
   return (
     <WorkspaceShell
-      key={refreshKey}
       profile={auth.profile}
       isAdmin={auth.isAdmin}
       onSignOut={auth.signOut}
-      onRefresh={handleRefresh}
+      onBusyChange={onWorkspaceBusyChange}
     />
   );
 }

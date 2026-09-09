@@ -1,9 +1,10 @@
 export type Platform = "meituan" | "taobao";
 export type AvatarReferenceMode = "category" | "image";
-export type GenerationLine = "line1" | "line2" | "line3" | "line4" | "line5" | "line6" | "line7";
+export type GenerationLine = "line2" | "line3" | "line4" | "line5" | "line6" | "line7";
+export type HistoricalGenerationLine = "line1" | GenerationLine;
 
 /** 主题色偏好（可选，未选时不影响 prompt） */
-export type ThemeColor = "light" | "dark" | "red" | "yellow" | "orange";
+export type ThemeColor = "light" | "dark" | "red" | "yellow" | "orange" | "blue" | "pink" | "deepSea";
 /** 设计风格偏好（可选，未选时不影响 prompt） */
 export type BrandStyle = "young" | "lifeFire" | "fresh";
 
@@ -127,11 +128,15 @@ export interface GenerationItem {
   /** 归档到 OSS 后返回的可访问 URL */
   remoteUrl?: string;
   /** 本次生图使用的线路；历史旧数据或专用接口可为空 */
-  generationLine?: GenerationLine | null;
+  generationLine?: HistoricalGenerationLine | null;
   status: GenerationStatus;
   errorMessage?: string;
   /** 生成耗时（毫秒） */
   elapsedMs?: number;
   /** 当前生成尝试次数；每次生成请求固定为 1 */
   attempt?: number;
+  /** 网关已成功写入云端生图记录，前端不再重复 insert */
+  historyRecorded?: boolean;
+  /** 网关写入云端生图记录失败原因；存在时前端会兜底写库 */
+  historyError?: string;
 }

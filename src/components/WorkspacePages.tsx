@@ -1,16 +1,17 @@
 import AdminPage from "./AdminPage";
 import HistoryPanel from "./HistoryPanel";
+import AdminGatewayMonitor from "./admin/AdminGatewayMonitor";
 import BrandStoryWorkspacePage from "./workspace/BrandStoryWorkspacePage";
 import DataAnalysisWorkspacePage from "./workspace/DataAnalysisWorkspacePage";
 import DetailPageWorkspacePage from "./workspace/DetailPageWorkspacePage";
 import ImageEditWorkspacePage from "./workspace/ImageEditWorkspacePage";
 import PackageImageWorkspacePage from "./workspace/PackageImageWorkspacePage";
-import PatrolScriptWorkspacePage from "./workspace/PatrolScriptWorkspacePage";
 import PictureWallWorkspacePage from "./workspace/PictureWallWorkspacePage";
 import PSignboardWorkspacePage from "./workspace/PSignboardWorkspacePage";
 import ProductBatchWorkspacePage from "./workspace/ProductBatchWorkspacePage";
 import ProductImageWorkspacePage from "./workspace/ProductImageWorkspacePage";
 import ThreePieceWorkspacePage from "./workspace/ThreePieceWorkspacePage";
+import VideoSignboardWorkspacePage from "./workspace/VideoSignboardWorkspacePage";
 import type { GenerationWorkspace } from "../hooks/useGenerationWorkspace";
 
 interface Props {
@@ -103,6 +104,14 @@ export default function WorkspacePages({ workspace }: Props) {
     );
   }
 
+  if (workspace.tab === "videoSignboard") {
+    return (
+      <div className="page page--single">
+        <VideoSignboardWorkspacePage />
+      </div>
+    );
+  }
+
   if (workspace.tab === "imageEdit") {
     return (
       <div className="page image-edit-page">
@@ -151,18 +160,6 @@ export default function WorkspacePages({ workspace }: Props) {
     );
   }
 
-  if (workspace.tab === "patrolScript") {
-    return (
-      <div className="page picture-wall-page">
-        <CapacityNotice workspace={workspace} />
-        <PatrolScriptWorkspacePage
-          slots={workspace.patrolScriptSlots}
-          globalBusy={workspace.generationCapacityFull}
-        />
-      </div>
-    );
-  }
-
   if (workspace.tab === "history") {
     const cloudHistoryProps = workspace.historyUsesCloud
       ? {
@@ -178,6 +175,14 @@ export default function WorkspacePages({ workspace }: Props) {
           entries={workspace.historyEntries}
           {...cloudHistoryProps}
         />
+      </div>
+    );
+  }
+
+  if (workspace.tab === "gatewayMonitor") {
+    return (
+      <div className="page page--single">
+        <AdminGatewayMonitor />
       </div>
     );
   }

@@ -1,11 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { downloadOssImageAsBase64, imageBase64ToDataUrl } from "./oss-image-download";
 import { supabase } from "./supabase";
 import type {
   BrandCopy,
   BrandStoryThreadAvailability,
   BrandStoryThreadId,
   GenerationLine,
+  HistoricalGenerationLine,
+  Platform,
 } from "../types";
 
 const BACKEND_GATEWAY_REQUEST_TIMEOUT_MS = 600_000;
@@ -70,35 +74,63 @@ function parseGatewayError(text: string): string {
   }
 }
 
+export interface VideoInfo {
+  videoUrl: string;
+  title: string;
+  author: string;
+  platform: "douyin" | "xiaohongshu";
+  headers?: Record<string, string>;
+}
+
+export async function parseDouyinVideo(shareText: string): Promise<VideoInfo> {
+  if (getBackendGatewayUrl()) {
+    return await callBackendGateway<VideoInfo>(
+      "/api/video/parse-douyin",
+      { share_text: shareText },
+      { timeoutMs: 60_000 }
+    );
+  }
+  return await ensureTauriInvoke()<VideoInfo>("parse_douyin", { shareText });
+}
+
 export interface GenerateImageRequest {
   prompt: string;
-  /** 线路1/3支持 1024x1024 / 1024x1536 / 1536x1024 / 21:9 / 3:4；线路2海报使用 1792x768；线路4额外支持 16:9 / 1792x1024；线路5使用比例值，门头 auto 会转为 3:2 */
+  /** 线路2/4/5支持 16:9 店招与 21:9 海报；线路3支持 1024x1024 / 1024x1536 / 1536x1024 / 21:9 / 3:4；线路5门头 auto 会转为 3:2 */
   size: string;
   /** 参考图列表：支持不含 data: 前缀的 base64，也支持可访问 URL；可为空 */
   product_images: string[];
-  /** 线路1为 yunwu，线路2为 yunwu，线路3为 vectorengine，线路4为 pockgo，线路5为 APIMart */
+  /** 线路2为 Zikl，线路3为 vectorengine，线路4为 pockgo，线路5为 APIMart 兼容线路 */
   api_line?: GenerationLine | "auto";
 }
 
 export interface ArchiveGeneratedImageRequest {
   asset_kind: string;
   file_name_stem: string;
+  shop_name?: string;
+  platform?: Platform;
 }
 
 export interface GenerateImageResponse {
-  image: string;
-  generation_line?: GenerationLine;
+  image?: string | null;
+  image_url?: string | null;
+  result_delivery?: "inline_base64" | "oss_url";
+  generation_line?: HistoricalGenerationLine;
   archive_url?: string | null;
   archive_key?: string | null;
   archive_error?: string | null;
+  history_recorded?: boolean | null;
+  history_error?: string | null;
 }
 
 export interface GenerateImageWithLineResult {
   image: string;
+  imageDataUrl: string;
   generationLine: GenerationLine;
   archiveUrl?: string;
   archiveKey?: string;
   archiveError?: string;
+  historyRecorded?: boolean;
+  historyError?: string;
 }
 
 /** 调用 Rust 端的 image-2 生图（已设置 350s 超时） */
@@ -117,21 +149,27 @@ export async function generateImageWithLine(
     if (typeof response === "string") {
       return {
         image: response,
+        imageDataUrl: imageBase64ToDataUrl(response),
         generationLine: normalizeGeneratedLine(req.api_line),
       };
     }
+    const image = await resolveGatewayGeneratedImage(response);
     return {
-      image: response.image,
-      generationLine: response.generation_line ?? normalizeGeneratedLine(req.api_line),
+      image: image.base64,
+      imageDataUrl: image.dataUrl,
+      generationLine: normalizeGeneratedLine(response.generation_line ?? req.api_line),
       archiveUrl: response.archive_url ?? undefined,
       archiveKey: response.archive_key ?? undefined,
       archiveError: response.archive_error ?? undefined,
+      historyRecorded: response.history_recorded ?? undefined,
+      historyError: response.history_error ?? undefined,
     };
   }
   const localReq = req.api_line === "auto" ? { ...req, api_line: normalizeGeneratedLine(req.api_line) } : req;
   const image = await ensureTauriInvoke()<string>("generate_image", { req: localReq });
   return {
     image,
+    imageDataUrl: imageBase64ToDataUrl(image),
     generationLine: normalizeGeneratedLine(req.api_line),
   };
 }
@@ -144,25 +182,55 @@ export async function generateArchivedImageWithLine(
 
   const response = await callBackendGateway<string | GenerateImageResponse>(
     "/api/generate-image",
-    { ...req, archive }
+    { ...req, result_delivery: "oss_url", archive }
   );
   if (typeof response === "string") {
     return {
       image: response,
+      imageDataUrl: imageBase64ToDataUrl(response),
       generationLine: normalizeGeneratedLine(req.api_line),
     };
   }
+  const image = await resolveGatewayGeneratedImage(response);
   return {
-    image: response.image,
-    generationLine: response.generation_line ?? normalizeGeneratedLine(req.api_line),
+    image: image.base64,
+    imageDataUrl: image.dataUrl,
+    generationLine: normalizeGeneratedLine(response.generation_line ?? req.api_line),
     archiveUrl: response.archive_url ?? undefined,
     archiveKey: response.archive_key ?? undefined,
     archiveError: response.archive_error ?? undefined,
+    historyRecorded: response.history_recorded ?? undefined,
+    historyError: response.history_error ?? undefined,
   };
 }
 
-function normalizeGeneratedLine(line: GenerateImageRequest["api_line"]): GenerationLine {
-  return line && line !== "auto" ? line : "line5";
+async function resolveGatewayGeneratedImage(
+  response: GenerateImageResponse
+): Promise<{ base64: string; dataUrl: string }> {
+  const inlineImage = response.image?.trim();
+  if (inlineImage) {
+    return {
+      base64: inlineImage,
+      dataUrl: imageBase64ToDataUrl(inlineImage),
+    };
+  }
+
+  const imageUrl = response.image_url?.trim() || response.archive_url?.trim();
+  if (!imageUrl) {
+    const archiveDetail = response.archive_error?.trim();
+    throw new Error(
+      archiveDetail
+        ? `生成图归档失败，且网关未返回可用图片：${archiveDetail}`
+        : "网关未返回生成图片或 OSS 下载地址"
+    );
+  }
+
+  const downloaded = await downloadOssImageAsBase64(imageUrl);
+  return { base64: downloaded.base64, dataUrl: downloaded.dataUrl };
+}
+
+function normalizeGeneratedLine(line: GenerateImageRequest["api_line"] | HistoricalGenerationLine): GenerationLine {
+  return line && line !== "auto" && line !== "line1" ? line : "line5";
 }
 
 export interface UploadImageToOssRequest {
@@ -175,6 +243,35 @@ export interface UploadImageToOssRequest {
 export interface UploadImageToOssResponse {
   key: string;
   url: string;
+}
+
+export interface InstallAppUpdateRequest {
+  installerUrl: string;
+  latestVersion: string;
+}
+
+export interface AppUpdateProgress {
+  phase: "downloading" | "installing";
+  downloadedBytes: number;
+  totalBytes?: number | null;
+  percent: number;
+}
+
+export async function installAppUpdate(req: InstallAppUpdateRequest): Promise<void> {
+  await ensureTauriInvoke()<void>("install_app_update", {
+    req: {
+      installer_url: req.installerUrl,
+      latest_version: req.latestVersion,
+    },
+  });
+}
+
+export async function listenAppUpdateProgress(
+  handler: (progress: AppUpdateProgress) => void
+): Promise<() => void> {
+  return await listen<AppUpdateProgress>("app-update://progress", (event) => {
+    handler(event.payload);
+  });
 }
 
 /** 调用 Rust 端：把图片上传到 OSS，并返回可访问 URL */
@@ -277,9 +374,19 @@ export interface ResizeAndSaveRequest {
   max_bytes?: number;
 }
 
+export interface SaveBase64ImageRequest {
+  base64_data: string;
+  output_path: string;
+}
+
 /** 调用 Rust 端：base64 → 拉伸到目标尺寸 → 写入磁盘（保留完整内容、不裁剪） */
 export async function resizeAndSaveImage(req: ResizeAndSaveRequest): Promise<string> {
   return await ensureTauriInvoke()<string>("resize_and_save_image", { req });
+}
+
+/** 调用 Rust 端：base64 图片原样写入磁盘，不改变尺寸和编码 */
+export async function saveBase64Image(req: SaveBase64ImageRequest): Promise<string> {
+  return await ensureTauriInvoke()<string>("save_base64_image", { req });
 }
 
 interface SaveFilter {

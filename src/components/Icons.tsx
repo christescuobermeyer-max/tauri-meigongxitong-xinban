@@ -159,6 +159,49 @@ export function IconRefresh(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconVideo(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3" y="6" width="13" height="12" rx="2" />
+      <path d="m16 10 5-3v10l-5-3" />
+    </svg>
+  );
+}
+
+export function IconPlay(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M8 5v14l11-7Z" />
+    </svg>
+  );
+}
+
+export function IconPause(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M8 5v14M16 5v14" />
+    </svg>
+  );
+}
+
+export function IconScissors(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="6" cy="7" r="3" />
+      <circle cx="6" cy="17" r="3" />
+      <path d="M8.5 8.5 20 20M8.5 15.5 20 4" />
+    </svg>
+  );
+}
+
+export function IconFolder(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
+    </svg>
+  );
+}
+
 export function IconSun(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base} {...props}>

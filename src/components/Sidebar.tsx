@@ -1,4 +1,4 @@
-import { IconBatchImages, IconDesignSuite, IconHistory, IconImage, IconSettings, IconShield, IconSparkles, IconStore } from "./Icons";
+import { IconBatchImages, IconDesignSuite, IconHistory, IconImage, IconMonitor, IconSettings, IconShield, IconSparkles, IconStore, IconVideo } from "./Icons";
 import UserStatusCard from "./UserStatusCard";
 import type { WorkspaceTab } from "../hooks/useGenerationWorkspace";
 
@@ -63,6 +63,12 @@ export default function Sidebar({
       desc: "门头招牌文字替换",
     },
     {
+      key: "videoSignboard",
+      label: "视频店招",
+      icon: <IconVideo />,
+      desc: "外卖视频裁剪导出",
+    },
+    {
       key: "imageEdit",
       label: "修改图片",
       icon: <IconSettings />,
@@ -87,16 +93,16 @@ export default function Sidebar({
       desc: "截图生成专业数据分析图",
     },
     {
-      key: "patrolScript",
-      label: "巡店话术",
-      icon: <IconBatchImages />,
-      desc: "50 条话术 → 知识卡片图",
-    },
-    {
       key: "history",
       label: "历史记录",
       icon: <IconHistory />,
       desc: "最近生成的 OSS 图片",
+    },
+    {
+      key: "gatewayMonitor",
+      label: "实时监控",
+      icon: <IconMonitor />,
+      desc: "网关并发 / 线路健康 / 排队情况",
     },
     {
       key: "admin",
@@ -150,7 +156,7 @@ export default function Sidebar({
         />
 
         <div className="sidebar__footer">
-          <code>v2.0.0</code>
+          <code>v3.0.30</code>
           <span>呈尚策划运营部</span>
         </div>
       </div>
