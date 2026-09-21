@@ -387,11 +387,11 @@ mod tests {
 
     fn default_limiter() -> GatewayLimiter {
         GatewayLimiter::new(
-            28,
+            30,
             HashMap::from([
                 ("line2", 6),
                 ("line3", 6),
-                ("line4", 4),
+                ("line4", 6),
                 ("line5", 8),
                 ("line6", 8),
                 ("line7", 6),
@@ -400,7 +400,7 @@ mod tests {
     }
 
     #[test]
-    fn enforces_global_limit_of_twenty_eight_active_generations() {
+    fn enforces_global_limit_of_thirty_active_generations() {
         let mut limiter = default_limiter();
 
         for _ in 0..6 {
@@ -416,7 +416,7 @@ mod tests {
         for _ in 0..8 {
             assert!(limiter.try_acquire("line5").allowed);
         }
-        for _ in 0..4 {
+        for _ in 0..6 {
             assert!(limiter.try_acquire("line7").allowed);
         }
 
@@ -424,7 +424,7 @@ mod tests {
         assert!(!rejected.allowed);
         assert_eq!(
             rejected.reason.as_deref(),
-            Some("当前生图请求较多，已达到全局并发上限 28，请稍后再试")
+            Some("当前生图请求较多，已达到全局并发上限 30，请稍后再试")
         );
     }
 

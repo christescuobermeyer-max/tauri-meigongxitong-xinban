@@ -7,6 +7,8 @@ pub struct PendingApimartTask {
     pub task_id: String,
     pub user_id: String,
     pub shop_name: String,
+    #[serde(default)]
+    pub product_name: Option<String>,
     pub asset_kind: String,
     pub platform: String,
     pub file_name_stem: String,

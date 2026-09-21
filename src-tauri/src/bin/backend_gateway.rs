@@ -18,6 +18,8 @@ mod apimart_task_store;
 mod brand_story;
 #[path = "../brand_story_clients.rs"]
 mod brand_story_clients;
+#[path = "../menu_design.rs"]
+mod menu_design;
 #[path = "../env_config.rs"]
 mod env_config;
 #[path = "../gateway_limiter.rs"]
@@ -50,6 +52,8 @@ mod oss;
 mod pockgo_chat;
 #[path = "../pockgo_transport.rs"]
 mod pockgo_transport;
+#[path = "../prompt_templates.rs"]
+mod prompt_templates;
 #[path = "../reference_image.rs"]
 mod reference_image;
 #[path = "../vectorengine_edit.rs"]
@@ -59,7 +63,7 @@ mod yunwu_edit;
 
 use apimart_task_store::{ApimartTaskStore, PendingApimartTask};
 use axum::{
-    extract::State,
+    extract::{Query, State},
     http::{header, HeaderMap, Method, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, post},
@@ -67,7 +71,7 @@ use axum::{
 };
 use chrono::Datelike;
 use image_provider::{resolve_image_provider, ImageApiLine};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{
     collections::{HashMap, HashSet},
@@ -97,6 +101,7 @@ struct AppState {
     oss_archive_limiter: Arc<Semaphore>,
     pause_state: Arc<PauseStateRegistry>,
     apimart_tasks: Arc<ApimartTaskStore>,
+    prompt_templates: Arc<prompt_templates::PromptTemplateStore>,
 }
 
 #[derive(Serialize)]
@@ -167,7 +172,10 @@ struct GenerateImageResponse {
 
 #[derive(serde::Deserialize)]
 struct GatewayGenerateImageRequest {
-    prompt: String,
+    #[serde(default)]
+    prompt: Option<String>,
+    #[serde(default)]
+    prompt_config: Option<prompt_templates::PromptRenderRequest>,
     size: String,
     product_images: Vec<String>,
     #[serde(default)]
@@ -188,6 +196,8 @@ struct ArchiveGeneratedImageRequest {
     file_name_stem: String,
     #[serde(default)]
     shop_name: Option<String>,
+    #[serde(default)]
+    product_name: Option<String>,
     #[serde(default)]
     platform: Option<String>,
 }
@@ -220,10 +230,12 @@ fn build_router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health))
         .route("/api/generate-image", post(generate_image))
+        .route("/api/menu-organize", post(menu_organize).layer(axum::extract::DefaultBodyLimit::max(50 * 1024 * 1024)))
         .route("/api/video/parse-douyin", post(parse_douyin_video))
         .route("/api/line-health", get(get_line_health))
         .route("/api/gateway-stats", get(gateway_stats))
         .route("/api/admin/gateway-stats", get(admin_gateway_stats))
+        .route("/api/image-plaza", get(image_plaza))
         .route("/api/admin/balance", post(admin_balance_fetch))
         .route(
             "/api/admin/account-generation-summary",
@@ -748,15 +760,39 @@ fn is_safe_video_download_header(name: &str) -> bool {
 /// 生图请求最多尝试的线路数。
 /// 当前共有 6 条运行线路，设为 6 意味着失败时最多依次试遍所有线路。
 const GENERATE_IMAGE_MAX_ATTEMPTS: usize = 6;
+const ZIKL_SHARED_LINES: [&str; 3] = ["line2", "line3", "line4"];
+
+fn exclude_shared_zikl_lines(tried_lines: &mut HashSet<String>, line: ImageApiLine) -> bool {
+    if !matches!(
+        line,
+        ImageApiLine::Line2 | ImageApiLine::Line3 | ImageApiLine::Line4
+    ) {
+        return false;
+    }
+
+    for shared_line in ZIKL_SHARED_LINES {
+        tried_lines.insert(shared_line.to_string());
+    }
+    true
+}
 
 async fn generate_image(
     State(state): State<AppState>,
     headers: HeaderMap,
     Json(req): Json<GatewayGenerateImageRequest>,
 ) -> Result<Json<GenerateImageResponse>, GatewayError> {
+    let request_id = uuid::Uuid::new_v4().to_string();
     let token = bearer_token(&headers)?.to_string();
     let user_id = verify_access_token(&state, &headers).await?;
     validate_result_delivery_request(&req)?;
+    let resolved_prompt = resolve_gateway_prompt(&state, &req)?;
+
+    eprintln!(
+        "[gateway] generate_image start request_id={} size={} image_count={}",
+        request_id,
+        req.size,
+        req.product_images.len()
+    );
 
     let original_size = req.size.clone();
 
@@ -793,12 +829,20 @@ async fn generate_image(
             }
         };
         let attempt_req = api::GenerateRequest {
-            prompt: req.prompt.clone(),
+            prompt: resolved_prompt.clone(),
             size: mapped_size,
             product_images: req.product_images.clone(),
             api_line: line,
         };
 
+        eprintln!(
+            "[gateway] generate_image dispatch request_id={} attempt={}/{} line={} size={}",
+            request_id,
+            attempt + 1,
+            GENERATE_IMAGE_MAX_ATTEMPTS,
+            line.as_str(),
+            attempt_req.size
+        );
         let started = Instant::now();
         let result =
             generate_image_for_gateway(&state, &attempt_req, req.archive.as_ref(), &user_id).await;
@@ -811,7 +855,8 @@ async fn generate_image(
             Ok(generated) => {
                 if attempt > 0 {
                     eprintln!(
-                        "[gateway] generate_image succeeded on {} after {} retry(ies)",
+                        "[gateway] generate_image succeeded request_id={} on {} after {} retry(ies)",
+                        request_id,
                         line.as_str(),
                         attempt
                     );
@@ -868,7 +913,8 @@ async fn generate_image(
                     }
                     Some(Err(error)) => {
                         eprintln!(
-                            "[gateway] archive generated image failed on {}: {}",
+                            "[gateway] archive generated image failed request_id={} on {}: {}",
+                            request_id,
                             line.as_str(),
                             error
                         );
@@ -894,11 +940,14 @@ async fn generate_image(
                 }));
             }
             Err(err) => {
+                let ambiguous = http_client::is_ambiguous_upstream_error(&err);
                 eprintln!(
-                    "[gateway] generate_image attempt {}/{} failed on {}: {}",
+                    "[gateway] generate_image attempt {}/{} failed request_id={} on {} ambiguous={}: {}",
                     attempt + 1,
                     GENERATE_IMAGE_MAX_ATTEMPTS,
+                    request_id,
                     line.as_str(),
+                    ambiguous,
                     err
                 );
                 if is_quota_exhausted_error(&err) {
@@ -912,8 +961,22 @@ async fn generate_image(
                         paused.line, err
                     );
                 }
+                if exclude_shared_zikl_lines(&mut tried_lines, line) {
+                    eprintln!(
+                        "[gateway] excluded shared Zikl lines line2,line3,line4 after {} failure",
+                        line.as_str()
+                    );
+                }
                 last_error = Some(err);
-                // permit 在这里 drop，释放 slot；下一次循环会重新 acquire 排除已试过的线路
+                // permit 在这里 drop，释放 slot；下一次循环会重新 acquire 排除已试过的线路。
+                // 线路2/3/4共用一个 Zikl 上游，任一条失败后本次请求整体排除三条。
+                if ambiguous {
+                    eprintln!(
+                        "[gateway] stop retries request_id={} because upstream result is ambiguous",
+                        request_id
+                    );
+                    break;
+                }
                 continue;
             }
         }
@@ -927,6 +990,29 @@ async fn generate_image(
         line_tag,
         detail
     )))
+}
+
+fn resolve_gateway_prompt(
+    state: &AppState,
+    req: &GatewayGenerateImageRequest,
+) -> Result<String, GatewayError> {
+    if let Some(prompt_config) = req.prompt_config.as_ref() {
+        let prompt = state.prompt_templates.render(prompt_config).map_err(|error| {
+            GatewayError::bad_gateway(format!("云端 prompt 渲染失败：{error}"))
+        })?;
+        if prompt.trim().is_empty() {
+            return Err(GatewayError::bad_gateway("云端 prompt 渲染为空"));
+        }
+        return Ok(prompt);
+    }
+
+    let prompt = req.prompt.as_deref().unwrap_or("");
+    if prompt.trim().is_empty() {
+        return Err(GatewayError::bad_request(
+            "缺少 prompt 或 prompt_config，无法生成图片",
+        ));
+    }
+    Ok(prompt.to_string())
 }
 
 fn validate_result_delivery_request(req: &GatewayGenerateImageRequest) -> Result<(), GatewayError> {
@@ -992,6 +1078,7 @@ async fn generate_image_for_gateway(
     let store = Arc::clone(&state.apimart_tasks);
     let user_id = user_id.to_string();
     let asset_kind = archive_req.asset_kind.clone();
+    let product_name = normalize_optional_product_name(archive_req.product_name.as_deref());
     let file_name_stem = archive_req.file_name_stem.clone();
     let started_at_ms = chrono::Utc::now().timestamp_millis();
 
@@ -1002,6 +1089,7 @@ async fn generate_image_for_gateway(
             task_id,
             user_id,
             shop_name,
+            product_name,
             asset_kind,
             platform,
             file_name_stem,
@@ -1113,6 +1201,7 @@ async fn record_generation_log(
         user_id,
         &shop_name,
         &req.asset_kind,
+        req.product_name.as_deref(),
         &platform,
         generation_line,
         archive,
@@ -1127,6 +1216,7 @@ async fn record_generation_log_with_auth(
     user_id: &str,
     shop_name: &str,
     asset_kind: &str,
+    product_name: Option<&str>,
     platform: &str,
     generation_line: &str,
     archive: &ArchiveGeneratedImageResult,
@@ -1151,6 +1241,7 @@ async fn record_generation_log_with_auth(
         .json(&json!({
             "user_id": user_id,
             "shop_name": normalize_shop_name(shop_name),
+            "product_name": normalize_optional_product_name(product_name),
             "asset_kind": asset_kind,
             "platform": platform,
             "generation_line": generation_line,
@@ -1191,6 +1282,15 @@ fn normalize_shop_name(value: &str) -> String {
         "未命名店铺".to_string()
     } else {
         trimmed.to_string()
+    }
+}
+
+fn normalize_optional_product_name(value: Option<&str>) -> Option<String> {
+    let trimmed = value?.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
     }
 }
 
@@ -1267,6 +1367,7 @@ async fn recover_apimart_task(
         asset_kind: task.asset_kind.clone(),
         file_name_stem: task.file_name_stem.clone(),
         shop_name: Some(task.shop_name.clone()),
+        product_name: task.product_name.clone(),
         platform: Some(task.platform.clone()),
     };
     let archive = archive_generated_image(state, archive_req, &image).await?;
@@ -1280,6 +1381,7 @@ async fn recover_apimart_task(
         &task.user_id,
         &task.shop_name,
         &task.asset_kind,
+        task.product_name.as_deref(),
         &task.platform,
         &task.generation_line,
         &archive,
@@ -1334,6 +1436,7 @@ fn compression_config_for_asset_kind(kind: &str) -> Result<ArchiveCompressionCon
             max_dimension: 2048,
             quality: 92,
         },
+        "menu_design" => ArchiveCompressionConfig { max_dimension: 4096, quality: 95 },
         "brand_story" | "data_analysis" | "patrol_script" => ArchiveCompressionConfig {
             max_dimension: 1792,
             quality: 90,
@@ -1354,6 +1457,172 @@ async fn get_line_health(
 #[derive(Serialize)]
 struct GlobalGenerationTotalResponse {
     total_count: i64,
+}
+
+const IMAGE_PLAZA_PAGE_SIZE: usize = 30;
+const IMAGE_PLAZA_MAX_PAGES: usize = 10;
+
+#[derive(Deserialize)]
+struct ImagePlazaQuery {
+    page: Option<usize>,
+}
+
+#[derive(Serialize)]
+struct ImagePlazaResponse {
+    page: usize,
+    page_size: usize,
+    max_pages: usize,
+    total_count: i64,
+    visible_total_count: i64,
+    page_count: usize,
+    items: Vec<ImagePlazaItem>,
+}
+
+#[derive(Serialize)]
+struct ImagePlazaItem {
+    id: String,
+    user_id: String,
+    display_name: String,
+    shop_name: String,
+    product_name: Option<String>,
+    asset_kind: String,
+    platform: String,
+    generation_line: Option<String>,
+    image_url: String,
+    created_at: String,
+    elapsed_ms: Option<i64>,
+}
+
+#[derive(Deserialize)]
+struct SupabaseImagePlazaLogRow {
+    id: String,
+    user_id: String,
+    shop_name: String,
+    product_name: Option<String>,
+    asset_kind: String,
+    platform: String,
+    generation_line: Option<String>,
+    oss_url: String,
+    created_at: String,
+    elapsed_ms: Option<i64>,
+}
+
+async fn image_plaza(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Query(query): Query<ImagePlazaQuery>,
+) -> Result<Json<ImagePlazaResponse>, GatewayError> {
+    let _user_id = verify_access_token(&state, &headers).await?;
+    let service_role_bearer = service_role_bearer(&state)?;
+    let requested_page = query
+        .page
+        .unwrap_or(1)
+        .clamp(1, IMAGE_PLAZA_MAX_PAGES);
+
+    let (mut logs, total_count) =
+        fetch_image_plaza_logs(&state, service_role_bearer, requested_page).await?;
+    let visible_total_count = total_count.min((IMAGE_PLAZA_PAGE_SIZE * IMAGE_PLAZA_MAX_PAGES) as i64);
+    let page_count = image_plaza_page_count(visible_total_count);
+    let page = requested_page.min(page_count);
+    if page != requested_page {
+        logs = fetch_image_plaza_logs(&state, service_role_bearer, page)
+            .await?
+            .0;
+    }
+
+    let user_ids: std::collections::HashSet<String> =
+        logs.iter().map(|row| row.user_id.clone()).collect();
+    let display_names = if user_ids.is_empty() {
+        HashMap::new()
+    } else {
+        fetch_display_names(&state, service_role_bearer, service_role_bearer, &user_ids).await?
+    };
+
+    let items = logs
+        .into_iter()
+        .map(|row| {
+            let display_name = display_names
+                .get(&row.user_id)
+                .cloned()
+                .unwrap_or_else(|| "未知账号".to_string());
+            ImagePlazaItem {
+                id: row.id,
+                user_id: row.user_id,
+                display_name,
+                shop_name: row.shop_name,
+                product_name: row.product_name,
+                asset_kind: row.asset_kind,
+                platform: row.platform,
+                generation_line: row.generation_line,
+                image_url: row.oss_url,
+                created_at: row.created_at,
+                elapsed_ms: row.elapsed_ms,
+            }
+        })
+        .collect();
+
+    Ok(Json(ImagePlazaResponse {
+        page,
+        page_size: IMAGE_PLAZA_PAGE_SIZE,
+        max_pages: IMAGE_PLAZA_MAX_PAGES,
+        total_count,
+        visible_total_count,
+        page_count,
+        items,
+    }))
+}
+
+async fn fetch_image_plaza_logs(
+    state: &AppState,
+    service_role_bearer: &str,
+    page: usize,
+) -> Result<(Vec<SupabaseImagePlazaLogRow>, i64), GatewayError> {
+    let range_start = (page - 1) * IMAGE_PLAZA_PAGE_SIZE;
+    let range_end = range_start + IMAGE_PLAZA_PAGE_SIZE - 1;
+    let response = state
+        .client
+        .get(format!(
+            "{}/rest/v1/generation_logs?select=id,user_id,shop_name,product_name,asset_kind,platform,generation_line,oss_url,created_at,elapsed_ms&order=created_at.desc",
+            state.supabase_url
+        ))
+        .header("apikey", service_role_bearer)
+        .bearer_auth(service_role_bearer)
+        .header("Range-Unit", "items")
+        .header("Range", format!("{}-{}", range_start, range_end))
+        .header("Prefer", "count=exact")
+        .send()
+        .await
+        .map_err(|error| GatewayError::bad_gateway(format!("读取图片广场失败：{error}")))?;
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        return Err(GatewayError::bad_gateway(format!(
+            "读取图片广场返回 {status}: {}",
+            gemini_response::truncate_for_msg(&body, 500)
+        )));
+    }
+
+    let total_count = response
+        .headers()
+        .get(header::CONTENT_RANGE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(parse_content_range_total);
+    let rows: Vec<SupabaseImagePlazaLogRow> = response
+        .json()
+        .await
+        .map_err(|error| GatewayError::bad_gateway(format!("解析图片广场失败：{error}")))?;
+    let fallback_total_count = (range_start + rows.len()) as i64;
+    Ok((rows, total_count.unwrap_or(fallback_total_count)))
+}
+
+fn parse_content_range_total(value: &str) -> Option<i64> {
+    value.rsplit('/').next()?.parse::<i64>().ok()
+}
+
+fn image_plaza_page_count(visible_total_count: i64) -> usize {
+    let total = visible_total_count.max(0) as usize;
+    let pages = total.div_ceil(IMAGE_PLAZA_PAGE_SIZE).max(1);
+    pages.min(IMAGE_PLAZA_MAX_PAGES)
 }
 
 async fn global_generation_total(
@@ -1743,6 +2012,8 @@ struct AdminLinePauseRequest {
 #[derive(serde::Deserialize)]
 struct AdminLineResumeRequest {
     line: String,
+    #[serde(default)]
+    force: bool,
 }
 
 #[derive(Serialize)]
@@ -1796,6 +2067,16 @@ async fn admin_line_resume(
     ensure_admin_profile(&state, token, &user_id).await?;
 
     let line = validate_line_name(&req.line)?;
+    if state.pause_state.is_manual_protection_locked(&line) && !req.force {
+        eprintln!(
+            "[pause-state] ignored resume line={} because manual_protection lock is active",
+            line
+        );
+        return Ok(Json(AdminLineResumeResponse {
+            ok: true,
+            removed: false,
+        }));
+    }
     let removed = state.pause_state.resume(&line);
     Ok(Json(AdminLineResumeResponse { ok: true, removed }))
 }
@@ -1974,6 +2255,15 @@ async fn admin_soft_delete_user(
         .map_err(GatewayError::bad_request)
 }
 
+async fn menu_organize(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<menu_design::MenuOrganizeRequest>,
+) -> Result<Json<menu_design::MenuOrganizeResponse>, GatewayError> {
+    let _user_id = verify_access_token(&state, &headers).await?;
+    menu_design::organize(req).await.map(Json).map_err(GatewayError::bad_gateway)
+}
+
 async fn brand_story_generate_text(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -2103,13 +2393,14 @@ fn build_state() -> Result<AppState, String> {
             read_limit_env("GATEWAY_GENERATION_USER_LIMIT", 5),
         )),
         // 压缩 + OSS PUT 比生图轻得多（每张 < 2s），
-        // 生图全局并发 28，归档要跟得上才不会成为瓶颈，默认开到 6。
+        // 生图全局并发 30，归档要跟得上才不会成为瓶颈，默认开到 6。
         oss_archive_limiter: Arc::new(Semaphore::new(read_positive_limit_env(
             "GATEWAY_OSS_ARCHIVE_LIMIT",
             6,
         ))),
         pause_state,
         apimart_tasks,
+        prompt_templates: Arc::new(prompt_templates::PromptTemplateStore::from_env()),
     })
 }
 
@@ -2199,11 +2490,11 @@ async fn acquire_auto_generation_permit(
 
 fn build_generation_limiter() -> GatewayLimiter {
     GatewayLimiter::new(
-        read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 28),
+        read_limit_env("GATEWAY_GENERATION_GLOBAL_LIMIT", 30),
         HashMap::from([
             ("line2", read_limit_env("GATEWAY_GENERATION_LINE2_LIMIT", 6)),
             ("line3", read_limit_env("GATEWAY_GENERATION_LINE3_LIMIT", 6)),
-            ("line4", read_limit_env("GATEWAY_GENERATION_LINE4_LIMIT", 4)),
+            ("line4", read_limit_env("GATEWAY_GENERATION_LINE4_LIMIT", 6)),
             // line5 = apimart，性价比高、最稳，并发 = 8
             ("line5", read_limit_env("GATEWAY_GENERATION_LINE5_LIMIT", 8)),
             // line6 = manxiaobai，当前主力线路之一，并发 = 8
@@ -2285,6 +2576,7 @@ impl IntoResponse for GatewayError {
 mod tests {
     use super::*;
     use axum::http::Uri;
+    use std::collections::HashSet;
     use std::sync::Mutex;
 
     #[derive(Clone, Debug)]
@@ -2404,6 +2696,7 @@ mod tests {
             oss_archive_limiter: Arc::new(Semaphore::new(1)),
             pause_state: Arc::new(PauseStateRegistry::new(None)),
             apimart_tasks: Arc::new(ApimartTaskStore::new(None)),
+            prompt_templates: Arc::new(prompt_templates::PromptTemplateStore::from_env()),
         }
     }
 
@@ -2499,6 +2792,44 @@ mod tests {
         drop(permit);
         gateway.abort();
         supabase.abort();
+    }
+
+    #[test]
+    fn excludes_all_shared_zikl_lines_after_line2_failure() {
+        let mut tried_lines = HashSet::from(["line2".to_string()]);
+
+        assert!(exclude_shared_zikl_lines(
+            &mut tried_lines,
+            ImageApiLine::Line2
+        ));
+        assert_eq!(tried_lines.len(), 3);
+        for line in ZIKL_SHARED_LINES {
+            assert!(tried_lines.contains(line));
+        }
+    }
+
+    #[test]
+    fn excludes_all_shared_zikl_lines_after_line3_or_line4_failure() {
+        for failed_line in [ImageApiLine::Line3, ImageApiLine::Line4] {
+            let mut tried_lines = HashSet::new();
+
+            assert!(exclude_shared_zikl_lines(&mut tried_lines, failed_line));
+            assert_eq!(tried_lines.len(), 3);
+            for line in ZIKL_SHARED_LINES {
+                assert!(tried_lines.contains(line));
+            }
+        }
+    }
+
+    #[test]
+    fn does_not_exclude_zikl_siblings_after_other_line_failure() {
+        let mut tried_lines = HashSet::from(["line5".to_string()]);
+
+        assert!(!exclude_shared_zikl_lines(
+            &mut tried_lines,
+            ImageApiLine::Line5
+        ));
+        assert_eq!(tried_lines, HashSet::from(["line5".to_string()]));
     }
 
     #[test]

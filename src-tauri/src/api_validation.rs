@@ -1,7 +1,7 @@
 use crate::api::GenerateRequest;
 use crate::image_provider::ImageApiLine;
 
-const MAX_REFERENCE_IMAGES: usize = 5;
+const MAX_REFERENCE_IMAGES: usize = 7;
 
 pub fn validate_generate_request(req: &GenerateRequest) -> Result<(), String> {
     if req.product_images.len() > MAX_REFERENCE_IMAGES {
@@ -59,17 +59,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn reject_more_than_five_reference_images() {
+    fn reject_more_than_seven_reference_images() {
         let req = GenerateRequest {
             prompt: "测试".into(),
             size: "1024x1024".into(),
-            product_images: vec!["x".into(); 6],
+            product_images: vec!["x".into(); 8],
             api_line: ImageApiLine::Line2,
         };
 
         let err = validate_generate_request(&req).unwrap_err();
 
-        assert_eq!(err, "产品图最多支持 5 张，请删除多余图片后重试");
+        assert_eq!(err, "产品图最多支持 7 张，请删除多余图片后重试");
     }
 
     #[test]
@@ -209,11 +209,11 @@ mod tests {
     }
 
     #[test]
-    fn allow_five_reference_images_for_apimart() {
+    fn allow_seven_reference_images_for_apimart() {
         let req = GenerateRequest {
             prompt: "测试".into(),
             size: "1:1".into(),
-            product_images: vec!["x".into(); 5],
+            product_images: vec!["x".into(); 7],
             api_line: ImageApiLine::Line5,
         };
 

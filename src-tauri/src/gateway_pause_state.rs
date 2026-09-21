@@ -5,7 +5,8 @@
 //! 把"暂停的线路"作为额外排除集，从 auto 路由 + manual 路径里都拿掉。
 //!
 //! 状态持久化到 `paused-lines.json`，网关重启不丢；下次余额恢复
-//! 桌面端会调 `/api/admin/line-resume`（幂等）。
+//! 桌面端会调 `/api/admin/line-resume`（幂等）。`manual_protection`
+//! 来源需要 force 才能解除，避免余额监控自动恢复生产保护线路。
 
 use chrono::{SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
@@ -138,6 +139,15 @@ impl PauseStateRegistry {
         guard.contains_key(line)
     }
 
+    /// 生产保护锁由运维显式设置，余额监控的普通 resume 不得解除。
+    pub fn is_manual_protection_locked(&self, line: &str) -> bool {
+        let guard = self.paused.read().expect("paused state poisoned");
+        guard
+            .get(line)
+            .map(|info| info.source == "manual_protection")
+            .unwrap_or(false)
+    }
+
     /// 返回当前所有 paused 线路名（HashSet，便于和 exclude 集合做并集）。
     pub fn paused_set(&self) -> HashSet<String> {
         let guard = self.paused.read().expect("paused state poisoned");
@@ -197,5 +207,17 @@ mod tests {
         assert_eq!(snap[0].source, "balance_zero");
 
         let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
+    fn manual_protection_source_is_locked() {
+        let reg = PauseStateRegistry::new(None);
+        reg.pause(
+            "line7".into(),
+            "temporary investigation".into(),
+            "manual_protection".into(),
+        );
+        assert!(reg.is_manual_protection_locked("line7"));
+        assert!(!reg.is_manual_protection_locked("line6"));
     }
 }
