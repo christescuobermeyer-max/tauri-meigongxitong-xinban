@@ -45,6 +45,13 @@ equal(existsSync(fileURLToPath(componentUrl)), true);
 const componentSource = readFileSync(componentUrl, "utf8");
 equal(componentSource.includes("suspend?: boolean"), true);
 equal(componentSource.includes("if (suspend) return"), true);
+equal(componentSource.includes("updateDeferredUntilRestartRef"), true);
+equal(componentSource.includes("等下次重启再触发"), true);
+equal(
+  /fetchMandatoryUpdate\(\)[\s\S]*?\}, \[\]\);/.test(componentSource),
+  true,
+  "强制更新检查应只在软件启动时执行一次，避免生图结束后补弹全屏窗口"
+);
 equal(componentSource.includes("检测到新版本"), true);
 equal(componentSource.includes("自动更新"), true);
 equal(componentSource.includes("installAppUpdate"), true);

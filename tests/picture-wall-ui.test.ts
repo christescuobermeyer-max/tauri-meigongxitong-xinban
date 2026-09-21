@@ -36,7 +36,9 @@ equal(pagesSource.includes('className="page picture-wall-page"'), true);
 
 const pageSource = readFileSync(new URL("../src/components/PictureWallPage.tsx", import.meta.url), "utf8");
 equal(pageSource.includes("ImageUpload"), true);
-equal(pageSource.includes("maxCount={3}"), true);
+equal(pageSource.includes("PICTURE_WALL_TARGET_COUNTS.map"), true);
+equal(pageSource.includes('role="radiogroup"'), true);
+equal(pageSource.includes("maxCount={targetCount}"), true);
 equal(pageSource.includes("生成图片墙"), true);
 equal(pageSource.includes("补生成失败图片"), true);
 equal(pageSource.includes("PICTURE_WALL_EXPORT_SIZE"), true);
@@ -52,6 +54,7 @@ equal(pageSource.includes("IconRefresh"), false);
 equal(pageSource.includes("onReset"), false);
 equal(pageSource.includes("onDownload"), true);
 equal(pageSource.includes("onRetry"), true);
+equal(pageSource.includes("setTargetCount(count)"), true);
 
 const productNameSource = readFileSync(
   new URL("../src/components/PictureWallProductNames.tsx", import.meta.url),
@@ -68,6 +71,7 @@ const resultsSource = readFileSync(new URL("../src/components/PictureWallResults
 const pictureWallCssSource = readFileSync(new URL("../src/styles/picture-wall.css", import.meta.url), "utf8");
 equal(resultsSource.includes("BatchDownloadButton"), true);
 equal(resultsSource.includes("批量下载图片墙"), true);
+equal(resultsSource.includes("getPictureWallCopyText(targetCount)"), true);
 equal(resultsSource.includes("onDownload"), true);
 equal(resultsSource.includes("onRetry"), true);
 equal(resultsSource.includes("重试"), true);
@@ -82,3 +86,4 @@ equal(pictureWallCssSource.includes("grid-template-columns: max-content minmax(0
 equal(pictureWallCssSource.includes(".picture-wall-tile__index"), true);
 equal(pictureWallCssSource.includes("white-space: nowrap;"), true);
 equal(pictureWallCssSource.includes(".picture-wall-tile__badge"), true);
+equal(pictureWallCssSource.includes(".picture-wall-count-select"), true);

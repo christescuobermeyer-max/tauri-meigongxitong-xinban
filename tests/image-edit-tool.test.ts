@@ -31,6 +31,25 @@ ok(prompt.includes("除非修改要求明确要求替换主体、食物或参考
 ok(prompt.includes("修改要求：“把背景改成暖色，产品主体不变”"));
 ok(prompt.includes("产品名称：“招牌饭”"));
 
+const replaceIntoReferenceInstruction = "把参考图中的锅里的食物移除，然后把产品图中的食物替换到参考图的锅中";
+const referenceBasePrompt = libModule.buildImageEditPrompt({
+  kind: "product",
+  instruction: replaceIntoReferenceInstruction,
+  referenceUrls: ["https://oss.example.com/product.jpg"],
+  optionalReferenceUrls: ["https://oss.example.com/pot.jpg"],
+  shopName: "火锅店",
+  productName: "牛肉片",
+});
+ok(referenceBasePrompt.includes("上传的产品图 OSS 地址（传图顺序第 2 张）：https://oss.example.com/product.jpg"));
+ok(referenceBasePrompt.includes("可选参考图 OSS 地址共 1 张：第 1 张 https://oss.example.com/pot.jpg"));
+ok(referenceBasePrompt.includes("请严格区分图片角色：第 1 张是“参考图（可选）”，也是最终画面的底图/场景图"));
+ok(referenceBasePrompt.includes("第 2 张是主上传区的产品图原图/产品主体图，是要放入参考图场景的食物来源"));
+ok(referenceBasePrompt.includes("最终画面必须以“参考图（可选）”作为构图、锅/盘/容器、背景、光影和透视基础"));
+ok(referenceBasePrompt.includes("移除参考图锅里或容器里的原有食物"));
+ok(referenceBasePrompt.includes("严禁反向操作，不能把参考图里的食物替换到产品图中"));
+equal(libModule.shouldUseOptionalReferenceAsEditBase(replaceIntoReferenceInstruction), true);
+equal(libModule.shouldUseOptionalReferenceAsEditBase("保持产品主体不变，只参考参考图的配色"), false);
+
 const packagePrompt = libModule.buildImageEditPrompt({
   kind: "product",
   instruction: "制作套餐图，四个产品都要出现",
@@ -56,6 +75,14 @@ deepEqual(
     []
   ),
   ["https://oss.example.com/source.jpg"]
+);
+deepEqual(
+  libModule.resolveImageEditReferences(
+    [{ productOssUrl: "https://oss.example.com/product.jpg" }],
+    [{ productOssUrl: "https://oss.example.com/pot.jpg" }],
+    replaceIntoReferenceInstruction
+  ),
+  ["https://oss.example.com/pot.jpg", "https://oss.example.com/product.jpg"]
 );
 deepEqual(
   libModule.resolveImageEditReferences(
@@ -124,6 +151,8 @@ equal(hookSource.includes("ensureUploadedImagesOnOss"), true);
 equal(hookSource.includes("runWithAutoRetry"), true);
 equal(hookSource.includes("referenceImages: requestReferences"), true);
 equal(hookSource.includes("referenceUrls: sourceReferences"), true);
+equal(hookSource.includes("optionalReferenceUrls"), true);
+equal(hookSource.includes("snapshot.instruction"), true);
 equal(hookSource.includes("setReferenceImages"), true);
 equal(hookSource.includes("attempt: generated.attempt"), true);
 equal(hookSource.includes("saveGeneratedAsset(kind"), true);

@@ -9,6 +9,10 @@ const pictureWallResultsSource = readFileSync(
   new URL("../src/components/PictureWallResults.tsx", import.meta.url),
   "utf8"
 );
+const pictureWallLibSource = readFileSync(
+  new URL("../src/lib/picture-wall.ts", import.meta.url),
+  "utf8"
+);
 const resultPanelSource = readFileSync(
   new URL("../src/components/ResultPanel.tsx", import.meta.url),
   "utf8"
@@ -32,13 +36,14 @@ equal(copyCardSource.includes("data-copy-state"), true);
 equal(copyCardSource.includes("商家沟通文案"), true);
 
 equal(
-  pictureWallResultsSource.includes("我们为店铺上线了专业设计的图片墙"),
+  pictureWallLibSource.includes("我们为店铺上线了专业设计的图片墙"),
   true
 );
 equal(
-  pictureWallResultsSource.includes("点击率平均提升32%"),
+  pictureWallLibSource.includes("点击率平均提升32%"),
   true
 );
+equal(pictureWallResultsSource.includes("getPictureWallCopyText(targetCount)"), true);
 equal(pictureWallResultsSource.includes("MerchantCopyCard"), true);
 
 equal(
@@ -52,9 +57,11 @@ equal(
 equal(resultPanelSource.includes("MerchantCopyCard"), true);
 
 equal(
-  productBatchResultSource.includes("老板,您店铺的10张全店图我们已经做好"),
+  productBatchResultSource.includes("老板,您店铺的全店图我们已经做好"),
   true
 );
+equal(productBatchResultSource.includes("10张全店图"), false);
+equal(productBatchResultSource.includes("PRODUCT_BATCH_MAX_IMAGES"), true);
 equal(
   productBatchResultSource.includes("点击率能提升30%以上"),
   true

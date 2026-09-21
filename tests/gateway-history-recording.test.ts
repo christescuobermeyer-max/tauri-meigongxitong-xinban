@@ -28,6 +28,10 @@ ok(
   "网关归档请求应携带平台用于写 generation_logs",
 );
 ok(
+  gatewaySource.includes("product_name: Option<String>"),
+  "网关归档请求应携带菜品名用于写 generation_logs",
+);
+ok(
   gatewaySource.includes("record_generation_log("),
   "网关应在生成图 OSS 归档成功后写入 generation_logs",
 );
@@ -42,6 +46,10 @@ ok(
 ok(
   gatewaySource.includes("oss_key"),
   "网关写 generation_logs 时应保存 OSS key，便于后续对账",
+);
+ok(
+  gatewaySource.includes('"product_name": normalize_optional_product_name(product_name)'),
+  "网关写 generation_logs 时应保存清洗后的菜品名",
 );
 
 ok(
@@ -59,6 +67,10 @@ ok(
 ok(
   workspaceGenerationSource.includes("platform"),
   "通用生图流程应把平台传给网关归档请求",
+);
+ok(
+  workspaceGenerationSource.includes("product_name: archiveProductName"),
+  "通用生图流程应把产品图菜品名传给网关归档请求",
 );
 ok(
   workspaceSessionSource.includes("historyRecorded"),

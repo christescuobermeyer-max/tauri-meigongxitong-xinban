@@ -25,5 +25,12 @@ equal(topBarStatusSource.includes("onRefreshAll"), true, "TopBarStatus 应通过
 equal(appSource.includes("<MandatoryUpdateGate suspend={workspaceBusy} />"), true, "App 应在 workspace 忙碌时暂停展示强制更新弹窗");
 equal(updateGateSource.includes("suspend?: boolean"), true, "MandatoryUpdateGate 应支持 suspend 参数");
 equal(updateGateSource.includes("if (suspend) return"), true, "忙碌时 MandatoryUpdateGate 应跳过更新检查/展示");
+equal(updateGateSource.includes("updateDeferredUntilRestartRef"), true, "忙碌过的会话应把强制更新延后到重启后再处理");
+equal(updateGateSource.includes("等下次重启再触发"), true, "组件注释应明确运行中更新等下次重启再触发");
+equal(
+  /fetchMandatoryUpdate\(\)[\s\S]*?\}, \[\]\);/.test(updateGateSource),
+  true,
+  "强制更新检查应只在软件启动时执行一次，避免生图结束后补弹全屏窗口"
+);
 
 console.log("workspace reset guard contract: OK");

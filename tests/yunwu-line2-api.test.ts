@@ -6,6 +6,7 @@ const providerSource = readFileSync(
   "utf8"
 );
 const apiSource = readFileSync(new URL("../src-tauri/src/api.rs", import.meta.url), "utf8");
+const editSource = readFileSync(new URL("../src-tauri/src/yunwu_edit.rs", import.meta.url), "utf8");
 const payloadSource = readFileSync(
   new URL("../src-tauri/src/image_generation_payload.rs", import.meta.url),
   "utf8"
@@ -50,6 +51,11 @@ ok(
 );
 ok(providerSource.includes('quality: Some("low")'), "线路2请求体应带 quality=low");
 ok(providerSource.includes('format: Some("png")'), "线路2请求体应带 format=png，保持现有图片链路 MIME 一致");
+ok(
+  editSource.includes('.text("response_format", "b64_json".to_string())') &&
+    !editSource.includes('.text("response_format", "url".to_string())'),
+  "线路2编辑应请求 b64_json 响应，避免下载 Zikl 远程图片 URL 失败"
+);
 ok(payloadSource.includes("quality: provider.quality"), "image-2 请求体应透传 provider quality");
 ok(payloadSource.includes("format: provider.format"), "image-2 请求体应透传 provider format");
 ok(

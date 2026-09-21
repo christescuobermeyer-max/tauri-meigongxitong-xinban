@@ -52,6 +52,10 @@ async function runWithAutoRetry(options) {
 }
 `;
 const libSource = readFileSync(new URL("../src/lib/picture-wall.ts", import.meta.url), "utf8")
+  .replace(
+    'import { buildPictureWallPromptConfig } from "./prompt-config";',
+    'function buildPictureWallPromptConfig(options) { return { key: "picture_wall", variables: options }; }'
+  )
   .replace('import { generateArchivedImageWithLine, uploadImageToOss } from "./tauri";', tauriStubs)
   .replace('import { generateImage, pickDirectoryPath, resizeAndSaveImage, uploadImageToOss } from "./tauri";', tauriStubs)
   .replace('import { resolveGeneratedArchiveUrl } from "./oss-assets";', "")
@@ -178,6 +182,9 @@ equal(apiCalls[1].type, "generate");
 equal(apiCalls[1].req.api_line, "auto");
 equal(apiCalls[1].req.size, "1024x1536");
 equal(apiCalls[1].req.product_images[0].startsWith("https://oss.example.com/"), true);
+equal(apiCalls[1].req.prompt_config.key, "picture_wall");
+equal(apiCalls[1].req.prompt_config.variables.productName, "招牌炸鸡");
+equal(apiCalls[1].req.prompt_config.variables.productOssUrl, apiCalls[1].req.product_images[0]);
 equal(apiCalls[1].archive.asset_kind, "picture_wall");
 ok(apiCalls[1].archive.file_name_stem.includes("picture-wall"));
 ok(apiCalls[1].req.prompt.includes("外卖店铺“韩大叔炸鸡拌饭”"));

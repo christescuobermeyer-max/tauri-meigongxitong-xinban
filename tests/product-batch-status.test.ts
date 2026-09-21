@@ -18,6 +18,7 @@ const batchModule = await import(
 );
 
 equal(typeof batchModule.syncProductBatchEntries, "function");
+equal(batchModule.PRODUCT_BATCH_MAX_IMAGES, 20);
 
 const sourceImages = [
   {
@@ -76,6 +77,8 @@ const hookSource = readFileSync(
 );
 equal(hookSource.includes('buildProductBatchEntries(syncedImages, "queued")'), true);
 equal(hookSource.includes("syncProductBatchEntries(images, previous)"), true);
+equal(hookSource.includes("images.length > PRODUCT_BATCH_MAX_IMAGES"), true);
+equal(hookSource.includes("制作全店图最多支持 ${PRODUCT_BATCH_MAX_IMAGES} 张产品图"), true);
 equal(hookSource.includes("for (const image of syncedImages)"), true);
 equal(hookSource.includes("await runBatchItem(image, syncedStyleImages, snapshot)"), true);
 equal(hookSource.includes("return await runBatchItem(syncedImage, syncedStyleImages, snapshot)"), true);

@@ -58,6 +58,8 @@ equal(
   true
 );
 
+equal(canBatchDownloadAssets([]), false);
+
 equal(
   canBatchDownloadAssets([
     succeeded("avatar"),
@@ -111,6 +113,22 @@ deepEqual(
     },
   ]
 );
+
+const avatarOnlyPlans = buildBatchDownloadPlans(
+  {
+    avatar: succeeded("avatar", "a1"),
+    storefront: { ...succeeded("storefront"), status: "idle", rawBase64: null },
+    poster: { ...succeeded("poster"), status: "idle", rawBase64: null },
+  },
+  "阿牛黄焖鸡米饭（火车站店）",
+  platform,
+  "C:\\Exports",
+  ["avatar"]
+);
+
+equal(avatarOnlyPlans.length, 1);
+equal(avatarOnlyPlans[0].kind, "avatar");
+equal(avatarOnlyPlans[0].outputPath, "C:\\Exports\\阿牛黄焖鸡米饭（火车站店）_meituan_avatar_512x512.png");
 
 const productSpec = getGeneratedAssetExportSpec(
   "product",

@@ -41,8 +41,8 @@ ok(
   "线路7生图应读取 novaeworld API key 环境变量",
 );
 ok(
-  imageProviderSource.includes('const LINE7_MODEL: &str = "gpt-image-2";'),
-  "线路7模型应使用 novaeworld 文档支持的 gpt-image-2",
+  imageProviderSource.includes('const LINE7_MODEL: &str = "gpt-image-2.5";'),
+  "线路7模型应使用 novaeworld 的 gpt-image-2.5",
 );
 ok(
   apiSource.includes("generate_novaeworld_edit_image") &&

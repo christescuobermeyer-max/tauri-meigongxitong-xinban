@@ -89,6 +89,7 @@ const calls = module.__getGenerateCalls();
 equal(calls[0].type, "gateway-generate");
 equal(calls[0].archive.asset_kind, "product");
 equal(calls[0].archive.file_name_stem, "测试店铺-product");
+equal(calls[0].archive.product_name, "测试产品");
 
 module.__failNextGatewayArchive();
 const archiveFailed = await module.generateAsset(options);

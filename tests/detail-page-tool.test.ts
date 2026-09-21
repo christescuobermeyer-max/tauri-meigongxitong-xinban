@@ -47,6 +47,10 @@ async function runWithAutoRetry(options) {
 `;
 
 const libSource = readFileSync(new URL("../src/lib/detail-page.ts", import.meta.url), "utf8")
+  .replace(
+    'import { buildDetailPagePromptConfig } from "./prompt-config";',
+    'function buildDetailPagePromptConfig(options) { return { key: "detail_page", variables: options }; }'
+  )
   .replace('import { generateArchivedImageWithLine, uploadImageToOss } from "./tauri";', tauriStubs)
   .replace('import { resolveGeneratedArchiveUrl } from "./oss-assets";', ossAssetsStub)
   .replace('import { runWithAutoRetry } from "./generation-retry";', retryStub)
@@ -107,6 +111,10 @@ equal(apiCalls[1].type, "generate");
 equal(apiCalls[1].req.api_line, "auto");
 equal(apiCalls[1].req.size, "1024x1536");
 equal(apiCalls[1].req.product_images[0].startsWith("https://oss.example.com/"), true);
+equal(apiCalls[1].req.prompt_config.key, "detail_page");
+equal(apiCalls[1].req.prompt_config.variables.productName, "招牌牛肉饭");
+equal(apiCalls[1].req.prompt_config.variables.productOssUrl, apiCalls[1].req.product_images[0]);
+equal(apiCalls[1].req.prompt_config.variables.pageIndex, 1);
 equal(apiCalls[1].archive.asset_kind, "detail_page");
 ok(apiCalls[1].archive.file_name_stem.includes("detail-page-2"));
 ok(apiCalls[1].req.prompt.includes("第2张详情页"));

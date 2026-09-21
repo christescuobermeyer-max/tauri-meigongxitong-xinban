@@ -25,17 +25,33 @@ equal(typeof packageImageModule.resolvePackageImageReferences, "function");
 
 const prompt = packageImageModule.buildPackageImagePrompt({
   shopName: "套餐小馆",
-  productNames: ["鸡腿饭", "牛肉面", "炸鸡", "小食拼盘"],
+  productNames: ["鸡腿饭", "牛肉面", "炸鸡", "小食拼盘", "煎饺", "豆浆"],
+  productImageCount: 6,
   platform: "meituan",
 });
 
 ok(prompt.includes("第1张传给系统的参考图为参考设计风格图"));
-ok(prompt.includes("第2张到第5张传给系统的参考图为需要同时融入套餐图的产品图"));
+ok(prompt.includes("第2张到第7张传给系统的参考图为需要同时融入套餐图的产品图"));
+ok(prompt.includes("第1张参考设计风格图只用于参考版式和风格，不是套餐产品来源"));
+ok(prompt.includes("严禁保留、复制或描绘第1张图里的原菜品"));
+ok(prompt.includes("如果第1张图中原本有产品主体，请用第2张到第7张产品图中的主体替换其位置"));
+ok(prompt.includes("成图中允许出现的可识别食物主体只能来自第2张到第7张套餐产品图"));
+ok(prompt.includes("不得添加名单外的菜品、饮品、小食、包装商品或参考图原产品"));
+ok(prompt.includes("只提取该图的目标产品主体，其他元素忽略"));
 ok(prompt.includes("所有上传产品图中的真实食物主体"));
 ok(prompt.includes("同一张套餐图"));
 ok(prompt.includes("不能遗漏任何一张产品图"));
 ok(prompt.includes("不要要求用户手动输入描述文字"));
 ok(prompt.includes("横版产品图"));
+
+const twoImagePrompt = packageImageModule.buildPackageImagePrompt({
+  shopName: "套餐小馆",
+  productNames: ["鸡腿饭", "牛肉面"],
+  productImageCount: 2,
+  platform: "taobao",
+});
+ok(twoImagePrompt.includes("第2张到第3张传给系统的参考图为需要同时融入套餐图的产品图"));
+equal(twoImagePrompt.includes("第2张到第7张传给系统的参考图"), false);
 
 deepEqual(
   packageImageModule.resolvePackageImageReferences(
@@ -60,8 +76,13 @@ equal(
   packageImageModule.resolvePackageImageProductName([
     { productName: "鸡腿饭" },
     { productName: "牛肉面" },
+    { productName: "炸鸡" },
+    { productName: "小食拼盘" },
+    { productName: "煎饺" },
+    { productName: "豆浆" },
+    { productName: "第七张不应纳入" },
   ]),
-  "鸡腿饭、牛肉面套餐图"
+  "鸡腿饭、牛肉面、炸鸡、小食拼盘、煎饺、豆浆套餐图"
 );
 
 const sidebarSource = read("src/components/Sidebar.tsx");
@@ -79,8 +100,8 @@ ok(
 const workspaceSource = read("src/hooks/useGenerationWorkspace.ts");
 ok(workspaceSource.includes(' | "packageImage"'), "工作区类型应包含 packageImage");
 ok(workspaceSource.includes("usePackageImageWorkspace"), "工作区应接入套餐图 hook");
-ok(workspaceSource.includes("packageImage.busy"), "全局忙碌状态应包含套餐图");
-ok(workspaceSource.includes("packageImage,"), "工作区返回值应包含套餐图状态");
+ok(workspaceSource.includes("countBusySlots(packageImageSlots)"), "全局忙碌状态应包含套餐图");
+ok(workspaceSource.includes("packageImageSlots,"), "工作区返回值应包含套餐图状态");
 
 const pagesSource = read("src/components/WorkspacePages.tsx");
 ok(pagesSource.includes('workspace.tab === "packageImage"'), "页面路由应包含套餐图");
@@ -91,7 +112,7 @@ ok(shellSource.includes('"制作套餐图"'), "顶部标题应支持制作套餐
 
 const packagePageSource = read("src/components/PackageImagePage.tsx");
 ok(packagePageSource.includes("制作套餐图"), "套餐图页面标题应正确");
-ok(packagePageSource.includes("maxCount={4}"), "产品图最多 4 张");
+ok(packagePageSource.includes("maxCount={6}"), "产品图最多 6 张");
 ok(packagePageSource.includes("maxCount={1}"), "参考图最多 1 张");
 equal(packagePageSource.includes("<textarea"), false, "套餐图不应要求手动输入描述文字");
 ok(packagePageSource.includes("开始制作套餐图"), "套餐图应有独立生成按钮");
@@ -100,6 +121,6 @@ const apiValidationSource = read("src-tauri/src/api_validation.rs");
 equal(
   apiValidationSource.includes("Line5 && req.product_images.len() > 4"),
   false,
-  "线路5需要允许 1 张风格图 + 4 张产品图"
+  "线路5需要允许 1 张风格图 + 6 张产品图"
 );
-ok(apiValidationSource.includes("allow_five_reference_images_for_apimart"));
+ok(apiValidationSource.includes("allow_seven_reference_images_for_apimart"));

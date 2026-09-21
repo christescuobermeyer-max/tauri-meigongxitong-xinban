@@ -87,6 +87,10 @@ ok(
   "manxiaobai 模块应使用 multipart/form-data 调用 edit 接口"
 );
 ok(
+  editSource.includes('.text("response_format", "b64_json".to_string())'),
+  "线路6编辑接口应显式请求 b64_json，避免上游返回远程图片 URL"
+);
+ok(
   lineHealthRsSource.includes('"line6"'),
   "后端 line_health.rs 应在 LINES 数组里包含 line6"
 );

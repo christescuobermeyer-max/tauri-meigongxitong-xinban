@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs";
 import ts from "typescript";
 
 const libSource = readFileSync(new URL("../src/lib/p-signboard.ts", import.meta.url), "utf8")
+  .replace(
+    'import { buildPSignboardPromptConfig } from "./prompt-config";',
+    'function buildPSignboardPromptConfig(options) { return { key: "p_signboard", variables: options }; }'
+  )
   .replace('import { generateArchivedImageWithLine, uploadImageToOss } from "./tauri";', `
 const calls = [];
 async function uploadImageToOss(req) {
@@ -98,6 +102,10 @@ equal(calls[1].type, "generate");
 equal(calls[1].req.size, "auto");
 equal(calls[1].req.api_line, "auto");
 equal(calls[1].req.product_images[0].startsWith("https://oss.example.com/"), true);
+equal(calls[1].req.prompt_config.key, "p_signboard");
+equal(calls[1].req.prompt_config.variables.sourceUrl, calls[1].req.product_images[0]);
+equal(calls[1].req.prompt_config.variables.originalText, "老王餐厅");
+equal(calls[1].req.prompt_config.variables.newText, "呈尚小厨");
 equal(calls[1].archive.asset_kind, "p_signboard");
 ok(calls[1].archive.file_name_stem.includes("p-signboard"));
 ok(calls[1].req.prompt.includes(calls[1].req.product_images[0]));
@@ -143,11 +151,17 @@ equal(sidebarSource.includes('key: "pSignboard"'), true);
 equal(sidebarSource.includes('label: "P门头"'), true);
 
 const shellSource = readFileSync(new URL("../src/components/WorkspacePages.tsx", import.meta.url), "utf8");
-equal(shellSource.includes("PSignboardPage"), true);
+equal(shellSource.includes("PSignboardWorkspacePage"), true);
 equal(shellSource.includes('workspace.tab === "pSignboard"'), true);
 equal(shellSource.includes("PictureWallTabsPage"), false);
-equal(shellSource.includes("onRetry={ps.handleGenerate}"), true);
-equal(shellSource.includes("onDownload={ps.handleDownload}"), true);
+
+const workspacePageSource = readFileSync(
+  new URL("../src/components/workspace/PSignboardWorkspacePage.tsx", import.meta.url),
+  "utf8"
+);
+equal(workspacePageSource.includes("PSignboardPage"), true);
+equal(workspacePageSource.includes("onRetry={ps.handleGenerate}"), true);
+equal(workspacePageSource.includes("onDownload={ps.handleDownload}"), true);
 
 const pageSource = readFileSync(new URL("../src/components/PSignboardPage.tsx", import.meta.url), "utf8");
 equal(pageSource.includes("P门头"), true);

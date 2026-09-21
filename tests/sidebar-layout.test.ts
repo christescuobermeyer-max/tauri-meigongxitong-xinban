@@ -99,11 +99,47 @@ equal(
 );
 equal(
   source.includes("<code>v3.0.30</code>"),
+  false
+);
+equal(
+  source.includes("<code>v3.0.32</code>"),
+  false
+);
+equal(
+  source.includes("<code>v3.0.33</code>"),
+  false
+);
+equal(
+  source.includes("<code>v3.0.34</code>"),
+  false
+);
+equal(
+  source.includes("<code>v3.0.35</code>"),
+  false
+);
+equal(
+  source.includes("<code>v3.0.36</code>"),
+  false
+);
+equal(
+  source.includes("<code>v3.0.37</code>"),
+  false
+);
+equal(
+  source.includes("<code>v3.0.38</code>"),
+  false
+);
+equal(
+  source.includes("<code>v3.0.39</code>"),
+  false
+);
+equal(
+  source.includes("<code>v3.0.43</code>"),
   true
 );
-equal(packageJson.version, "3.0.30");
-equal(tauriConfig.version, "3.0.30");
-equal(cargoToml.includes('version = "3.0.30"'), true);
+equal(packageJson.version, "3.0.43");
+equal(tauriConfig.version, "3.0.43");
+equal(cargoToml.includes('version = "3.0.43"'), true);
 equal(source.includes('label: "巡店话术"'), false);
 equal(source.includes("patrolScript"), false);
 equal(source.includes("disabled: true"), false);

@@ -23,20 +23,22 @@ ok(
   "线路2应使用独立 IMAGE_2_LINE2_API_KEY，不应继续复用线路1 key"
 );
 ok(
-  providerSource.includes('const LINE4_API_URL: &str = "https://newapi.aicohere.org/v1/chat/completions"'),
-  "线路4应按新域名调用 pockgo chat/completions"
+  providerSource.includes('const LINE4_API_URL: &str = "https://img.zikl.dev/v1/images/generations"'),
+  "线路4应复用 Zikl generations 接口"
 );
 ok(
-  providerSource.includes('const LINE4_MODEL: &str = "gpt-image-2"'),
-  "线路4应使用 pockgo 的 gpt-image-2 图片模型"
+  providerSource.includes('const LINE4_EDIT_API_URL: &str = "https://img.zikl.dev/v1/images/edits"') &&
+    providerSource.includes('const LINE4_MODEL: &str = "gpt-image-2.5"'),
+  "线路4应使用 Zikl edits 接口和 gpt-image-2.5 模型"
 );
 ok(
   !providerSource.match(/const LINE4_API_KEY_ENV_KEYS[\s\S]*?"IMAGE_2_LINE2_API_KEY"[\s\S]*?];/),
   "线路4不应再读取 IMAGE_2_LINE2_API_KEY，避免误用线路2的新 key"
 );
 ok(
-  apiSource.includes("generate_pockgo_chat_image"),
-  "线路4应走独立的 pockgo chat 生图调用"
+  apiSource.includes("req.api_line == ImageApiLine::Line4") &&
+    apiSource.includes("generate_yunwu_edit_image"),
+  "线路4带参考图时应走 Zikl multipart 编辑调用"
 );
 
 const pockgoSource = readFileSync(pockgoSourcePath, "utf8");
