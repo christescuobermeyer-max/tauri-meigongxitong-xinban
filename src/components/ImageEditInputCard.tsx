@@ -1,8 +1,10 @@
 import {
+  IMAGE_EDIT_BATCH_MAX_IMAGES,
   getImageEditSourceMaxCount,
   getImageEditSpec,
   IMAGE_EDIT_LABEL,
   type ImageEditKind,
+  type ImageEditMode,
 } from "../lib/image-edit";
 import type { PlatformSpec, UploadedImage } from "../types";
 import ImageUpload from "./ImageUpload";
@@ -10,6 +12,7 @@ import { IconSparkles } from "./Icons";
 
 interface Props {
   kind: ImageEditKind;
+  mode: ImageEditMode;
   platform: PlatformSpec | null;
   images: UploadedImage[];
   referenceImages: UploadedImage[];
@@ -24,6 +27,7 @@ interface Props {
 
 export default function ImageEditInputCard({
   kind,
+  mode,
   platform,
   images,
   referenceImages,
@@ -37,8 +41,9 @@ export default function ImageEditInputCard({
 }: Props) {
   const label = IMAGE_EDIT_LABEL[kind];
   const spec = platform ? getImageEditSpec(kind, platform) : null;
-  const sourceMaxCount = getImageEditSourceMaxCount(kind);
-  const sourceCountText = kind === "product" ? "1-4 张" : "1 张";
+  const sourceMaxCount = getImageEditSourceMaxCount(kind, mode);
+  const sourceCountText = mode === "batch" ? `1-${IMAGE_EDIT_BATCH_MAX_IMAGES} 张` : kind === "product" ? "1-4 张" : "1 张";
+  const uploadTitle = mode === "batch" ? `上传需要批量修改的${label}图片` : spec?.uploadTitle;
   const canGenerate = Boolean(platform) && images.length > 0 && instruction.trim().length > 0 && !submitDisabled;
 
   return (
@@ -48,7 +53,7 @@ export default function ImageEditInputCard({
         <span>{spec ? `导出 ${spec.exportLabel}` : "选择后显示对应导出尺寸"}</span>
       </div>
       <div className="field">
-        <label className="field__label">{spec ? spec.uploadTitle : `${label}图片`}</label>
+        <label className="field__label">{uploadTitle ?? `${label}图片`}</label>
         <ImageUpload
           images={images}
           onChange={onImagesChange}
@@ -57,7 +62,9 @@ export default function ImageEditInputCard({
           compressedLabel={`${label}参考图`}
           showProductName={kind === "product"}
         />
-        {kind === "product" ? (
+        {mode === "batch" ? (
+          <span className="field__hint">最多上传 {IMAGE_EDIT_BATCH_MAX_IMAGES} 张图片，系统会逐张修改并逐张出图，不会合成一张</span>
+        ) : kind === "product" ? (
           <span className="field__hint">最多上传 4 张产品图，可把套餐内多个产品融入同一张图</span>
         ) : null}
       </div>
@@ -85,7 +92,7 @@ export default function ImageEditInputCard({
       </div>
       <button className="btn btn--primary btn--block" disabled={!canGenerate} onClick={onGenerate}>
         <IconSparkles style={{ width: 14, height: 14 }} />
-        {busy ? "修改中…" : `开始修改${label}`}
+        {busy ? "修改中…" : mode === "batch" ? `开始批量修改${label}` : `开始修改${label}`}
       </button>
     </div>
   );

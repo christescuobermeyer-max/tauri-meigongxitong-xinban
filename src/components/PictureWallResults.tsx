@@ -1,4 +1,8 @@
-import type { PictureWallEntry } from "../lib/picture-wall";
+import {
+  getPictureWallCopyText,
+  type PictureWallEntry,
+  type PictureWallTargetCount,
+} from "../lib/picture-wall";
 import type { PictureWallDownloadProgress } from "../lib/picture-wall-download";
 import { copyGeneratedItemImage } from "../lib/clipboard-image";
 import { getGenerationPreviewUrl, isArchivingToOss } from "../lib/generation-preview";
@@ -8,13 +12,11 @@ import GenerationStatusBadge from "./GenerationStatusBadge";
 import MerchantCopyCard from "./MerchantCopyCard";
 import { useToast } from "./Toast";
 
-const PICTURE_WALL_COPY_TEXT =
-  "我们为店铺上线了专业设计的图片墙，这是美团平台推荐的核心运营策略之一。数据显示，拥有完整图片墙的店铺在同类竞争中的点击率平均提升32%，顾客停留时间延长28%。这三张统一风格的图片不仅提升了我们的品牌专业形象，更重要的是增强了顾客对食品品质的信任感，有效提高了菜品转化率和客单价。";
-
 interface Props {
   entries: PictureWallEntry[];
   shopName: string;
   completedCount: number;
+  targetCount: PictureWallTargetCount;
   downloadStatus: (PictureWallDownloadProgress & { active: boolean }) | null;
   busy: boolean;
   onDownload: () => void;
@@ -26,6 +28,7 @@ export default function PictureWallResults({
   entries,
   shopName,
   completedCount,
+  targetCount,
   downloadStatus,
   busy,
   onDownload,
@@ -33,18 +36,19 @@ export default function PictureWallResults({
   onRetry,
 }: Props) {
   const canDownload = completedCount > 0 && !busy && !downloadStatus?.active;
+  const copyText = getPictureWallCopyText(targetCount);
   return (
     <section className="card">
       <div className="card__header">
         <div className="card__heading">
           <div className="card__title">生成结果</div>
           <span className="card__hint">
-            店铺 {shopName || "—"} · 已完成 {completedCount} / {entries.length || 3}
+            店铺 {shopName || "—"} · 已完成 {completedCount} / {targetCount}
           </span>
         </div>
         <BatchDownloadButton
           label={downloadStatus?.active ? "下载中…" : "批量下载图片墙"}
-          meta={`已完成 ${completedCount}/${entries.length || 3}`}
+          meta={`已完成 ${completedCount}/${targetCount}`}
           disabled={!canDownload}
           onClick={onDownload}
           title="批量下载已生成成功的图片墙"
@@ -65,7 +69,7 @@ export default function PictureWallResults({
         {entries.length === 0 ? (
           <div className="picture-wall-empty">
             <IconImage style={{ width: 22, height: 22 }} />
-            <strong>上传 3 张产品图后即可生成图片墙</strong>
+            <strong>上传 {targetCount} 张产品图后即可生成图片墙</strong>
             <span>生成后可批量下载高清原图 + 240×330 版本</span>
           </div>
         ) : (
@@ -83,7 +87,7 @@ export default function PictureWallResults({
             ))}
           </div>
         )}
-        <MerchantCopyCard text={PICTURE_WALL_COPY_TEXT} successMessage="图片墙沟通文案已复制到剪贴板" />
+        <MerchantCopyCard text={copyText} successMessage="图片墙沟通文案已复制到剪贴板" />
       </div>
     </section>
   );

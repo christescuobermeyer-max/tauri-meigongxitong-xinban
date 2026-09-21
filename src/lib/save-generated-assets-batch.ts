@@ -2,6 +2,8 @@ import { buildBatchDownloadPlans } from "./generated-asset-files";
 import { pickDirectoryPath, resizeAndSaveImage, saveBase64Image } from "./tauri";
 import type { GenerationItem, PlatformSpec } from "../types";
 
+type ThreePieceBatchKind = "avatar" | "storefront" | "poster";
+
 export async function saveGeneratedAssetsBatch(
   items: {
     avatar: GenerationItem;
@@ -9,12 +11,13 @@ export async function saveGeneratedAssetsBatch(
     poster: GenerationItem;
   },
   shopName: string,
-  currentPlatform: PlatformSpec
+  currentPlatform: PlatformSpec,
+  kinds?: readonly ThreePieceBatchKind[]
 ): Promise<string[] | null> {
   const directoryPath = await pickDirectoryPath("选择批量下载文件夹");
   if (!directoryPath) return null;
 
-  const plans = buildBatchDownloadPlans(items, shopName, currentPlatform, directoryPath);
+  const plans = buildBatchDownloadPlans(items, shopName, currentPlatform, directoryPath, kinds);
   const savedPaths: string[] = [];
 
   for (const plan of plans) {

@@ -12,6 +12,9 @@ interface Props {
   dropzoneTitle?: string;
   compressedLabel?: string;
   showProductName?: boolean;
+  disabled?: boolean;
+  referenceMaxDimension?: number;
+  referenceQuality?: number;
 }
 
 const ACCEPTED = ["image/png", "image/jpeg", "image/webp"];
@@ -26,6 +29,9 @@ export default function ImageUpload({
   dropzoneTitle = "点击、拖拽或 Ctrl+V 粘贴产品图至此",
   compressedLabel = "产品图参考总",
   showProductName = false,
+  disabled = false,
+  referenceMaxDimension = PRODUCT_REFERENCE_MAX_DIMENSION,
+  referenceQuality = PRODUCT_REFERENCE_QUALITY,
 }: Props) {
   const [drag, setDrag] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -34,6 +40,7 @@ export default function ImageUpload({
 
   const ingest = useCallback(
     async (files: FileList | File[]) => {
+      if (disabled) return;
       const arr = Array.from(files);
       const accepted: UploadedImage[] = [];
       for (const [index, f] of arr.entries()) {
@@ -42,8 +49,8 @@ export default function ImageUpload({
         const compressed = await compressImageFile(f);
         const productCompressed = await compressImageFile(
           f,
-          PRODUCT_REFERENCE_MAX_DIMENSION,
-          PRODUCT_REFERENCE_QUALITY
+          referenceMaxDimension,
+          referenceQuality
         );
         accepted.push({
           id: uid(),
@@ -61,7 +68,7 @@ export default function ImageUpload({
       const merged = [...images, ...accepted].slice(0, maxCount);
       onChange(merged);
     },
-    [images, onChange, maxCount]
+    [images, onChange, maxCount, disabled, referenceMaxDimension, referenceQuality]
   );
 
   useEffect(() => {
@@ -90,7 +97,7 @@ export default function ImageUpload({
       <div
         className="dropzone"
         data-drag={drag}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => { if (!disabled) inputRef.current?.click(); }}
         onDragOver={(e) => {
           e.preventDefault();
           setDrag(true);
@@ -110,6 +117,7 @@ export default function ImageUpload({
         <input
           ref={inputRef}
           type="file"
+          disabled={disabled}
           multiple
           accept="image/png,image/jpeg,image/webp"
           style={{ display: "none" }}
@@ -149,6 +157,7 @@ export default function ImageUpload({
                 ) : null}
                 <button
                   className="thumb__remove"
+                  disabled={disabled}
                   aria-label="移除"
                   onClick={(e) => {
                     e.stopPropagation();

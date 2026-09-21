@@ -1,5 +1,6 @@
 import { generateArchivedImageWithLine, uploadImageToOss } from "./tauri";
 import { resolveGeneratedArchiveUrl } from "./oss-assets";
+import { buildPictureWallPromptConfig } from "./prompt-config";
 import { runWithAutoRetry } from "./generation-retry";
 import { safeFileName } from "./utils";
 import type {
@@ -39,7 +40,11 @@ function buildAppearanceClausePW(themeColor?: ThemeColor, brandStyle?: BrandStyl
 export const PICTURE_WALL_SOURCE_SIZE = { w: 1086, h: 1448 };
 export const PICTURE_WALL_EXPORT_SIZE = { w: 240, h: 330 };
 export const PICTURE_WALL_GENERATION_SIZE = "1024x1536";
+export const PICTURE_WALL_TARGET_COUNTS = [1, 2, 3] as const;
+export const DEFAULT_PICTURE_WALL_TARGET_COUNT = 3;
 const APIMART_PICTURE_WALL_SIZE = "3:4";
+
+export type PictureWallTargetCount = (typeof PICTURE_WALL_TARGET_COUNTS)[number];
 
 export interface PictureWallEntry {
   sourceImageId: string;
@@ -185,6 +190,12 @@ export async function generatePictureWallItem(
       const response = await generateArchivedImageWithLine(
         {
           prompt: buildPictureWallPrompt(shopName, sourceImage.productName, productOssUrl, options.appearance ?? {}),
+          prompt_config: buildPictureWallPromptConfig({
+            shopName,
+            productName: sourceImage.productName,
+            productOssUrl,
+            appearance: options.appearance ?? {},
+          }),
           size: resolvePictureWallGenerationSize(generationLine),
           product_images: [productOssUrl],
           api_line: "auto",
@@ -219,6 +230,20 @@ export async function generatePictureWallItem(
     historyRecorded: generated.historyRecorded,
     historyError: generated.historyError,
   };
+}
+
+export function limitPictureWallImages<T>(images: T[], targetCount: PictureWallTargetCount): T[] {
+  return images.slice(0, targetCount);
+}
+
+export function getPictureWallCopyText(count: PictureWallTargetCount): string {
+  const imagePhrase =
+    count === 1
+      ? "这张专业图片墙"
+      : count === 2
+        ? "这两张统一风格的图片"
+        : "这三张统一风格的图片";
+  return `我们为店铺上线了专业设计的图片墙，这是美团平台推荐的核心运营策略之一。数据显示，拥有完整图片墙的店铺在同类竞争中的点击率平均提升32%，顾客停留时间延长28%。${imagePhrase}不仅提升了我们的品牌专业形象，更重要的是增强了顾客对食品品质的信任感，有效提高了菜品转化率和客单价。`;
 }
 
 function resolvePictureWallGenerationSize(generationLine: GenerationLine) {

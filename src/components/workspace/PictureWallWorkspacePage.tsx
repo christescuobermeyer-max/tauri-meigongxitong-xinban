@@ -8,7 +8,7 @@ interface Props {
   globalBusy?: boolean;
 }
 
-const TAB_LABELS = ["店铺1", "店铺2", "店铺3", "店铺4", "店铺5", "店铺6", "店铺7", "店铺8"];
+const TAB_LABELS = ["店铺1", "店铺2", "店铺3", "店铺4", "店铺5", "店铺6", "店铺7", "店铺8", "店铺9", "店铺10"];
 
 export default function PictureWallWorkspacePage({ slots, globalBusy = false }: Props) {
   const [active, setActive] = useState(0);
@@ -39,6 +39,8 @@ export default function PictureWallWorkspacePage({ slots, globalBusy = false }: 
         setThemeColor={pw.setThemeColor}
         brandStyle={pw.brandStyle}
         setBrandStyle={pw.setBrandStyle}
+        targetCount={pw.targetCount}
+        setTargetCount={pw.setTargetCount}
         entries={pw.entries}
         completedCount={pw.completedCount}
         downloadStatus={pw.downloadStatus}

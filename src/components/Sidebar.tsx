@@ -42,19 +42,19 @@ export default function Sidebar({
       key: "productBatch",
       label: "制作全店图",
       icon: <IconBatchImages />,
-      desc: "最多 10 张批量全店图",
+      desc: "最多 20 张批量全店图",
     },
     {
       key: "packageImage",
       label: "制作套餐图",
       icon: <IconBatchImages />,
-      desc: "最多 4 张产品合成套餐图",
+      desc: "最多 6 张产品合成套餐图",
     },
     {
       key: "pictureWall",
       label: "图片墙生成",
       icon: <IconImage />,
-      desc: "3 张美团图片墙",
+      desc: "1-3 张美团图片墙",
     },
     {
       key: "pSignboard",
@@ -72,7 +72,7 @@ export default function Sidebar({
       key: "imageEdit",
       label: "修改图片",
       icon: <IconSettings />,
-      desc: "头像 / 店招 / 海报 / 产品图修改",
+      desc: "单张 / 批量逐张修改图片",
     },
     {
       key: "detailPage",
@@ -85,6 +85,12 @@ export default function Sidebar({
       label: "品牌故事",
       icon: <IconSparkles />,
       desc: "店铺品牌文案 + 5 张配图",
+    },
+    {
+      key: "menuDesign",
+      label: "菜单设计",
+      icon: <IconDesignSuite />,
+      desc: "文字 / 截图整理与菜单设计",
     },
     {
       key: "dataAnalysis",
@@ -103,6 +109,12 @@ export default function Sidebar({
       label: "实时监控",
       icon: <IconMonitor />,
       desc: "网关并发 / 线路健康 / 排队情况",
+    },
+    {
+      key: "imagePlaza",
+      label: "图片广场",
+      icon: <IconBatchImages />,
+      desc: "所有账号最新生图只读预览",
     },
     {
       key: "admin",
@@ -156,7 +168,7 @@ export default function Sidebar({
         />
 
         <div className="sidebar__footer">
-          <code>v3.0.30</code>
+          <code>v3.0.43</code>
           <span>呈尚策划运营部</span>
         </div>
       </div>

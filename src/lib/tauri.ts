@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { downloadOssImageAsBase64, imageBase64ToDataUrl } from "./oss-image-download";
+import type { RemotePromptConfig } from "./prompt-config";
 import { supabase } from "./supabase";
 import type {
   BrandCopy,
@@ -95,11 +96,13 @@ export async function parseDouyinVideo(shareText: string): Promise<VideoInfo> {
 
 export interface GenerateImageRequest {
   prompt: string;
+  /** 云端 prompt 模板配置：生产网关优先用它渲染最终 prompt，本地直连保留 prompt 兜底 */
+  prompt_config?: RemotePromptConfig;
   /** 线路2/4/5支持 16:9 店招与 21:9 海报；线路3支持 1024x1024 / 1024x1536 / 1536x1024 / 21:9 / 3:4；线路5门头 auto 会转为 3:2 */
   size: string;
   /** 参考图列表：支持不含 data: 前缀的 base64，也支持可访问 URL；可为空 */
   product_images: string[];
-  /** 线路2为 Zikl，线路3为 vectorengine，线路4为 pockgo，线路5为 APIMart 兼容线路 */
+  /** 线路2/3/4复用 Zikl 上游，线路5为 APIMart 兼容线路 */
   api_line?: GenerationLine | "auto";
 }
 
@@ -107,6 +110,7 @@ export interface ArchiveGeneratedImageRequest {
   asset_kind: string;
   file_name_stem: string;
   shop_name?: string;
+  product_name?: string;
   platform?: Platform;
 }
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { GenerationWorkspace } from "../../hooks/useGenerationWorkspace";
+import { getSelectedThreePieceKinds } from "../../lib/three-piece-selection";
 import GeneratePanel from "../GeneratePanel";
 import ResultPanel from "../ResultPanel";
 import MultiStoreTabs from "./MultiStoreTabs";
@@ -10,7 +11,7 @@ interface Props {
   globalBusy?: boolean;
 }
 
-const TAB_LABELS = ["店铺1", "店铺2", "店铺3", "店铺4", "店铺5", "店铺6", "店铺7", "店铺8"];
+const TAB_LABELS = ["店铺1", "店铺2", "店铺3", "店铺4", "店铺5", "店铺6", "店铺7", "店铺8", "店铺9", "店铺10"];
 
 export default function ThreePieceWorkspacePage({ slots, elapsed, globalBusy = false }: Props) {
   const [active, setActive] = useState(0);
@@ -35,6 +36,8 @@ export default function ThreePieceWorkspacePage({ slots, elapsed, globalBusy = f
         setThemeColor={tp.setThemeColor}
         brandStyle={tp.brandStyle}
         setBrandStyle={tp.setBrandStyle}
+        selectedKinds={tp.selectedKinds}
+        onToggleSelectedKind={tp.toggleSelectedKind}
         images={tp.images}
         setImages={tp.setImages}
         onGenerate={tp.handleGenerate}
@@ -50,6 +53,7 @@ export default function ThreePieceWorkspacePage({ slots, elapsed, globalBusy = f
         avatar={tp.avatar}
         storefront={tp.storefront}
         poster={tp.poster}
+        selectedKinds={tp.selectedKinds}
         onRetry={(kind) => tp.retry(kind as "avatar" | "storefront" | "poster")}
         onDownload={(kind, platform) =>
           tp.handleDownload(kind as "avatar" | "storefront" | "poster", platform)
@@ -66,5 +70,6 @@ function describe(slot: GenerationWorkspace["threePieceSlots"][number]): string 
   const running = [slot.avatar, slot.storefront, slot.poster].filter(
     (item) => item.status === "running" || item.status === "queued"
   );
-  return running.length ? `进行中 ${running.length}/3` : "";
+  const selectedCount = getSelectedThreePieceKinds(slot.selectedKinds).length;
+  return running.length ? `进行中 ${running.length}/${selectedCount}` : "";
 }

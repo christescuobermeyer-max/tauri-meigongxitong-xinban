@@ -8,6 +8,7 @@ import {
 } from "../lib/data-analysis";
 import { getAutoRetryAttempt, runWithAutoRetry } from "../lib/generation-retry";
 import { resolveGeneratedArchiveUrl } from "../lib/oss-assets";
+import { buildDataAnalysisPromptConfig } from "../lib/prompt-config";
 import {
   generateArchivedImageWithLine,
   pickSavePath,
@@ -132,6 +133,7 @@ export default function useDataAnalysisWorkspace({
           const response = await generateArchivedImageWithLine(
             {
               prompt: buildDataAnalysisPrompt(snapshot.storeName),
+              prompt_config: buildDataAnalysisPromptConfig(snapshot.storeName),
               size: resolveDataAnalysisSize(snapshot.generationLine),
               product_images: [snapshot.screenshotOssUrl],
               api_line: "auto",

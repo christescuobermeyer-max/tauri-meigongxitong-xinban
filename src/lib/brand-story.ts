@@ -1,5 +1,6 @@
 import { generateArchivedImageWithLine, generateBrandStoryText } from "./tauri";
 import { resolveGeneratedArchiveUrl } from "./oss-assets";
+import { buildBrandStoryImagePromptConfig } from "./prompt-config";
 import { runWithAutoRetry } from "./generation-retry";
 import { safeFileName } from "./utils";
 import type {
@@ -182,11 +183,12 @@ export async function generateBrandStoryImage(options: {
 }): Promise<GenerationItem> {
   const config = BRAND_STORY_IMAGE_CONFIGS.find((c) => c.index === options.index);
   if (!config) throw new Error(`未知品牌故事配图索引：${options.index}`);
+  const promptContent = config.getPrompt(options.copy);
 
   const prompt = buildBrandStoryImagePrompt(
     options.storeName,
     options.category,
-    config.getPrompt(options.copy)
+    promptContent
   );
 
   const generated = await runWithAutoRetry({
@@ -195,6 +197,11 @@ export async function generateBrandStoryImage(options: {
       const response = await generateArchivedImageWithLine(
         {
           prompt,
+          prompt_config: buildBrandStoryImagePromptConfig({
+            storeName: options.storeName,
+            category: options.category,
+            promptContent,
+          }),
           size: resolveBrandStorySize(options.generationLine),
           product_images: [],
           api_line: "auto",

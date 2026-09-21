@@ -7,6 +7,7 @@ export interface HistoryEntry {
   kind: AssetKind;
   title: string;
   shopName: string;
+  productName?: string;
   remoteUrl: string;
   platform: Platform;
   generationLine?: HistoricalGenerationLine | null;
@@ -28,7 +29,7 @@ export function buildHistoryEntriesFromGenerationLogs(
   logs: Array<
     Pick<
       GenerationLogRow,
-      "id" | "asset_kind" | "shop_name" | "oss_url" | "generation_line" | "created_at" | "platform"
+      "id" | "asset_kind" | "shop_name" | "product_name" | "oss_url" | "generation_line" | "created_at" | "platform"
     >
   >,
   now = new Date()
@@ -40,6 +41,7 @@ export function buildHistoryEntriesFromGenerationLogs(
         kind: log.asset_kind,
         title: getHistoryTitle(log.asset_kind),
         shopName: log.shop_name,
+        productName: normalizeHistoryProductName(log.asset_kind, log.product_name),
         remoteUrl: log.oss_url,
         platform: normalizePlatform(log.platform),
         generationLine: normalizeGenerationLine(log.asset_kind, log.generation_line),
@@ -51,6 +53,7 @@ export function buildHistoryEntriesFromGenerationLogs(
 }
 
 export function getHistoryTitle(kind: AssetKind): string {
+  if (kind === "menu_design") return "菜单设计";
   return kind === "avatar"
     ? "头像"
     : kind === "storefront"
@@ -95,6 +98,7 @@ export function saveHistoryEntries(entries: HistoryEntry[]) {
     kind: entry.kind,
       title: entry.title,
       shopName: entry.shopName,
+      productName: entry.productName,
       remoteUrl: entry.remoteUrl,
       platform: entry.platform,
       generationLine: entry.generationLine,
@@ -118,6 +122,7 @@ function isHistoryEntry(value: unknown): value is HistoryEntry {
     typeof entry.remoteUrl === "string" &&
     (entry.platform === "meituan" || entry.platform === "taobao" || typeof entry.platform === "undefined") &&
     (entry.generationLine === "line1" || entry.generationLine === "line2" || entry.generationLine === "line3" || entry.generationLine === "line4" || entry.generationLine === "line5" || entry.generationLine === "line6" || entry.generationLine === "line7" || entry.generationLine === null || typeof entry.generationLine === "undefined") &&
+    (typeof entry.productName === "string" || typeof entry.productName === "undefined") &&
     (typeof entry.previewUrl === "string" || typeof entry.previewUrl === "undefined") &&
     typeof entry.createdAt === "string"
   );
@@ -128,13 +133,21 @@ function normalizeHistoryEntries(entries: HistoryEntry[]): HistoryEntry[] {
     const inferredKind = inferHistoryKindFromUrl(entry.remoteUrl) ?? entry.kind;
     const generationLine = normalizeGenerationLine(inferredKind, entry.generationLine);
     const platform = normalizePlatform(entry.platform);
+    const productName = normalizeHistoryProductName(inferredKind, entry.productName);
     return inferredKind === entry.kind &&
       entry.title === getHistoryTitle(inferredKind) &&
       generationLine === entry.generationLine &&
-      platform === entry.platform
+      platform === entry.platform &&
+      productName === entry.productName
       ? entry
-      : { ...entry, kind: inferredKind, title: getHistoryTitle(inferredKind), generationLine, platform };
+      : { ...entry, kind: inferredKind, title: getHistoryTitle(inferredKind), generationLine, platform, productName };
   });
+}
+
+function normalizeHistoryProductName(kind: AssetKind, value: string | null | undefined) {
+  if (kind !== "product") return undefined;
+  const trimmed = value?.trim();
+  return trimmed || undefined;
 }
 
 function normalizePlatform(platform: PlatformDb | Platform | null | undefined): Platform {
@@ -155,6 +168,7 @@ function inferHistoryKindFromUrl(remoteUrl: string): AssetKind | null {
   if (value.includes("picture-wall")) return "picture_wall";
   if (value.includes("detail-page")) return "detail_page";
   if (value.includes("brand-story")) return "brand_story";
+  if (value.includes("menu-design")) return "menu_design";
   if (value.includes("data-analysis")) return "data_analysis";
   if (value.includes("patrol-script")) return "patrol_script";
   return null;

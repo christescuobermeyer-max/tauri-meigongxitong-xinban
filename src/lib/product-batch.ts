@@ -1,5 +1,7 @@
 import type { GenerationItem, GenerationStatus, UploadedImage } from "../types";
 
+export const PRODUCT_BATCH_MAX_IMAGES = 20;
+
 export interface ProductBatchEntry {
   sourceImageId: string;
   sourceName: string;

@@ -96,12 +96,16 @@ function WorkspaceRuntime({
                       ? "详情页生成"
                       : workspace.tab === "brandStory"
                         ? "品牌故事"
+                        : workspace.tab === "menuDesign"
+                          ? "菜单设计"
                         : workspace.tab === "dataAnalysis"
                           ? "数据分析"
                       : workspace.tab === "history"
                         ? "历史记录"
                         : workspace.tab === "gatewayMonitor"
                           ? "实时监控"
+                          : workspace.tab === "imagePlaza"
+                            ? "图片广场"
                           : "后台管理";
 
   return (

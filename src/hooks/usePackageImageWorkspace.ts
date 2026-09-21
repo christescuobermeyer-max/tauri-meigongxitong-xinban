@@ -1,5 +1,6 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { getPlatform } from "../lib/platforms";
+import { buildPackageImagePromptConfig } from "../lib/prompt-config";
 import {
   buildPackageImagePrompt,
   resolvePackageImageProductName,
@@ -63,8 +64,8 @@ export default function usePackageImageWorkspace({
       onToast("请上传至少 1 张套餐产品图", "error");
       return false;
     }
-    if (images.length > 4) {
-      onToast("套餐图最多支持 4 张产品图", "error");
+    if (images.length > 6) {
+      onToast("套餐图最多支持 6 张产品图", "error");
       return false;
     }
     return true;
@@ -85,6 +86,7 @@ export default function usePackageImageWorkspace({
       generationLine,
       productName: resolvePackageImageProductName(syncedImages),
       productNames: resolvePackageImageProductNames(syncedImages),
+      productImageCount: syncedImages.length,
       referenceImages: resolvePackageImageReferences(syncedStyleImages, syncedImages),
     };
   }
@@ -118,6 +120,7 @@ export default function usePackageImageWorkspace({
       sourceImages: syncedImages,
       referenceImages: snapshot.referenceImages,
       promptOverride: buildPackageImagePrompt(snapshot),
+      promptConfig: buildPackageImagePromptConfig(snapshot),
       setters: {
         avatar: noopSetter,
         storefront: noopSetter,
@@ -126,6 +129,7 @@ export default function usePackageImageWorkspace({
       },
       shopName: snapshot.shopName,
       productName: snapshot.productName,
+      historyProductName: snapshot.productName,
       platform: snapshot.platform,
       currentPlatform: snapshot.currentPlatform,
       avatar: emptyItem("avatar"),
@@ -183,5 +187,6 @@ function itemFromResult(result: RunOneResult): GenerationItem {
     attempt: result.attempt,
     historyRecorded: result.historyRecorded,
     historyError: result.historyError,
+    productName: result.productName,
   };
 }

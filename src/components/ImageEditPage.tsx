@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { type ImageEditKind } from "../lib/image-edit";
+import { type ImageEditKind, type ImageEditMode } from "../lib/image-edit";
 import type { GenerationItem, Platform, PlatformSpec, UploadedImage } from "../types";
 import ImageEditInputCard from "./ImageEditInputCard";
 import ImageEditKindSelect from "./ImageEditKindSelect";
@@ -11,6 +11,13 @@ interface Entry {
   referenceImages: UploadedImage[];
   instruction: string;
   item: GenerationItem;
+  batchEntries: Array<{
+    sourceImageId: string;
+    sourceName: string;
+    productName: string;
+    previewUrl: string;
+    item: GenerationItem;
+  }>;
 }
 
 interface Props {
@@ -19,6 +26,8 @@ interface Props {
   platform: Platform | null;
   setPlatform: (platform: Platform) => void;
   currentPlatform: PlatformSpec | null;
+  mode: ImageEditMode;
+  setMode: (mode: ImageEditMode) => void;
   entries: Record<ImageEditKind, Entry>;
   busy: boolean;
   submitDisabled?: boolean;
@@ -27,6 +36,9 @@ interface Props {
   setInstruction: (kind: ImageEditKind, value: string) => void;
   onGenerate: (kind: ImageEditKind) => void;
   onDownload: (kind: ImageEditKind) => void;
+  onRetryBatchItem: (kind: ImageEditKind, sourceImageId: string) => void;
+  onDownloadBatchItem: (kind: ImageEditKind, sourceImageId: string) => void;
+  onBatchDownload: (kind: ImageEditKind) => void;
 }
 
 export default function ImageEditPage({
@@ -35,6 +47,8 @@ export default function ImageEditPage({
   platform,
   setPlatform,
   currentPlatform,
+  mode,
+  setMode,
   entries,
   busy,
   submitDisabled = busy,
@@ -43,6 +57,9 @@ export default function ImageEditPage({
   setInstruction,
   onGenerate,
   onDownload,
+  onRetryBatchItem,
+  onDownloadBatchItem,
+  onBatchDownload,
 }: Props) {
   const [activeKind, setActiveKind] = useState<ImageEditKind>("avatar");
   const activeEntry = entries[activeKind];
@@ -56,7 +73,26 @@ export default function ImageEditPage({
               <div className="card__title">修改图片</div>
               <span className="card__hint">选择图片类型，上传原图并填写修改要求</span>
             </div>
-            <ImageEditKindSelect value={activeKind} disabled={busy} onChange={setActiveKind} />
+            <div className="image-edit-card__switches">
+              <div className="segmented image-edit-mode-select" role="radiogroup" aria-label="修改图片方式">
+                {([
+                  { value: "single", label: "单张修改" },
+                  { value: "batch", label: "批量逐张修改" },
+                ] as Array<{ value: ImageEditMode; label: string }>).map((option) => (
+                  <button
+                    key={option.value}
+                    className="segmented__item"
+                    type="button"
+                    data-active={mode === option.value}
+                    disabled={busy}
+                    onClick={() => setMode(option.value)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <ImageEditKindSelect value={activeKind} onChange={setActiveKind} />
+            </div>
           </div>
           <div className="card__body image-edit-card__body">
             <div className="image-edit-meta-row">
@@ -79,6 +115,7 @@ export default function ImageEditPage({
             <hr className="image-edit-divider" />
             <ImageEditInputCard
               kind={activeKind}
+              mode={mode}
               platform={currentPlatform}
               images={activeEntry.images}
               referenceImages={activeEntry.referenceImages}
@@ -95,10 +132,14 @@ export default function ImageEditPage({
       </div>
       <ImageEditResults
         platform={currentPlatform}
+        mode={mode}
         activeKind={activeKind}
         entries={entries}
         onRetry={onGenerate}
         onDownload={onDownload}
+        onRetryBatchItem={onRetryBatchItem}
+        onDownloadBatchItem={onDownloadBatchItem}
+        onBatchDownload={onBatchDownload}
       />
     </>
   );

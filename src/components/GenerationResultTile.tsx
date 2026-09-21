@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { GenerationItem } from "../types";
 import { canCopyGeneratedItemImage, copyGeneratedItemImage } from "../lib/clipboard-image";
 import { getGenerationPreviewUrl, isArchivingToOss } from "../lib/generation-preview";
@@ -13,6 +13,7 @@ interface Props {
   exportSize: string;
   idleMessage: string;
   compact?: boolean;
+  actionsDisabled?: boolean;
   onRetry: () => void;
   onDownload: () => void;
   downloadOptions?: Array<{
@@ -21,6 +22,7 @@ interface Props {
     title?: string;
     onClick: () => void;
   }>;
+  previewZoom?: boolean;
 }
 
 export default function GenerationResultTile({
@@ -30,17 +32,28 @@ export default function GenerationResultTile({
   exportSize,
   idleMessage,
   compact = false,
+  actionsDisabled = false,
   onRetry,
   onDownload,
   downloadOptions = [],
+  previewZoom = false,
 }: Props) {
   const toast = useToast();
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const busy = item.status === "running" || item.status === "queued";
   const canDownload = item.status === "succeeded";
   const canCopy = canCopyGeneratedItemImage(item);
   const hasDownloadOptions = downloadOptions.length > 0;
   const previewUrl = getGenerationPreviewUrl(item);
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setLightboxOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [lightboxOpen]);
   const busyTitle = item.status === "queued"
     ? "等待生成中…"
     : "正在生成中…";
@@ -94,8 +107,8 @@ export default function GenerationResultTile({
           <button
             className="btn btn--ghost btn--sm"
             onClick={onRetry}
-            disabled={busy}
-            title="重新生成"
+            disabled={busy || actionsDisabled}
+            title={actionsDisabled ? idleMessage : "重新生成"}
             type="button"
           >
             <IconRefresh style={{ width: 13, height: 13 }} />
@@ -104,7 +117,7 @@ export default function GenerationResultTile({
           <button
             className="btn btn--ghost btn--sm"
             onClick={handleCopyImage}
-            disabled={!canCopy}
+            disabled={!canCopy || actionsDisabled}
             title="复制图片到剪贴板"
             type="button"
           >
@@ -115,7 +128,7 @@ export default function GenerationResultTile({
             <button
               className="btn btn--secondary btn--sm"
               onClick={handleDownloadClick}
-              disabled={!canDownload}
+              disabled={!canDownload || actionsDisabled}
               title={`下载 (${exportSize})`}
               type="button"
               aria-haspopup={hasDownloadOptions ? "menu" : undefined}
@@ -147,7 +160,16 @@ export default function GenerationResultTile({
       <div className="result__body">
         <div className="result__preview" data-busy={item.status === "running"}>
           {previewUrl ? (
-            <img src={previewUrl} alt={title} />
+            previewZoom ? (
+              <button
+                type="button"
+                className="result__preview-button"
+                aria-label={`放大查看：${title}`}
+                onClick={() => setLightboxOpen(true)}
+              >
+                <img src={previewUrl} alt={title} />
+              </button>
+            ) : <img src={previewUrl} alt={title} />
           ) : item.status === "failed" ? (
             <div className="result__placeholder result__placeholder--error">
               <IconAlert style={{ width: 18, height: 18 }} />
@@ -183,6 +205,31 @@ export default function GenerationResultTile({
           )}
         </div>
       </div>
+      {previewZoom && lightboxOpen && previewUrl ? (
+        <div
+          className="admin__log-lightbox menu-design__lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${title}大图预览`}
+          onClick={() => setLightboxOpen(false)}
+        >
+          <img
+            className="admin__log-lightbox-image menu-design__lightbox-image"
+            src={previewUrl}
+            alt={title}
+            draggable={false}
+            onClick={(event) => event.stopPropagation()}
+          />
+          <button
+            type="button"
+            className="admin__log-lightbox-close"
+            aria-label="关闭大图"
+            onClick={() => setLightboxOpen(false)}
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

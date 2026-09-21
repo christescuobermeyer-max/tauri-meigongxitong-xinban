@@ -1,5 +1,6 @@
 import { archiveGeneratedImage } from "./oss-assets";
 import { buildGenerationPayload } from "./generation-flow";
+import { buildGenerationPromptConfig, type RemotePromptConfig } from "./prompt-config";
 import { generateArchivedImageWithLine, generateImageWithLine, getBackendGatewayUrl } from "./tauri";
 import { safeFileName } from "./utils";
 import type {
@@ -22,6 +23,7 @@ export interface GenerateAssetResult {
   attempt?: number;
   historyRecorded?: boolean;
   historyError?: string;
+  productName?: string;
 }
 
 export interface GenerateAssetBase64Result {
@@ -33,6 +35,7 @@ export interface GenerateAssetBase64Result {
   archiveError?: string;
   historyRecorded?: boolean;
   historyError?: string;
+  productName?: string;
 }
 
 export function getMissingReferenceMessage(kind: AssetKind): string {
@@ -47,6 +50,7 @@ export interface GenerateAssetOptions {
   kind: AssetKind;
   shopName: string;
   productName?: string;
+  historyProductName?: string;
   platform: Platform;
   currentPlatform: PlatformSpec;
   sourceImages: UploadedImage[];
@@ -56,6 +60,7 @@ export interface GenerateAssetOptions {
   avatarMode?: AvatarReferenceMode;
   avatarCategory?: string;
   promptOverride?: string;
+  promptConfig?: RemotePromptConfig;
   generationLine: GenerationLine;
   appearance?: AppearanceOptions;
 }
@@ -67,6 +72,7 @@ export async function generateAssetBase64(
     kind,
     shopName,
     productName = "",
+    historyProductName,
     platform,
     currentPlatform,
     sourceImages,
@@ -76,6 +82,7 @@ export async function generateAssetBase64(
     avatarMode = "image",
     avatarCategory = "",
     promptOverride,
+    promptConfig,
     generationLine,
     appearance = {},
   } = options;
@@ -101,9 +108,24 @@ export async function generateAssetBase64(
   }
 
   const referenceImagesForRequest = productImages ?? [];
+  const remotePromptConfig =
+    promptConfig ??
+    (!promptOverride
+      ? buildGenerationPromptConfig({
+          kind,
+          shopName,
+          productName,
+          platform,
+          avatarMode,
+          avatarCategory,
+          appearance,
+        })
+      : undefined);
   const started = Date.now();
+  const archiveProductName = getHistoryProductName(kind, historyProductName ?? productName);
   const request = {
     prompt,
+    prompt_config: remotePromptConfig,
     size,
     product_images: referenceImagesForRequest,
     api_line: "auto",
@@ -113,6 +135,7 @@ export async function generateAssetBase64(
         asset_kind: kind,
         file_name_stem: `${safeFileName(shopName)}-${kind}`,
         shop_name: shopName,
+        product_name: archiveProductName,
         platform,
       })
     : await generateImageWithLine(request);
@@ -126,6 +149,7 @@ export async function generateAssetBase64(
     archiveError: generated.archiveError,
     historyRecorded: generated.historyRecorded,
     historyError: generated.historyError,
+    productName: archiveProductName,
   };
 }
 
@@ -151,9 +175,16 @@ export async function generateAsset(options: GenerateAssetOptions): Promise<Gene
     elapsedMs: generated.elapsedMs,
     historyRecorded: generated.historyRecorded,
     historyError: generated.historyError,
+    productName: generated.productName,
   };
 }
 
 function shouldRequireReferenceImages(kind: AssetKind, avatarMode: AvatarReferenceMode) {
   return kind === "storefront" || kind === "poster" || kind === "product" || avatarMode === "image";
+}
+
+function getHistoryProductName(kind: AssetKind, productName: string | undefined) {
+  if (kind !== "product") return undefined;
+  const trimmed = productName?.trim();
+  return trimmed || undefined;
 }

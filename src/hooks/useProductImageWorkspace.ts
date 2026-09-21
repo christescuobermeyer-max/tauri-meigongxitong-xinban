@@ -1,5 +1,6 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { getPlatform } from "../lib/platforms";
+import { buildProductPromptConfig } from "../lib/prompt-config";
 import { buildProductPrompt } from "../lib/prompts";
 import { saveGeneratedAsset } from "../lib/save-generated-asset";
 import {
@@ -110,6 +111,7 @@ export default function useProductImageWorkspace(options: Options) {
       attempt: result.attempt,
       historyRecorded: result.historyRecorded,
       historyError: result.historyError,
+      productName: result.productName,
     };
     onRecordHistory("product", item, shopNameSnapshot, platformSnapshot);
   }
@@ -141,6 +143,7 @@ export default function useProductImageWorkspace(options: Options) {
       );
       return null;
     }
+    const historyProductName = snapshot.productName || syncedImages[0]?.productName || "";
 
     const result = await runOneGeneration({
       kind: "product",
@@ -148,6 +151,7 @@ export default function useProductImageWorkspace(options: Options) {
       setters: buildSetters(),
       shopName: snapshot.shopName,
       productName: productNameForGeneration,
+      historyProductName,
       platform: snapshot.platform,
       currentPlatform: snapshot.currentPlatform,
       avatar: emptyItem("avatar"),
@@ -162,6 +166,13 @@ export default function useProductImageWorkspace(options: Options) {
         appearance,
         { includeProductName }
       ),
+      promptConfig: buildProductPromptConfig({
+        shopName: snapshot.shopName,
+        productName: snapshot.productName,
+        platform: snapshot.platform,
+        appearance,
+        includeProductName,
+      }),
       appearance,
       onToast,
     });

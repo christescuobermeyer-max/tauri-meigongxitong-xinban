@@ -11,6 +11,7 @@ export type AssetKindLabel =
   | "图片墙"
   | "详情页"
   | "品牌故事"
+  | "菜单设计"
   | "数据分析"
   | "巡店话术";
 
@@ -23,6 +24,7 @@ export const ASSET_LABEL: Record<string, string> = {
   picture_wall: "图片墙",
   detail_page: "详情页",
   brand_story: "品牌故事",
+  menu_design: "菜单设计",
   data_analysis: "数据分析",
   patrol_script: "巡店话术",
 };

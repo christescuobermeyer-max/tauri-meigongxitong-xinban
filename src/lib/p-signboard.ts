@@ -1,5 +1,6 @@
 import { generateArchivedImageWithLine, uploadImageToOss } from "./tauri";
 import { resolveGeneratedArchiveUrl } from "./oss-assets";
+import { buildPSignboardPromptConfig } from "./prompt-config";
 import { resolvePSignboardGenerationSize } from "./generation-size";
 import { runWithAutoRetry } from "./generation-retry";
 import { safeFileName } from "./utils";
@@ -40,6 +41,11 @@ export async function generatePSignboardItem(
       const response = await generateArchivedImageWithLine(
         {
           prompt: buildPSignboardPrompt(sourceUpload.url, options.originalText, options.newText),
+          prompt_config: buildPSignboardPromptConfig({
+            sourceUrl: sourceUpload.url,
+            originalText: options.originalText,
+            newText: options.newText,
+          }),
           size: resolvePSignboardGenerationSize(generationLine),
           product_images: [sourceUpload.url],
           api_line: "auto",

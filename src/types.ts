@@ -23,6 +23,7 @@ export type AssetKind =
   | "picture_wall"
   | "detail_page"
   | "brand_story"
+  | "menu_design"
   | "data_analysis"
   | "patrol_script";
 
@@ -139,4 +140,6 @@ export interface GenerationItem {
   historyRecorded?: boolean;
   /** 网关写入云端生图记录失败原因；存在时前端会兜底写库 */
   historyError?: string;
+  /** 产品图历史记录使用的菜品名称；非产品图为空 */
+  productName?: string;
 }

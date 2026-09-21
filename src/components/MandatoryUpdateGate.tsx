@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CURRENT_APP_VERSION,
   fetchMandatoryUpdate,
@@ -18,6 +18,7 @@ interface Props {
 }
 
 export default function MandatoryUpdateGate({ suspend = false }: Props) {
+  const updateDeferredUntilRestartRef = useRef(false);
   const [update, setUpdate] = useState<MandatoryUpdateInfo | null>(null);
   const [checkingFailed, setCheckingFailed] = useState("");
   const [installing, setInstalling] = useState(false);
@@ -25,25 +26,35 @@ export default function MandatoryUpdateGate({ suspend = false }: Props) {
   const [progress, setProgress] = useState<AppUpdateProgress>(EMPTY_PROGRESS);
 
   useEffect(() => {
+    if (!suspend || installing) return;
+    updateDeferredUntilRestartRef.current = true;
+    setUpdate(null);
+    setCheckingFailed("");
+    setInstallError("");
+  }, [suspend, installing]);
+
+  useEffect(() => {
     let alive = true;
     if (suspend) {
-      setUpdate(null);
+      updateDeferredUntilRestartRef.current = true;
       return () => {
         alive = false;
       };
     }
+
+    // 只在本次软件启动时检查一次；运行中生图或后续云端开启强制更新，都等下次重启再触发。
     fetchMandatoryUpdate()
       .then((result) => {
-        if (alive) setUpdate(result);
+        if (alive && !updateDeferredUntilRestartRef.current) setUpdate(result);
       })
       .catch((error: unknown) => {
-        if (!alive) return;
+        if (!alive || updateDeferredUntilRestartRef.current) return;
         setCheckingFailed(error instanceof Error ? error.message : String(error));
       });
     return () => {
       alive = false;
     };
-  }, [suspend]);
+  }, []);
 
   useEffect(() => {
     if (!update) return;
@@ -73,6 +84,7 @@ export default function MandatoryUpdateGate({ suspend = false }: Props) {
   }, [update]);
 
   if (suspend) return null;
+  if (updateDeferredUntilRestartRef.current) return null;
   if (!update) return null;
 
   async function handleInstall() {

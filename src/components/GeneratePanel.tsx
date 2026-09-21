@@ -6,6 +6,14 @@ import type {
   UploadedImage,
 } from "../types";
 import { getAvatarGenerationErrorMessage } from "../lib/avatar-generation";
+import {
+  THREE_PIECE_LABEL,
+  THREE_PIECE_ORDER,
+  formatThreePieceSelection,
+  getSelectedThreePieceKinds,
+  type ThreePieceAssetKind,
+  type ThreePieceSelection,
+} from "../lib/three-piece-selection";
 import AppearanceFields from "./AppearanceFields";
 import ImageUpload from "./ImageUpload";
 import { IconSparkles } from "./Icons";
@@ -21,6 +29,8 @@ interface Props {
   setThemeColor: (v: ThemeColor | "") => void;
   brandStyle: BrandStyle | "";
   setBrandStyle: (v: BrandStyle | "") => void;
+  selectedKinds: ThreePieceSelection;
+  onToggleSelectedKind: (kind: ThreePieceAssetKind) => void;
   images: UploadedImage[];
   setImages: (imgs: UploadedImage[]) => void;
   onGenerate: () => void;
@@ -43,6 +53,8 @@ export default function GeneratePanel(props: Props) {
     setThemeColor,
     brandStyle,
     setBrandStyle,
+    selectedKinds,
+    onToggleSelectedKind,
     images,
     setImages,
     onGenerate,
@@ -53,9 +65,17 @@ export default function GeneratePanel(props: Props) {
     storefront,
     poster,
   } = props;
+  const selectedAssetKinds = getSelectedThreePieceKinds(selectedKinds);
+  const selectedLabel = formatThreePieceSelection(selectedKinds);
   const canSubmit =
     getAvatarGenerationErrorMessage({ shopName, mode: avatarMode, category: avatarCategory, images }) === null &&
+    selectedAssetKinds.length > 0 &&
     !submitDisabled;
+  const steps = [
+    { kind: "avatar", label: "生成店铺头像", item: avatar },
+    { kind: "storefront", label: "参考产品图生成店招", item: storefront },
+    { kind: "poster", label: "参考产品图生成海报", item: poster },
+  ].filter((step) => selectedKinds[step.kind as ThreePieceAssetKind]);
 
   return (
     <div className="panel-stack">
@@ -63,7 +83,7 @@ export default function GeneratePanel(props: Props) {
         <div className="card__header">
           <div className="card__heading">
             <div className="card__title">店铺信息</div>
-            <span className="card__hint">填写后可一键生成头像、店招与海报</span>
+            <span className="card__hint">选择需要生成的图片类型，默认生成完整三件套</span>
           </div>
         </div>
 
@@ -100,6 +120,28 @@ export default function GeneratePanel(props: Props) {
           />
 
           <div className="field">
+            <label className="field__label">本次生成项目</label>
+            <div className="three-piece-selection" role="group" aria-label="本次生成项目">
+              {THREE_PIECE_ORDER.map((kind) => (
+                <label
+                  key={kind}
+                  className="three-piece-selection__item"
+                  data-active={selectedKinds[kind]}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedKinds[kind]}
+                    disabled={busy}
+                    onChange={() => onToggleSelectedKind(kind)}
+                  />
+                  <span>{THREE_PIECE_LABEL[kind]}</span>
+                </label>
+              ))}
+            </div>
+            <span className="field__hint">默认全选，取消勾选后本次不会生成对应图片</span>
+          </div>
+
+          <div className="field">
             <label className="field__label">产品图（参考素材）</label>
             <ImageUpload images={images} onChange={setImages} maxCount={5} />
             <span className="field__hint">
@@ -110,16 +152,16 @@ export default function GeneratePanel(props: Props) {
           <div style={{ marginTop: 18 }}>
             <button className="btn btn--primary btn--block btn--lg" disabled={!canSubmit} onClick={onGenerate}>
               <IconSparkles style={{ width: 14, height: 14 }} />
-              {busy ? "生成中…" : "开始生成头像、店招与海报"}
+              {busy ? "生成中…" : `开始生成${selectedLabel}`}
             </button>
             {busy && (
               <ProgressSteps
                 elapsedMs={elapsed}
-                steps={[
-                  { index: 1, label: "生成店铺头像", item: avatar },
-                  { index: 2, label: "参考产品图生成店招", item: storefront },
-                  { index: 3, label: "参考产品图生成海报", item: poster },
-                ]}
+                steps={steps.map((step, index) => ({
+                  index: index + 1,
+                  label: step.label,
+                  item: step.item,
+                }))}
               />
             )}
           </div>

@@ -30,6 +30,7 @@ export type AssetKindDb =
   | "picture_wall"
   | "detail_page"
   | "brand_story"
+  | "menu_design"
   | "data_analysis"
   | "patrol_script";
 export type PlatformDb = "meituan" | "taobao";
@@ -50,6 +51,7 @@ export interface GenerationLogRow {
   id: string;
   user_id: string;
   shop_name: string;
+  product_name: string | null;
   asset_kind: AssetKindDb;
   platform: PlatformDb;
   generation_line: HistoricalGenerationLine | null;

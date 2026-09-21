@@ -16,6 +16,7 @@ export interface RecordGenerationLogInput {
   ossUrl: string;
   generationLine?: GenerationLine | null;
   elapsedMs?: number | null;
+  productName?: string | null;
 }
 
 export interface GenerationLogsPage {
@@ -38,6 +39,7 @@ export async function recordGenerationLog(
   const { error } = await supabase.from("generation_logs").insert({
     user_id: input.userId,
     shop_name: input.shopName.trim() || "未命名店铺",
+    product_name: input.assetKind === "product" ? normalizeProductName(input.productName) : null,
     asset_kind: input.assetKind,
     platform: input.platform,
     generation_line: input.generationLine ?? null,
@@ -49,6 +51,11 @@ export async function recordGenerationLog(
     return false;
   }
   return true;
+}
+
+function normalizeProductName(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed || null;
 }
 
 /** 云端分页读取历史记录，只拉取当前页，避免 7 天记录一次性全量下发。 */

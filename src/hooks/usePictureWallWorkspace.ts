@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  DEFAULT_PICTURE_WALL_TARGET_COUNT,
   applyPictureWallEntryUpdate,
   buildPictureWallEntries,
   failPendingPictureWallEntries,
@@ -7,8 +8,10 @@ import {
   getPictureWallFailedSourceImageIds,
   getPictureWallCompletedCount,
   hasBusyPictureWallEntries,
+  limitPictureWallImages,
   queuePictureWallEntriesForRetry,
   syncPictureWallEntries,
+  type PictureWallTargetCount,
   type PictureWallEntry,
 } from "../lib/picture-wall";
 import {
@@ -50,6 +53,7 @@ export default function usePictureWallWorkspace({
   const [shopName, setShopName] = useState("");
   const [themeColor, setThemeColor] = useState<ThemeColor | "">("");
   const [brandStyle, setBrandStyle] = useState<BrandStyle | "">("");
+  const [targetCount, setTargetCountValue] = useState<PictureWallTargetCount>(DEFAULT_PICTURE_WALL_TARGET_COUNT);
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [entries, setEntries] = useState<PictureWallEntry[]>([]);
   const [downloadStatus, setDownloadStatus] = useState<
@@ -63,13 +67,19 @@ export default function usePictureWallWorkspace({
   const busy = hasBusyPictureWallEntries(entries);
   const completedCount = getPictureWallCompletedCount(entries);
 
+  function setTargetCount(next: PictureWallTargetCount) {
+    if (busy) return;
+    setTargetCountValue(next);
+    setImages((current) => limitPictureWallImages(current, next));
+  }
+
   function validateInputs() {
     if (!shopName.trim()) {
       onToast("请输入店铺名称", "error");
       return false;
     }
-    if (images.length !== 3) {
-      onToast("请上传 3 张产品图片", "error");
+    if (images.length !== targetCount) {
+      onToast(`请上传 ${targetCount} 张产品图片`, "error");
       return false;
     }
     return true;
@@ -101,7 +111,7 @@ export default function usePictureWallWorkspace({
     onToast(
       shouldRetryFailedOnly
         ? `正在补生成 ${targetImages.length} 张失败图片墙，请耐心等待…`
-        : "正在按顺序生成 3 张图片墙，请耐心等待…",
+        : `正在按顺序生成 ${targetCount} 张图片墙，请耐心等待…`,
       "info"
     );
 
@@ -293,6 +303,8 @@ export default function usePictureWallWorkspace({
     setThemeColor,
     brandStyle,
     setBrandStyle,
+    targetCount,
+    setTargetCount,
     images,
     setImages,
     entries,

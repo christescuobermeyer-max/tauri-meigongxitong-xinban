@@ -132,7 +132,7 @@ export async function downloadHistoryEntry(entry: HistoryEntry): Promise<string[
   }
 
   if (entry.kind === "product") {
-    const spec = getGeneratedAssetExportSpec(entry.kind, entry.shopName, platform);
+    const spec = getGeneratedAssetExportSpec(entry.kind, entry.shopName, platform, entry.productName);
     const selectedPath = await pickSavePath(spec.fileName, [
       { name: "JPEG 图像", extensions: ["jpg", "jpeg"] },
     ]);

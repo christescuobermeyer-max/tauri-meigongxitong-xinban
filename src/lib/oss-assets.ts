@@ -27,6 +27,7 @@ const COMPRESSION_BY_KIND: Record<AssetKind, CompressionConfig> = {
   picture_wall: { maxDimension: 1536, quality: 92 },
   detail_page: { maxDimension: 2048, quality: 92 },
   brand_story: { maxDimension: 1792, quality: 90 },
+  menu_design: { maxDimension: 4096, quality: 95 },
   data_analysis: { maxDimension: 1792, quality: 90 },
   patrol_script: { maxDimension: 1792, quality: 90 },
 };

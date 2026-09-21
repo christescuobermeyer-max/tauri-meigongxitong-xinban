@@ -60,7 +60,7 @@ export default function PackageImagePage({
           <div className="card__header">
             <div className="card__heading">
               <div className="card__title">制作套餐图</div>
-              <span className="card__hint">1 张参考设计风格图 + 最多 4 张产品图，自动合成一张套餐图</span>
+              <span className="card__hint">1 张参考设计风格图 + 最多 6 张产品图，自动合成一张套餐图</span>
             </div>
           </div>
 
@@ -103,8 +103,8 @@ export default function PackageImagePage({
               <ImageUpload
                 images={images}
                 onChange={setImages}
-                maxCount={4}
-                dropzoneTitle="点击、拖拽或 Ctrl+V 粘贴 1-4 张套餐产品图"
+                maxCount={6}
+                dropzoneTitle="点击、拖拽或 Ctrl+V 粘贴 1-6 张套餐产品图"
                 compressedLabel="套餐产品参考总"
                 showProductName
               />

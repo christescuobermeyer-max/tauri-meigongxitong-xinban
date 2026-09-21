@@ -18,6 +18,10 @@
   grid-template-columns: minmax(0, 1fr) minmax(140px, 0.4fr);
 }
 
+.picture-wall-count-select {
+  width: fit-content;
+}
+
 .picture-wall-split {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
@@ -264,5 +268,12 @@
   .picture-wall-grid,
   .picture-wall-actions {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .picture-wall-count-select {
+    width: 100%;
+    grid-auto-flow: row;
   }
 }

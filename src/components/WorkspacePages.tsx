@@ -1,5 +1,7 @@
 import AdminPage from "./AdminPage";
+import MenuDesignPage from "./MenuDesignPage";
 import HistoryPanel from "./HistoryPanel";
+import ImagePlazaPage from "./ImagePlazaPage";
 import AdminGatewayMonitor from "./admin/AdminGatewayMonitor";
 import BrandStoryWorkspacePage from "./workspace/BrandStoryWorkspacePage";
 import DataAnalysisWorkspacePage from "./workspace/DataAnalysisWorkspacePage";
@@ -28,6 +30,12 @@ function CapacityNotice({ workspace }: Props) {
 }
 
 export default function WorkspacePages({ workspace }: Props) {
+  if (workspace.tab === "menuDesign") {
+    return <div className="page menu-design-page">
+      <CapacityNotice workspace={workspace} />
+      <MenuDesignPage workspace={workspace.menuDesign} globalBusy={workspace.generationCapacityFull} />
+    </div>;
+  }
   if (workspace.tab === "avatarStorefront") {
     return (
       <div className="page">
@@ -183,6 +191,14 @@ export default function WorkspacePages({ workspace }: Props) {
     return (
       <div className="page page--single">
         <AdminGatewayMonitor />
+      </div>
+    );
+  }
+
+  if (workspace.tab === "imagePlaza") {
+    return (
+      <div className="page page--single">
+        <ImagePlazaPage />
       </div>
     );
   }

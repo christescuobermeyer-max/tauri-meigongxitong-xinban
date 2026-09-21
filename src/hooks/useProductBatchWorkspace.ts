@@ -10,6 +10,7 @@ import type {
   UploadedImage,
 } from "../types";
 import { getPlatform } from "../lib/platforms";
+import { buildProductBatchPromptConfig } from "../lib/prompt-config";
 import { buildProductBatchPrompt } from "../lib/prompts";
 import { downloadProductBatchItem, downloadProductBatchItems } from "../lib/product-batch-download";
 import {
@@ -17,6 +18,7 @@ import {
   buildProductBatchEntries,
   getProductBatchCompletedCount,
   hasBusyProductBatchEntries,
+  PRODUCT_BATCH_MAX_IMAGES,
   resolveProductBatchReferenceImages,
   syncProductBatchEntries,
   type ProductBatchEntry,
@@ -81,6 +83,10 @@ export default function useProductBatchWorkspace({
       onToast("请上传至少 1 张产品图", "error");
       return false;
     }
+    if (images.length > PRODUCT_BATCH_MAX_IMAGES) {
+      onToast(`制作全店图最多支持 ${PRODUCT_BATCH_MAX_IMAGES} 张产品图`, "error");
+      return false;
+    }
     if (styleImages.length === 0) {
       onToast("请上传 1 张参考设计风格图", "error");
       return false;
@@ -138,6 +144,13 @@ export default function useProductBatchWorkspace({
         appearance,
         { includeProductName }
       ),
+      promptConfig: buildProductBatchPromptConfig({
+        shopName: snapshot.shopName,
+        productName: resolvedProductName,
+        platform: snapshot.platform,
+        appearance,
+        includeProductName,
+      }),
       setters: {
         avatar: noopSetter,
         storefront: noopSetter,
@@ -146,6 +159,7 @@ export default function useProductBatchWorkspace({
       },
       shopName: snapshot.shopName,
       productName: productNameForGeneration,
+      historyProductName: resolvedProductName,
       platform: snapshot.platform,
       currentPlatform: snapshot.currentPlatform,
       avatar: emptyItem("avatar"),
@@ -171,6 +185,7 @@ export default function useProductBatchWorkspace({
         attempt: result.attempt,
         historyRecorded: result.historyRecorded,
         historyError: result.historyError,
+        productName: result.productName,
       },
       snapshot.shopName,
       snapshot.platform

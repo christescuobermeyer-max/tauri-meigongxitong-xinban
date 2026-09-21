@@ -1,5 +1,5 @@
 import type { BrandStyle, Platform, ThemeColor, UploadedImage } from "../types";
-import type { ProductBatchEntry } from "../lib/product-batch";
+import { PRODUCT_BATCH_MAX_IMAGES, type ProductBatchEntry } from "../lib/product-batch";
 import { getPlatform } from "../lib/platforms";
 import AppearanceFields from "./AppearanceFields";
 import PlatformSelect from "./PlatformSelect";
@@ -68,7 +68,7 @@ export default function ProductBatchGeneratePanel({
         <div className="card__header">
           <div className="card__heading">
             <div className="card__title">制作全店图</div>
-            <span className="card__hint">参考设计风格图，最多一次批量制作 10 张全店产品图</span>
+            <span className="card__hint">参考设计风格图，最多一次批量制作 {PRODUCT_BATCH_MAX_IMAGES} 张全店产品图</span>
           </div>
         </div>
 
@@ -148,8 +148,8 @@ export default function ProductBatchGeneratePanel({
 
           <div className="field">
             <label className="field__label">产品图（参考素材）</label>
-            <ImageUpload images={images} onChange={setImages} maxCount={10} />
-            <span className="field__hint">最多一次上传 10 张产品图。系统会逐张生成，每次只取当前这一张产品图作为第 2 张参考图</span>
+            <ImageUpload images={images} onChange={setImages} maxCount={PRODUCT_BATCH_MAX_IMAGES} />
+            <span className="field__hint">最多一次上传 {PRODUCT_BATCH_MAX_IMAGES} 张产品图。系统会逐张生成，每次只取当前这一张产品图作为第 2 张参考图</span>
           </div>
 
           <div style={{ marginTop: 18 }}>

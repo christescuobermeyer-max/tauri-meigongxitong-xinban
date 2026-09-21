@@ -1,5 +1,6 @@
 import { generateArchivedImageWithLine, uploadImageToOss } from "./tauri";
 import { resolveGeneratedArchiveUrl } from "./oss-assets";
+import { buildDetailPagePromptConfig } from "./prompt-config";
 import { runWithAutoRetry } from "./generation-retry";
 import { safeFileName } from "./utils";
 import type { GenerationItem, GenerationLine, GenerationStatus, UploadedImage } from "../types";
@@ -107,6 +108,7 @@ export async function generateDetailPageItem(
       const response = await generateArchivedImageWithLine(
         {
           prompt: buildDetailPagePrompt({ shopName, productName, productOssUrl, pageIndex }),
+          prompt_config: buildDetailPagePromptConfig({ shopName, productName, productOssUrl, pageIndex }),
           size: DETAIL_PAGE_GENERATION_SIZE,
           product_images: [productOssUrl],
           api_line: "auto",

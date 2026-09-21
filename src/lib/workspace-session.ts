@@ -3,6 +3,7 @@ import { getAssetLabel } from "./generation-flow";
 import { getAutoRetryAttempt, runWithAutoRetry } from "./generation-retry";
 import { ensureUploadedImagesOnOss } from "./oss-assets";
 import { archiveAssetToOss, generateAssetBase64 } from "./workspace-generation";
+import type { RemotePromptConfig } from "./prompt-config";
 import type {
   AppearanceOptions,
   AssetKind,
@@ -23,6 +24,7 @@ export interface RunOneResult {
   attempt?: number;
   historyRecorded?: boolean;
   historyError?: string;
+  productName?: string;
 }
 
 type GenerationSetter = Dispatch<SetStateAction<GenerationItem>>;
@@ -39,9 +41,11 @@ interface RunOneOptions {
   sourceImages: UploadedImage[];
   referenceImages?: string[];
   promptOverride?: string;
+  promptConfig?: RemotePromptConfig;
   setters: GenerationSetters;
   shopName: string;
   productName?: string;
+  historyProductName?: string;
   platform: Platform;
   currentPlatform: PlatformSpec;
   avatar: GenerationItem;
@@ -93,9 +97,11 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
     sourceImages,
     referenceImages,
     promptOverride,
+    promptConfig,
     setters,
     shopName,
     productName = "",
+    historyProductName,
     platform,
     currentPlatform,
     avatar,
@@ -118,6 +124,7 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
           kind,
           shopName,
           productName,
+          historyProductName,
           platform,
           currentPlatform,
           sourceImages,
@@ -125,6 +132,7 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
           storefront,
           referenceImages,
           promptOverride,
+          promptConfig,
           avatarMode,
           avatarCategory,
           generationLine,
@@ -155,6 +163,7 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
     attempt: generated.attempt,
     historyRecorded: generated.historyRecorded,
     historyError: generated.historyError,
+    productName: generated.productName,
   });
 
   if (generated.remoteUrl) {
@@ -167,6 +176,7 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
       attempt: generated.attempt,
       historyRecorded: generated.historyRecorded,
       historyError: generated.historyError,
+      productName: generated.productName,
     };
   }
 
@@ -183,6 +193,7 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
       attempt: generated.attempt,
       historyRecorded: generated.historyRecorded,
       historyError: generated.historyError,
+      productName: generated.productName,
     };
   }
 
@@ -198,6 +209,7 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
       attempt: generated.attempt,
       historyRecorded: generated.historyRecorded,
       historyError: generated.historyError,
+      productName: generated.productName,
     };
   } catch (ossError: unknown) {
     // 同上：让 recordHistory 给统一文案，console 留技术细节
@@ -211,6 +223,7 @@ export async function runOneGeneration(options: RunOneOptions): Promise<RunOneRe
       attempt: generated.attempt,
       historyRecorded: generated.historyRecorded,
       historyError: generated.historyError,
+      productName: generated.productName,
     };
   }
 }

@@ -1,6 +1,8 @@
 import { safeFileName } from "./utils";
 import type { AssetKind, GenerationItem, PlatformSpec } from "../types";
 
+type ThreePieceBatchKind = "avatar" | "storefront" | "poster";
+
 interface AssetExportSpec {
   fileName: string;
   targetWidth?: number;
@@ -10,7 +12,7 @@ interface AssetExportSpec {
 }
 
 export interface BatchDownloadPlan {
-  kind: "avatar" | "storefront" | "poster";
+  kind: ThreePieceBatchKind;
   rawBase64: string;
   outputPath: string;
   targetWidth?: number;
@@ -20,7 +22,7 @@ export interface BatchDownloadPlan {
 }
 
 export function canBatchDownloadAssets(items: GenerationItem[]) {
-  return items.every((item) => item.status === "succeeded" && Boolean(item.rawBase64));
+  return items.length > 0 && items.every((item) => item.status === "succeeded" && Boolean(item.rawBase64));
 }
 
 export function getGeneratedAssetExportSpec(
@@ -30,6 +32,8 @@ export function getGeneratedAssetExportSpec(
   productName?: string
 ): AssetExportSpec {
   const stem = safeFileName(shopName);
+
+  if (kind === "menu_design") return { fileName: `${stem}_菜单设计.jpg`, saveOriginal: true };
 
   if (kind === "product") {
     const target = currentPlatform.product.export;
@@ -81,13 +85,15 @@ export function buildBatchDownloadPlans(
   },
   shopName: string,
   currentPlatform: PlatformSpec,
-  directoryPath: string
+  directoryPath: string,
+  kinds: readonly ThreePieceBatchKind[] = ["avatar", "storefront", "poster"]
 ): BatchDownloadPlan[] {
-  const orderedKinds = ["avatar", "storefront", "poster"] as const;
+  const selected = new Set(kinds);
+  const orderedKinds = (["avatar", "storefront", "poster"] as const).filter((kind) => selected.has(kind));
   const orderedItems = orderedKinds.map((kind) => ({ kind, item: items[kind] }));
 
   if (!canBatchDownloadAssets(orderedItems.map((entry) => entry.item))) {
-    throw new Error("头像、店招、海报全部生成成功后才能批量下载");
+    throw new Error("已选择的图片全部生成成功后才能批量下载");
   }
 
   return orderedItems.map(({ kind, item }) => {

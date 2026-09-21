@@ -1,5 +1,5 @@
 import type { PlatformSpec } from "../types";
-import type { ProductBatchEntry } from "../lib/product-batch";
+import { PRODUCT_BATCH_MAX_IMAGES, type ProductBatchEntry } from "../lib/product-batch";
 import BatchDownloadButton from "./BatchDownloadButton";
 import GenerationResultTile from "./GenerationResultTile";
 import { IconImage } from "./Icons";
@@ -7,7 +7,7 @@ import MerchantCopyCard from "./MerchantCopyCard";
 import "../styles/product-result-panel.css";
 
 const FULL_STORE_COPY_TEXT =
-  "老板,您店铺的10张全店图我们已经做好，您看下没问题的话就按照这种来制作了。这批图片我们是按照多家店铺测试过的高转化模板来设计的,从数据上看,用这种风格的图片点击率能提升30%以上,进店转化也会明显更好。图片已经全部替换上去了,您可以打开店铺看看效果。";
+  "老板,您店铺的全店图我们已经做好，您看下没问题的话就按照这种来制作了。这批图片我们是按照多家店铺测试过的高转化模板来设计的,从数据上看,用这种风格的图片点击率能提升30%以上,进店转化也会明显更好。图片已经全部替换上去了,您可以打开店铺看看效果。";
 
 interface Props {
   platform: PlatformSpec | null;
@@ -60,7 +60,7 @@ export default function ProductBatchResultPanel({
             <div className="result__placeholder">
               <IconImage style={{ width: 22, height: 22, color: "var(--fg-faint)" }} />
               <strong>上传产品图和参考设计风格图后，即可批量制作全店图</strong>
-              <span>最多一次 10 张，会按各产品图文件名自动替换产品名称</span>
+              <span>最多一次 {PRODUCT_BATCH_MAX_IMAGES} 张，会按各产品图文件名自动替换产品名称</span>
             </div>
           </div>
         </div>

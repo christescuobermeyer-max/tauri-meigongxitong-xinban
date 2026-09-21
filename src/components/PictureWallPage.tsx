@@ -1,5 +1,10 @@
 import type { PictureWallEntry } from "../lib/picture-wall";
-import { PICTURE_WALL_EXPORT_SIZE, PICTURE_WALL_SOURCE_SIZE } from "../lib/picture-wall";
+import {
+  PICTURE_WALL_EXPORT_SIZE,
+  PICTURE_WALL_SOURCE_SIZE,
+  PICTURE_WALL_TARGET_COUNTS,
+  type PictureWallTargetCount,
+} from "../lib/picture-wall";
 import type { PictureWallDownloadProgress } from "../lib/picture-wall-download";
 import type { BrandStyle, ThemeColor, UploadedImage } from "../types";
 import AppearanceFields from "./AppearanceFields";
@@ -19,6 +24,8 @@ interface Props {
   setThemeColor: (v: ThemeColor | "") => void;
   brandStyle: BrandStyle | "";
   setBrandStyle: (v: BrandStyle | "") => void;
+  targetCount: PictureWallTargetCount;
+  setTargetCount: (count: PictureWallTargetCount) => void;
   entries: PictureWallEntry[];
   completedCount: number;
   downloadStatus: (PictureWallDownloadProgress & { active: boolean }) | null;
@@ -39,6 +46,8 @@ export default function PictureWallPage({
   setThemeColor,
   brandStyle,
   setBrandStyle,
+  targetCount,
+  setTargetCount,
   entries,
   completedCount,
   downloadStatus,
@@ -49,7 +58,7 @@ export default function PictureWallPage({
   onDownloadSingle,
   onRetry,
 }: Props) {
-  const canGenerate = shopName.trim().length > 0 && images.length === 3 && !submitDisabled;
+  const canGenerate = shopName.trim().length > 0 && images.length === targetCount && !submitDisabled;
   const failedCount = entries.filter((entry) => entry.item.status === "failed").length;
   const generateLabel = failedCount > 0 ? `补生成失败图片（${failedCount}张）` : "生成图片墙";
 
@@ -59,7 +68,7 @@ export default function PictureWallPage({
         <section className="card">
           <div className="card__header">
             <div className="card__title">图片墙生成</div>
-            <span className="card__hint">上传 3 张产品图，顺序生成美团图片墙</span>
+            <span className="card__hint">选择生成数量后上传对应张数产品图</span>
           </div>
           <div className="card__body picture-wall-form">
             <div className="field">
@@ -82,12 +91,33 @@ export default function PictureWallPage({
             />
 
             <div className="field">
+              <label className="field__label">生成数量</label>
+              <div className="segmented picture-wall-count-select" role="radiogroup" aria-label="图片墙生成数量">
+                {PICTURE_WALL_TARGET_COUNTS.map((count) => (
+                  <button
+                    key={count}
+                    type="button"
+                    role="radio"
+                    className="segmented__item"
+                    data-active={targetCount === count}
+                    aria-checked={targetCount === count}
+                    disabled={busy}
+                    onClick={() => setTargetCount(count)}
+                  >
+                    生成 {count} 张
+                  </button>
+                ))}
+              </div>
+              <span className="field__hint">选择几张就上传几张产品图，减少数量时会自动保留前 {targetCount} 张</span>
+            </div>
+
+            <div className="field">
               <label className="field__label">产品图片</label>
               <ImageUpload
                 images={images}
                 onChange={setImages}
-                maxCount={3}
-                dropzoneTitle="点击、拖拽或 Ctrl+V 粘贴 3 张图片墙产品图"
+                maxCount={targetCount}
+                dropzoneTitle={`点击、拖拽或 Ctrl+V 粘贴 ${targetCount} 张图片墙产品图`}
                 compressedLabel="图片墙参考总"
                 showProductName
               />
@@ -111,6 +141,7 @@ export default function PictureWallPage({
         entries={entries}
         shopName={shopName}
         completedCount={completedCount}
+        targetCount={targetCount}
         downloadStatus={downloadStatus}
         busy={busy}
         onDownload={onDownload}

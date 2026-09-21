@@ -1,7 +1,16 @@
-import type { AssetKind } from "../types";
+import {
+  getSelectedThreePieceKinds,
+  THREE_PIECE_ORDER,
+  type ThreePieceAssetKind,
+  type ThreePieceSelection,
+} from "./three-piece-selection";
 
-const AVATAR_STOREFRONT_POSTER_SEQUENCE: AssetKind[] = ["avatar", "storefront", "poster"];
+export function getAvatarStorefrontPosterSequence(): ThreePieceAssetKind[] {
+  return [...THREE_PIECE_ORDER];
+}
 
-export function getAvatarStorefrontPosterSequence(): AssetKind[] {
-  return [...AVATAR_STOREFRONT_POSTER_SEQUENCE];
+export function getSelectedAvatarStorefrontPosterSequence(
+  selection: ThreePieceSelection
+): ThreePieceAssetKind[] {
+  return getSelectedThreePieceKinds(selection);
 }
