@@ -9,6 +9,7 @@ use crate::brand_story_clients::{
 };
 use crate::env_config::read_required_env;
 use crate::http_client::{build_api_client, format_reqwest_error};
+use crate::prompt_templates;
 use serde::{Deserialize, Serialize};
 
 const BRAND_STORY_SYSTEM_PROMPT_TEMPLATE: &str = include_str!("../brand_story_prompt.md");
@@ -295,6 +296,11 @@ fn validate_text_request(req: &BrandStoryTextRequestInput) -> Result<(), String>
 }
 
 fn compose_system_prompt() -> String {
+    match prompt_templates::render_prompt_from_default_store("brand_story.system", serde_json::json!({})) {
+        Ok(prompt) if !prompt.trim().is_empty() => return prompt,
+        Ok(_) => eprintln!("[brand-story] 云端 prompt 模板 brand_story.system 为空，使用内置兜底"),
+        Err(error) => eprintln!("[brand-story] 读取云端 prompt 模板失败：{error}，使用内置兜底"),
+    }
     format!("{BRAND_STORY_SYSTEM_PROMPT_TEMPLATE}{SYSTEM_PROMPT_JSON_SUFFIX}")
 }
 

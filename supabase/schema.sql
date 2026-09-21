@@ -42,7 +42,8 @@ create table if not exists public.generation_logs (
   id            uuid primary key default gen_random_uuid(),
   user_id       uuid not null references public.profiles(id) on delete cascade,
   shop_name     text not null,
-  asset_kind    text not null check (asset_kind in ('avatar', 'storefront', 'poster', 'product', 'p_signboard', 'picture_wall', 'detail_page', 'brand_story', 'data_analysis', 'patrol_script')),
+  product_name  text,
+  asset_kind    text not null check (asset_kind in ('avatar', 'storefront', 'poster', 'product', 'p_signboard', 'picture_wall', 'detail_page', 'brand_story', 'data_analysis', 'patrol_script', 'menu_design')),
   platform      text not null check (platform in ('meituan', 'taobao')),
   generation_line text check (generation_line in ('line1', 'line2', 'line3', 'line4', 'line5', 'line6', 'line7', 'line8')),
   oss_url       text not null,
@@ -54,11 +55,14 @@ alter table public.generation_logs
   add column if not exists generation_line text;
 
 alter table public.generation_logs
+  add column if not exists product_name text;
+
+alter table public.generation_logs
   drop constraint if exists generation_logs_asset_kind_check;
 
 alter table public.generation_logs
   add constraint generation_logs_asset_kind_check
-  check (asset_kind in ('avatar', 'storefront', 'poster', 'product', 'p_signboard', 'picture_wall', 'detail_page', 'brand_story', 'data_analysis', 'patrol_script'));
+  check (asset_kind in ('avatar', 'storefront', 'poster', 'product', 'p_signboard', 'picture_wall', 'detail_page', 'brand_story', 'data_analysis', 'patrol_script', 'menu_design'));
 
 alter table public.generation_logs
   drop constraint if exists generation_logs_generation_line_check;
@@ -74,6 +78,7 @@ create index if not exists generation_logs_created_at_idx
   on public.generation_logs (created_at desc);
 
 comment on table public.generation_logs is '生图记录，每张图一条';
+comment on column public.generation_logs.product_name is '产品图对应的菜品名称，用于历史记录和批量导出按菜品名命名；非产品图可为空';
 
 -- -----------------------------------------------------------------------------
 -- 3. 永久累计 generation_totals + 月度累计 generation_monthly_totals

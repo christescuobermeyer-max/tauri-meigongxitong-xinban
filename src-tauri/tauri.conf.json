@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "呈尚策划美工生图系统PRO",
-  "version": "3.0.30",
+  "version": "3.0.43",
   "identifier": "com.csgh.image-studio",
   "build": {
     "beforeDevCommand": "npm run dev",
