@@ -1,0 +1,24 @@
+import { strict as assert } from "node:assert";
+import { menuImageRequest, validateMenuInput } from "../src/lib/menu-design";
+import { getGeneratedAssetExportSpec } from "../src/lib/generated-asset-files";
+import { getPlatform } from "../src/lib/platforms";
+import { readFileSync } from "node:fs";
+
+assert.equal(validateMenuInput("", 1, "烧烤"), null);
+assert.equal(validateMenuInput("羊肉串 5元/串", 0, "烧烤"), null);
+assert.ok(validateMenuInput("", 0, "烧烤"));
+assert.ok(validateMenuInput("菜品", 0, ""));
+assert.ok(validateMenuInput("", 7, "生鲜"));
+assert.ok(validateMenuInput("a".repeat(12001), 0, "盖浇饭"));
+const request = menuImageRequest("小店", "烧烤", "羊肉串 5元/串\n牛肉串 6元/串");
+assert.equal(request.prompt_config.key, "menu.image");
+assert.equal(request.prompt_config.variables.menu, "羊肉串 5元/串\n牛肉串 6元/串");
+assert.deepEqual(request.product_images, []);
+assert.equal(request.api_line, "auto");
+assert.throws(() => menuImageRequest("小店", "烧烤", "羊肉串 [价格待确认]"));
+assert.deepEqual(getGeneratedAssetExportSpec("menu_design", "小店", getPlatform("meituan")), { fileName: "小店_菜单设计.jpg", saveOriginal: true });
+const resultTile = readFileSync(new URL("../src/components/GenerationResultTile.tsx", import.meta.url), "utf8");
+assert.ok(resultTile.includes("previewZoom"));
+assert.ok(resultTile.includes("放大查看：${title}"));
+assert.ok(resultTile.includes("menu-design__lightbox"));
+console.log("menu-design tests passed");
