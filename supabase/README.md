@@ -64,7 +64,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR...
 | 表/视图 | 说明 |
 |---|---|
 | `profiles` | 用户档案：role、login_count、last_login_at、is_active |
-| `generation_logs` | 每张成功生图的记录（shop_name、asset_kind、platform、generation_line、oss_url、created_at） |
+| `generation_logs` | 每张成功生图的记录（shop_name、product_name、asset_kind、platform、generation_line、oss_url、created_at） |
 | `generation_totals` | 每个用户永久累计成功归档到 OSS 的生图数量 |
 | `generation_monthly_totals` | 每个用户按 Asia/Shanghai 自然月累计成功归档到 OSS 的生图数量 |
 | `login_logs` | 登录日志（审计用） |

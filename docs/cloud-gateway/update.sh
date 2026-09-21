@@ -38,6 +38,12 @@ install -o csgh -g csgh -m 0755 \
   "$PROJECT_ROOT/src-tauri/target/release/backend-gateway" \
   /opt/csgh-gateway/bin/backend-gateway
 
+log "同步云端 prompt 模板..."
+install -d -o csgh -g csgh -m 0755 /opt/csgh-gateway/prompts
+install -o csgh -g csgh -m 0644 \
+  "$PROJECT_ROOT/prompt-templates/generation-prompts.json" \
+  /opt/csgh-gateway/prompts/generation-prompts.json
+
 log "重启服务..."
 systemctl restart csgh-backend-gateway
 sleep 2

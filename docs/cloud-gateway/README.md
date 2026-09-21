@@ -35,7 +35,7 @@
 |---|---|
 | 域名 | 至少 1 个二级域名（如 `gw.yourcompany.com`），免备案香港地域无需阿里云备案 |
 | Supabase 项目 | 已建好，记录 URL / anon key / service_role key |
-| 5 条生图线路 API Key | Zikl、vectorengine、pockgo、APIMart 等 |
+| 5 条生图线路 API Key | Zikl、线路3复用Zikl、pockgo、APIMart 等 |
 | 阿里云 OSS | bucket + RAM 子账号 AccessKey（仅授权 PutObject/GetObject） |
 | SSH 工具 | Windows 推荐 [Termius](https://termius.com/) 或 PowerShell 自带 ssh |
 

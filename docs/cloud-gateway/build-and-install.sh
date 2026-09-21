@@ -41,6 +41,12 @@ install -o csgh -g csgh -m 0755 \
   "$PROJECT_ROOT/src-tauri/target/release/backend-gateway" \
   /opt/csgh-gateway/bin/backend-gateway
 
+log "安装云端 prompt 模板到 /opt/csgh-gateway/prompts/..."
+install -d -o csgh -g csgh -m 0755 /opt/csgh-gateway/prompts
+install -o csgh -g csgh -m 0644 \
+  "$PROJECT_ROOT/prompt-templates/generation-prompts.json" \
+  /opt/csgh-gateway/prompts/generation-prompts.json
+
 # ----- 3. 处理 .env ----------------------------------------------------------
 ENV_FILE=/opt/csgh-gateway/secrets/gateway.env
 if [[ ! -f "$ENV_FILE" ]]; then

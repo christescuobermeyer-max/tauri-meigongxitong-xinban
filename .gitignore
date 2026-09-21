@@ -29,6 +29,7 @@ Thumbs.db
 
 # Local private files
 .claude/
+.playwright-cli/
 员工账号密码.txt
 登录页面原型图/
 登录页面海报.png
