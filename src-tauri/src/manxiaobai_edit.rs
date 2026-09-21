@@ -2,11 +2,12 @@
 //!
 //! 协议与线路2 Zikl 一致：multipart/form-data 调用 OpenAI 兼容的
 //! /v1/images/edits。区别是 manxiaobai 当前是"备用线路"，
-//! 上游池经常出现 `insufficient_quota` / `model_cooldown` 429，
-//! 因此在网关层直接做 3 次自动重试，失败间隔 1.5s。
+//! 上游池经常出现 `insufficient_quota` / `model_cooldown` 429。
+//! 明确的 429 最多重试 3 次；连接超时、响应体中断等结果不确定的
+//! 错误不重试，避免上游已扣费后再次提交。
 
 use crate::gemini_response::truncate_for_msg;
-use crate::http_client::format_reqwest_error;
+use crate::http_client::{format_reqwest_error, is_ambiguous_upstream_error};
 use crate::image_api_response::extract_image_from_response_body;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use reqwest::header::CONTENT_TYPE;
@@ -46,7 +47,8 @@ pub async fn generate_manxiaobai_edit_image(
             .text("model", model.to_string())
             .text("prompt", prompt.to_string())
             .text("size", size.to_string())
-            .text("n", "1".to_string());
+            .text("n", "1".to_string())
+            .text("response_format", "b64_json".to_string());
 
         if let Some(quality) = quality {
             form = form.text("quality", quality.to_string());
@@ -75,7 +77,9 @@ pub async fn generate_manxiaobai_edit_image(
             Ok(r) => r,
             Err(err) => {
                 last_error = Some(err);
-                if attempt < MAX_ATTEMPTS {
+                if attempt < MAX_ATTEMPTS
+                    && !is_ambiguous_upstream_error(last_error.as_deref().unwrap_or_default())
+                {
                     sleep(Duration::from_millis(RETRY_BACKOFF_MS)).await;
                     continue;
                 }
@@ -89,7 +93,9 @@ pub async fn generate_manxiaobai_edit_image(
             Ok(t) => t,
             Err(error) => {
                 last_error = Some(format!("读取线路6编辑响应失败：{error}"));
-                if attempt < MAX_ATTEMPTS {
+                if attempt < MAX_ATTEMPTS
+                    && !is_ambiguous_upstream_error(last_error.as_deref().unwrap_or_default())
+                {
                     sleep(Duration::from_millis(RETRY_BACKOFF_MS)).await;
                     continue;
                 }
@@ -111,7 +117,8 @@ pub async fn generate_manxiaobai_edit_image(
         ));
 
         // 429/5xx 才重试；4xx（非 429）通常是参数问题，重试无意义。
-        let should_retry = status.as_u16() == 429 || status.is_server_error();
+        let should_retry = (status.as_u16() == 429 || status.is_server_error())
+            && !is_ambiguous_upstream_error(last_error.as_deref().unwrap_or_default());
         if !should_retry || attempt == MAX_ATTEMPTS {
             break;
         }

@@ -2,7 +2,7 @@
 //!
 //! 请求体：{ model, prompt, size, n, image: [base64|url] }
 //!
-//! 由于单次生成可能耗时较久，客户端超时设置为 350s。
+//! 由于单次生成可能耗时较久，客户端总超时设置为 600s。
 
 use crate::api_validation::validate_generate_request;
 use crate::apimart::generate_apimart_image;
@@ -14,7 +14,6 @@ use crate::image_generation_payload::build_json_payload;
 use crate::image_provider::{resolve_image_provider, ImageApiLine};
 use crate::manxiaobai_edit::generate_manxiaobai_edit_image;
 use crate::novaeworld_edit::generate_novaeworld_edit_image;
-use crate::pockgo_chat::generate_pockgo_chat_image;
 use crate::reference_image::{
     download_image_if_url, log_reference_image_diagnostics, reference_image_type,
 };
@@ -30,7 +29,7 @@ pub struct GenerateRequest {
     pub size: String,
     /// 参考图列表：支持不含 data: 前缀的 base64，也支持可访问 URL；可为空
     pub product_images: Vec<String>,
-    /// 生图线路：线路2为 Zikl，线路3为 vectorengine，线路4为 pockgo，线路5为 APIMart 兼容线路
+    /// 生图线路：线路2/3/4复用 Zikl 上游，线路5为 APIMart 兼容线路
     #[serde(default)]
     pub api_line: ImageApiLine,
 }
@@ -63,19 +62,6 @@ pub async fn generate_image(req: GenerateRequest) -> Result<String, String> {
         return download_image_if_url(&client, image, "下载线路5 APIMart远端图片失败").await;
     }
 
-    if req.api_line == ImageApiLine::Line4 {
-        let image = generate_pockgo_chat_image(
-            provider.api_url,
-            api_key,
-            provider.model,
-            &req.prompt,
-            &req.size,
-            &req.product_images,
-        )
-        .await?;
-        return download_image_if_url(&client, image, "下载线路4 pockgo远端图片失败").await;
-    }
-
     if req.api_line == ImageApiLine::Line2 && !req.product_images.is_empty() {
         let edit_api_url = provider
             .edit_api_url
@@ -93,6 +79,25 @@ pub async fn generate_image(req: GenerateRequest) -> Result<String, String> {
         )
         .await?;
         return download_image_if_url(&client, image, "下载线路2编辑远端图片失败").await;
+    }
+
+    if req.api_line == ImageApiLine::Line4 && !req.product_images.is_empty() {
+        let edit_api_url = provider
+            .edit_api_url
+            .ok_or_else(|| "线路4编辑接口未配置".to_string())?;
+        let image = generate_yunwu_edit_image(
+            &client,
+            edit_api_url,
+            &api_key,
+            provider.model,
+            &req.prompt,
+            &req.size,
+            &req.product_images,
+            provider.quality,
+            provider.format,
+        )
+        .await?;
+        return download_image_if_url(&client, image, "下载线路4编辑远端图片失败").await;
     }
 
     if req.api_line == ImageApiLine::Line3 && !req.product_images.is_empty() {

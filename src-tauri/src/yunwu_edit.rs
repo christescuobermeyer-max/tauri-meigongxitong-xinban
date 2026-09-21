@@ -27,7 +27,9 @@ pub async fn generate_yunwu_edit_image(
         .text("model", model.to_string())
         .text("prompt", prompt.to_string())
         .text("size", size.to_string())
-        .text("n", "1".to_string());
+        .text("n", "1".to_string())
+        // 线路2/3/4共用 Zikl，上游返回的远程 URL 偶发不可下载；直接回传 base64。
+        .text("response_format", "b64_json".to_string());
 
     if let Some(quality) = quality {
         form = form.text("quality", quality.to_string());

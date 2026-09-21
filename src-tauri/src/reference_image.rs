@@ -7,8 +7,8 @@ use std::time::Duration;
 /// HTTP 拉取 OSS 图片的总尝试次数。
 /// 上午统计显示 ~20% 的生图 attempt 失败在 `.bytes().await: error decoding response body`，
 /// 阿里云 OSS CDN 偶发提前 EOF / stale connection，立刻重试一般就成功。
-const DOWNLOAD_ATTEMPTS: usize = 2;
-const DOWNLOAD_RETRY_DELAY: Duration = Duration::from_millis(300);
+const DOWNLOAD_ATTEMPTS: usize = 3;
+const DOWNLOAD_RETRY_DELAY: Duration = Duration::from_millis(800);
 
 pub async fn download_image_if_url(
     client: &reqwest::Client,
@@ -46,7 +46,10 @@ async fn fetch_image_bytes_once(
 ) -> Result<Vec<u8>, String> {
     let response = client
         .get(url)
-        .timeout(Duration::from_secs(120))
+        // Zikl 返回的图片通常经 Caddy/uvicorn 分发，响应较大且偶发提前 EOF。
+        // 每次下载关闭连接，避免复用已被上游关闭的 HTTP/1.1 连接。
+        .header("Connection", "close")
+        .timeout(Duration::from_secs(180))
         .send()
         .await
         .map_err(|error| format!("{error_label}：{}", format_reqwest_error(&error)))?

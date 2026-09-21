@@ -11,17 +11,18 @@ const LINE2_EDIT_API_URL: &str = "https://img.zikl.dev/v1/images/edits";
 const LINE2_MODEL: &str = "gpt-image-2.5-flare";
 const LINE2_API_KEY_ENV_KEYS: [&str; 2] = ["IMAGE_2_LINE2_API_KEY", "YUNWU_IMAGE_2_LINE2_API_KEY"];
 
-const LINE4_API_URL: &str = "https://newapi.aicohere.org/v1/chat/completions";
-const LINE4_MODEL: &str = "gpt-image-2";
+const LINE4_API_URL: &str = "https://img.zikl.dev/v1/images/generations";
+const LINE4_EDIT_API_URL: &str = "https://img.zikl.dev/v1/images/edits";
+const LINE4_MODEL: &str = "gpt-image-2.5";
 const LINE4_API_KEY_ENV_KEYS: [&str; 3] = [
     "IMAGE_2_LINE4_API_KEY",
     "POCKGO_IMAGE_2_API_KEY",
     "POCKGO_API_KEY",
 ];
 
-const LINE3_API_URL: &str = "https://api.vectorengine.ai/v1/images/generations";
-const LINE3_EDIT_API_URL: &str = "https://api.vectorengine.ai/v1/images/edits";
-const LINE3_MODEL: &str = "gpt-image-2";
+const LINE3_API_URL: &str = "https://img.zikl.dev/v1/images/generations";
+const LINE3_EDIT_API_URL: &str = "https://img.zikl.dev/v1/images/edits";
+const LINE3_MODEL: &str = "gpt-image-2.5-flare";
 const LINE3_API_KEY_ENV_KEYS: [&str; 3] = [
     "VECTORENGINE_IMAGE_2_API_KEY",
     "VECTOR_ENGINE_IMAGE_2_API_KEY",
@@ -39,7 +40,7 @@ const LINE6_API_KEY_ENV_KEYS: [&str; 2] = ["MANXIAOBAI_IMAGE_2_API_KEY", "IMAGE_
 
 const LINE7_API_URL: &str = "https://api.novaeworld.top/v1/images/generations";
 const LINE7_EDIT_API_URL: &str = "https://api.novaeworld.top/v1/images/edits";
-const LINE7_MODEL: &str = "gpt-image-2";
+const LINE7_MODEL: &str = "gpt-image-2.5";
 const LINE7_API_KEY_ENV_KEYS: [&str; 2] = ["NOVA_IMAGE_2_API_KEY", "IMAGE_2_LINE7_API_KEY"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -123,8 +124,8 @@ pub fn resolve_image_provider(line: ImageApiLine) -> ImageProvider {
             api_url: LINE3_API_URL,
             edit_api_url: Some(LINE3_EDIT_API_URL),
             model: LINE3_MODEL,
-            log_label: "image-2:line3-vectorengine",
-            user_label: "线路3 vectorengine",
+            log_label: "image-2:line3-zikl",
+            user_label: "线路3 Zikl",
             api_key_env_keys: &LINE3_API_KEY_ENV_KEYS,
             quality: Some("low"),
             format: Some("png"),
@@ -132,13 +133,13 @@ pub fn resolve_image_provider(line: ImageApiLine) -> ImageProvider {
         },
         ImageApiLine::Line4 => ImageProvider {
             api_url: LINE4_API_URL,
-            edit_api_url: None,
+            edit_api_url: Some(LINE4_EDIT_API_URL),
             model: LINE4_MODEL,
-            log_label: "image-2:line4-pockgo",
-            user_label: "线路4 pockgo",
+            log_label: "image-2:line4-zikl",
+            user_label: "线路4 Zikl",
             api_key_env_keys: &LINE4_API_KEY_ENV_KEYS,
-            quality: None,
-            format: None,
+            quality: Some("low"),
+            format: Some("png"),
             reference_image_json_field: ReferenceImageJsonField::Image,
         },
         ImageApiLine::Line5 => ImageProvider {
@@ -201,19 +202,19 @@ mod tests {
     }
 
     #[test]
-    fn line3_uses_vectorengine_provider() {
+    fn line3_uses_zikl_provider() {
         let provider = resolve_image_provider(ImageApiLine::Line3);
 
         assert_eq!(
             provider.api_url,
-            "https://api.vectorengine.ai/v1/images/generations"
+            "https://img.zikl.dev/v1/images/generations"
         );
         assert_eq!(
             provider.edit_api_url,
-            Some("https://api.vectorengine.ai/v1/images/edits")
+            Some("https://img.zikl.dev/v1/images/edits")
         );
-        assert_eq!(provider.model, "gpt-image-2");
-        assert_eq!(provider.log_label, "image-2:line3-vectorengine");
+        assert_eq!(provider.model, "gpt-image-2.5-flare");
+        assert_eq!(provider.log_label, "image-2:line3-zikl");
         assert_eq!(provider.quality, Some("low"));
         assert_eq!(provider.format, Some("png"));
         assert_eq!(
@@ -223,15 +224,22 @@ mod tests {
     }
 
     #[test]
-    fn line4_uses_pockgo_provider() {
+    fn line4_uses_zikl_provider() {
         let provider = resolve_image_provider(ImageApiLine::Line4);
 
         assert_eq!(
             provider.api_url,
-            "https://newapi.aicohere.org/v1/chat/completions"
+            "https://img.zikl.dev/v1/images/generations"
         );
-        assert_eq!(provider.model, "gpt-image-2");
-        assert_eq!(provider.log_label, "image-2:line4-pockgo");
+        assert_eq!(
+            provider.edit_api_url,
+            Some("https://img.zikl.dev/v1/images/edits")
+        );
+        assert_eq!(provider.model, "gpt-image-2.5");
+        assert_eq!(provider.log_label, "image-2:line4-zikl");
+        assert_eq!(provider.api_key_env_keys[0], "IMAGE_2_LINE4_API_KEY");
+        assert_eq!(provider.quality, Some("low"));
+        assert_eq!(provider.format, Some("png"));
         assert!(!provider.api_key_env_keys.contains(&"IMAGE_2_LINE2_API_KEY"));
     }
 
@@ -279,7 +287,7 @@ mod tests {
             provider.edit_api_url,
             Some("https://api.novaeworld.top/v1/images/edits")
         );
-        assert_eq!(provider.model, "gpt-image-2");
+        assert_eq!(provider.model, "gpt-image-2.5");
         assert_eq!(provider.log_label, "image-2:line7-novaeworld");
         assert_eq!(provider.api_key_env_keys[0], "NOVA_IMAGE_2_API_KEY");
     }

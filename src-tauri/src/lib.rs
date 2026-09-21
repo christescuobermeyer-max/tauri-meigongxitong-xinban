@@ -30,6 +30,7 @@ mod novaeworld_edit;
 mod oss;
 mod pockgo_chat;
 mod pockgo_transport;
+mod prompt_templates;
 mod reference_image;
 mod vectorengine_edit;
 #[cfg(feature = "tauri-commands")]
