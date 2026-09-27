@@ -3,6 +3,11 @@ use crate::gemini_response::truncate_for_msg;
 use serde_json::Value;
 
 const ZIKL_API_KEY_ENV_KEYS: [&str; 2] = ["IMAGE_2_LINE2_API_KEY", "YUNWU_IMAGE_2_LINE2_API_KEY"];
+const VECTORENGINE_API_KEY_ENV_KEYS: [&str; 3] = [
+    "VECTORENGINE_IMAGE_2_API_KEY",
+    "VECTOR_ENGINE_IMAGE_2_API_KEY",
+    "IMAGE_2_LINE3_API_KEY",
+];
 const ZIKL_BILLING_SUBSCRIPTION_URL: &str =
     "https://img.zikl.dev/v1/dashboard/billing/subscription";
 const ZIKL_BILLING_USAGE_URL: &str = "https://img.zikl.dev/v1/dashboard/billing/usage";
@@ -30,7 +35,7 @@ struct ApiKeyBillingConfig {
 }
 
 pub fn supports_api_key_billing_line(line: &str) -> bool {
-    matches!(line, "line2" | "line6" | "line7")
+    matches!(line, "line2" | "line3" | "line6" | "line7")
 }
 
 fn api_key_billing_config(line: &str) -> Result<ApiKeyBillingConfig, String> {
@@ -42,6 +47,14 @@ fn api_key_billing_config(line: &str) -> Result<ApiKeyBillingConfig, String> {
             usage_url: ZIKL_BILLING_USAGE_URL,
             unit_symbol: "¤",
             display_name: "Zikl API Key",
+        }),
+        "line3" => Ok(ApiKeyBillingConfig {
+            provider_label: "线路3（Zikl）",
+            api_key_env_keys: &VECTORENGINE_API_KEY_ENV_KEYS,
+            subscription_url: ZIKL_BILLING_SUBSCRIPTION_URL,
+            usage_url: ZIKL_BILLING_USAGE_URL,
+            unit_symbol: "¤",
+            display_name: "线路3 API Key",
         }),
         "line6" => Ok(ApiKeyBillingConfig {
             provider_label: "manxiaobai",
@@ -155,8 +168,9 @@ mod tests {
     #[test]
     fn only_api_key_lines_use_gateway_billing() {
         assert!(supports_api_key_billing_line("line2"));
+        assert!(supports_api_key_billing_line("line3"));
         assert!(supports_api_key_billing_line("line6"));
         assert!(supports_api_key_billing_line("line7"));
-        assert!(!supports_api_key_billing_line("line3"));
+        assert!(!supports_api_key_billing_line("line5"));
     }
 }

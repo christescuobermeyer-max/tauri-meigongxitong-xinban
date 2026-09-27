@@ -26,6 +26,8 @@ const vectorengineEditSource = readFileSync(
   new URL("../src-tauri/src/vectorengine_edit.rs", import.meta.url),
   "utf8"
 );
+const frontendBalanceSource = readFileSync(new URL("../src/lib/balance.ts", import.meta.url), "utf8");
+const apiKeyBillingSource = readFileSync(new URL("../src-tauri/src/api_key_billing.rs", import.meta.url), "utf8");
 const envExample = readFileSync(new URL("../.env.example", import.meta.url), "utf8");
 const schemaSource = readFileSync(new URL("../supabase/schema.sql", import.meta.url), "utf8");
 
@@ -46,6 +48,19 @@ equal(imageProviderSource.includes("https://img.zikl.dev/v1/images/generations")
 equal(imageProviderSource.includes('#[serde(rename = "line3")]'), true);
 equal(imageProviderSource.includes("ImageApiLine::Line3"), true);
 equal(imageProviderSource.includes("VECTORENGINE_IMAGE_2_API_KEY"), true);
+ok(
+  frontendBalanceSource.includes('{ id: "line3", name: "线路3（vectorengine）", consoleUrl: "https://api.vectorengine.ai/console", balanceMode: "api_key", supported: true }'),
+  "线路3余额监控应通过 API Key billing 查询，不再要求网页登录",
+);
+ok(
+  apiKeyBillingSource.includes('"line3" => Ok(ApiKeyBillingConfig') &&
+    apiKeyBillingSource.includes('"VECTORENGINE_IMAGE_2_API_KEY"'),
+  "线路3 billing 应使用线路3自己的 image-2 API Key",
+);
+ok(
+  apiKeyBillingSource.includes('matches!(line, "line2" | "line3" | "line6" | "line7")'),
+  "API Key billing 支持列表应恢复线路3",
+);
 equal(imageProviderSource.includes('const LINE3_MODEL: &str = "gpt-image-2.5-flare";'), true);
 ok(
   imageProviderSource.includes('const LINE3_EDIT_API_URL: &str = "https://img.zikl.dev/v1/images/edits";'),

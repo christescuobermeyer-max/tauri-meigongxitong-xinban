@@ -104,8 +104,8 @@ ok(
   "后端线路7余额应读取 novaeworld subscription 与 usage billing 接口",
 );
 ok(
-  apiKeyBillingSource.includes('matches!(line, "line2" | "line6" | "line7")'),
-  "API Key billing 支持列表应包含 line7",
+  apiKeyBillingSource.includes('matches!(line, "line2" | "line3" | "line6" | "line7")'),
+  "API Key billing 支持列表应包含 line3 和 line7",
 );
 ok(!backendBalanceSource.includes("otuapi"), "后端余额配置不应残留 otuapi");
 
