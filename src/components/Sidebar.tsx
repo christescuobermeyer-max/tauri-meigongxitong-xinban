@@ -1,6 +1,7 @@
 import { IconBatchImages, IconDesignSuite, IconHistory, IconImage, IconMonitor, IconSettings, IconShield, IconSparkles, IconStore, IconVideo } from "./Icons";
+import type { ComponentType } from "react";
+import { listWorkspaceNavigation, type WorkspaceIconId, type WorkspaceTab } from "../lib/workspace-catalog";
 import UserStatusCard from "./UserStatusCard";
-import type { WorkspaceTab } from "../hooks/useGenerationWorkspace";
 
 interface SidebarProps {
   active: WorkspaceTab;
@@ -11,6 +12,19 @@ interface SidebarProps {
   onSignOut: () => void;
 }
 
+const WORKSPACE_ICONS: Record<WorkspaceIconId, ComponentType> = {
+  designSuite: IconDesignSuite,
+  image: IconImage,
+  batchImages: IconBatchImages,
+  video: IconVideo,
+  settings: IconSettings,
+  sparkles: IconSparkles,
+  history: IconHistory,
+  monitor: IconMonitor,
+  shield: IconShield,
+  store: IconStore,
+};
+
 export default function Sidebar({
   active,
   onChange,
@@ -19,113 +33,7 @@ export default function Sidebar({
   theme,
   onSignOut,
 }: SidebarProps) {
-  const items: Array<{
-    key: WorkspaceTab;
-    label: string;
-    icon: React.ReactNode;
-    desc: string;
-    adminOnly?: boolean;
-  }> = [
-    {
-      key: "avatarStorefront",
-      label: "三件套设计",
-      icon: <IconDesignSuite />,
-      desc: "头像 / 店招 / 海报",
-    },
-    {
-      key: "productImage",
-      label: "制作1张设计图",
-      icon: <IconImage />,
-      desc: "单张高质感产品主图",
-    },
-    {
-      key: "productBatch",
-      label: "制作全店图",
-      icon: <IconBatchImages />,
-      desc: "最多 20 张批量全店图",
-    },
-    {
-      key: "packageImage",
-      label: "制作套餐图",
-      icon: <IconBatchImages />,
-      desc: "最多 6 张产品合成套餐图",
-    },
-    {
-      key: "pictureWall",
-      label: "图片墙生成",
-      icon: <IconImage />,
-      desc: "1-3 张美团图片墙",
-    },
-    {
-      key: "pSignboard",
-      label: "P门头",
-      icon: <IconStore />,
-      desc: "门头招牌文字替换",
-    },
-    {
-      key: "videoSignboard",
-      label: "视频店招",
-      icon: <IconVideo />,
-      desc: "外卖视频裁剪导出",
-    },
-    {
-      key: "imageEdit",
-      label: "修改图片",
-      icon: <IconSettings />,
-      desc: "单张 / 批量逐张修改图片",
-    },
-    {
-      key: "detailPage",
-      label: "详情页生成",
-      icon: <IconBatchImages />,
-      desc: "3 张电商详情页展示图",
-    },
-    {
-      key: "brandStory",
-      label: "品牌故事",
-      icon: <IconSparkles />,
-      desc: "店铺品牌文案 + 5 张配图",
-    },
-    {
-      key: "menuDesign",
-      label: "菜单设计",
-      icon: <IconDesignSuite />,
-      desc: "文字 / 截图整理与菜单设计",
-    },
-    {
-      key: "dataAnalysis",
-      label: "数据分析",
-      icon: <IconImage />,
-      desc: "截图生成专业数据分析图",
-    },
-    {
-      key: "history",
-      label: "历史记录",
-      icon: <IconHistory />,
-      desc: "最近生成的 OSS 图片",
-    },
-    {
-      key: "gatewayMonitor",
-      label: "实时监控",
-      icon: <IconMonitor />,
-      desc: "网关并发 / 线路健康 / 排队情况",
-    },
-    {
-      key: "imagePlaza",
-      label: "图片广场",
-      icon: <IconBatchImages />,
-      desc: "所有账号最新生图只读预览",
-    },
-    {
-      key: "admin",
-      label: "后台管理",
-      icon: <IconShield />,
-      desc: "账号 / 生图统计 / OSS 历史",
-      adminOnly: true,
-    },
-  ];
-
-  const visibleItems = items.filter((it) => !it.adminOnly || isAdmin);
+  const visibleItems = listWorkspaceNavigation(isAdmin);
 
   return (
     <aside className="sidebar">
@@ -140,18 +48,21 @@ export default function Sidebar({
       </div>
 
       <div className="sidebar__section">工作区</div>
-      {visibleItems.map((it) => (
-        <button
-          key={it.key}
-          className="sidebar__nav-item"
-          data-active={active === it.key}
-          onClick={() => onChange(it.key)}
-          title={it.desc}
-        >
-          {it.icon}
-          <span>{it.label}</span>
-        </button>
-      ))}
+      {visibleItems.map((it) => {
+        const Icon = WORKSPACE_ICONS[it.icon];
+        return (
+          <button
+            key={it.key}
+            className="sidebar__nav-item"
+            data-active={active === it.key}
+            onClick={() => onChange(it.key)}
+            title={it.description}
+          >
+            <Icon />
+            <span>{it.label}</span>
+          </button>
+        );
+      })}
 
       <div className="sidebar__section">支持平台</div>
       <div className="sidebar__chip" aria-hidden="true">
@@ -168,7 +79,7 @@ export default function Sidebar({
         />
 
         <div className="sidebar__footer">
-          <code>v3.0.43</code>
+          <code>v3.0.51</code>
           <span>呈尚策划运营部</span>
         </div>
       </div>

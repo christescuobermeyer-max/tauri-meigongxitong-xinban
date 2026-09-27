@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const source = readFileSync(new URL("../src/components/Sidebar.tsx", import.meta.url), "utf8");
+const catalogSource = readFileSync(new URL("../src/lib/workspace-catalog.ts", import.meta.url), "utf8");
 const workspaceSource = readFileSync(
   new URL("../src/components/WorkspaceShell.tsx", import.meta.url),
   "utf8"
@@ -25,8 +26,9 @@ const cargoToml = readFileSync(new URL("../src-tauri/Cargo.toml", import.meta.ur
 const dogAvatarPath = fileURLToPath(new URL("../public/user-card-dog-avatar.svg", import.meta.url));
 
 equal(source.includes('<div className="sidebar__bottom">'), true);
-equal(source.includes('label: "三件套设计"'), true);
-equal(source.includes('label: "头像店招"'), false);
+equal(source.includes("listWorkspaceNavigation"), true);
+equal(catalogSource.includes('avatarStorefront: { title: "三件套设计"'), true);
+equal(catalogSource.includes('label: "头像店招"'), false);
 equal(
   source.includes("<UserStatusCard"),
   true
@@ -134,18 +136,18 @@ equal(
   false
 );
 equal(
-  source.includes("<code>v3.0.43</code>"),
+  source.includes("<code>v3.0.51</code>"),
   true
 );
-equal(packageJson.version, "3.0.43");
-equal(tauriConfig.version, "3.0.43");
-equal(cargoToml.includes('version = "3.0.43"'), true);
+equal(packageJson.version, "3.0.51");
+equal(tauriConfig.version, "3.0.51");
+equal(cargoToml.includes('version = "3.0.51"'), true);
 equal(source.includes('label: "巡店话术"'), false);
 equal(source.includes("patrolScript"), false);
 equal(source.includes("disabled: true"), false);
 equal(source.includes("disabled={it.disabled}"), false);
 equal(source.includes("if (it.disabled) return;"), false);
-equal(workspaceSource.includes('? "三件套设计"'), true);
+equal(workspaceSource.includes("getWorkspaceTitle(workspace.tab)"), true);
 equal(workspaceSource.includes('? "头像店招"'), false);
 equal(workspaceSource.includes("const { theme, resolved, setTheme } = useTheme();"), true);
 equal(workspaceSource.includes("theme={resolvedTheme}"), true);
