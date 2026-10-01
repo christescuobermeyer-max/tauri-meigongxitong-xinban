@@ -12,7 +12,7 @@ if (-not (Test-Path $cargoToml)) {
 }
 
 Set-Location $ProjectRoot
-cargo build --release --bin backend-gateway --manifest-path $cargoToml
+cargo build --release --bin backend-gateway --features gateway --manifest-path $cargoToml
 
 $exe = Join-Path $ProjectRoot "src-tauri\target\release\backend-gateway.exe"
 if (-not (Test-Path $exe)) {

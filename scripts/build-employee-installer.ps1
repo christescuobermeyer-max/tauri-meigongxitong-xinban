@@ -18,4 +18,4 @@ $env:VITE_BACKEND_GATEWAY_URL = $GatewayUrl.TrimEnd("/")
 Write-Host "员工端安装包将使用后端网关：" -ForegroundColor Cyan
 Write-Host "  $env:VITE_BACKEND_GATEWAY_URL"
 
-npm run tauri:build
+npm run tauri:build:nsis
