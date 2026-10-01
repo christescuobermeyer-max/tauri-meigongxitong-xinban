@@ -18,8 +18,11 @@
 | 修改图片 | 头像 / 店招 / 海报 / 产品图修改 |
 | 详情页生成 | 电商详情页展示图 |
 | 品牌故事 | 店铺品牌文案 + 5 张配图 |
+| 菜单设计 | 文字或截图整理菜单，按经营品类生成菜单图 |
 | 数据分析 | 截图生成专业数据分析图 |
 | 历史记录 | 最近生成的 OSS 图片 |
+| 实时监控 | 网关并发、线路健康和排队情况 |
+| 图片广场 | 所有账号最新生图小图墙，只读预览 |
 | 后台管理 | 账号、生图统计、网关监控、OSS 历史 |
 
 ## 技术栈
@@ -29,10 +32,10 @@
 | 前端 | React 18 + TypeScript + Vite 6 |
 | 桌面端 | Tauri 2 + Rust |
 | 云端网关 | Rust + Axum + systemd + Caddy |
-| 云服务器 | 阿里云轻量应用服务器，香港地域 |
+| 云服务器 | 椰子云香港二区，Ubuntu 22.04 |
 | 云数据库 | Supabase Auth / Postgres / RLS |
 | 对象存储 | 阿里云 OSS |
-| 加速 | 阿里云全球加速 GA |
+| 公网入口 | DNS A 记录直连 Caddy（阿里云 GA 当前未启用） |
 | 自动更新 | Supabase 配置 + OSS 安装包下载 |
 
 生产网关域名是 `https://gw.hbcsch.pw`。服务器目录、服务名和运维入口见 [docs/云服务器信息.md](docs/云服务器信息.md)。
@@ -45,7 +48,7 @@ src/components/              页面、工作区、后台和 UI 组件
 src/hooks/                   工作区状态、登录态、线路健康与流程编排
 src/lib/                     前端业务 API、Supabase、Tauri、OSS、历史、下载
 src-tauri/                   Tauri 桌面端和 Rust 云网关共享源码
-src-tauri/src/bin/           backend_gateway.rs 云网关入口
+src-tauri/src/gateway_bin/   backend_gateway.rs 云网关入口及 gateway/ 子模块
 supabase/                    Postgres schema、RLS、迁移 SQL
 scripts/                     构建、诊断、数据导出、运维脚本
 tests/                       tsx / mjs 行为断言测试
@@ -100,8 +103,7 @@ npm run tauri:build
 
 ```powershell
 npm run build
-npx tsx tests/mandatory-update.test.ts
-npx tsx tests/sidebar-layout.test.ts
+npm test
 ```
 
 Rust/Tauri 相关改动按影响范围追加：
