@@ -1,74 +1,17 @@
-import { useEffect, useState } from "react";
+import { useVideoExportPath } from "./useVideoExportPath";
+import { extractCategoryFromShareText, detectPlatform, getFileStem, getErrorMessage, extractFolderPath } from "./helpers";
+import { useState } from "react";
 import { parseDouyinVideo } from "../../lib/tauri";
-import type { CropArea, TimeRange } from "./VideoEditor";
+import type { CropArea, TimeRange, VideoPlatform, VideoExportTarget, VideoInfo, VideoSource } from "./types";
 
-export type VideoPlatform = "xiaohongshu" | "douyin";
-export type VideoExportTarget = "meituan" | "taobaoFlash";
-
-export interface VideoInfo {
-  videoUrl: string;
-  title: string;
-  author: string;
-  platform: VideoPlatform;
-  headers?: Record<string, string>;
-}
-
-export type VideoSource =
-  | { type: "remote"; info: VideoInfo }
-  | { type: "local"; filePath: string; displayName: string };
+export type { VideoPlatform, VideoExportTarget, VideoInfo, VideoSource } from "./types";
 
 interface Options {
   onToast: (message: string, type?: "info" | "success" | "error") => void;
 }
 
-function extractCategoryFromShareText(shareText: string): string {
-  const textWithoutUrl = shareText
-    .replace(/https?:\/\/[^\s]+/g, "")
-    .replace(/http?:\/\/[^\s]+/g, "");
-  const chineseMatch = textWithoutUrl.match(/[\u4e00-\u9fa5]+/g);
-
-  if (chineseMatch && chineseMatch.length > 0) {
-    const filtered = chineseMatch.filter(
-      (word) =>
-        !["复制", "打开", "抖音", "看看", "的作品", "发布了", "一篇", "小红书", "笔记", "快来看吧"].includes(word) &&
-        word.length >= 2
-    );
-    if (filtered.length > 0) {
-      const longest = filtered.reduce((a, b) => (a.length >= b.length ? a : b));
-      return longest.slice(0, 20);
-    }
-  }
-
-  return "店招视频";
-}
-
-function detectPlatform(text: string): VideoPlatform | null {
-  if (text.includes("xhslink.com") || text.includes("xiaohongshu.com")) return "xiaohongshu";
-  if (text.includes("v.douyin.com") || text.includes("douyin.com/video")) return "douyin";
-  return null;
-}
-
-function getFileStem(filePath: string): string {
-  const baseName = filePath.split(/[/\\]/).pop() || "店招视频";
-  const stem = baseName.replace(/\.[^.]+$/, "");
-  return stem.trim() || "店招视频";
-}
-
-function getErrorMessage(err: unknown, fallback: string): string {
-  if (typeof err === "string") return err;
-  if (err && typeof err === "object" && "message" in err && typeof err.message === "string") {
-    return err.message;
-  }
-  return fallback;
-}
-
-function extractFolderPath(filePath: string): string {
-  const separatorIndex = Math.max(filePath.lastIndexOf("\\"), filePath.lastIndexOf("/"));
-  return separatorIndex > 0 ? filePath.slice(0, separatorIndex) : "";
-}
-
 export function useVideoSignboard({ onToast }: Options) {
-  const [exportPath, setExportPath] = useState("");
+  const { exportPath, setExportPath } = useVideoExportPath();
   const [inputUrl, setInputUrl] = useState("");
   const [videoSource, setVideoSource] = useState<VideoSource | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -83,22 +26,6 @@ export function useVideoSignboard({ onToast }: Options) {
   const [customFileName, setCustomFileName] = useState("");
   const [includeAudio, setIncludeAudio] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const { invoke } = await import("@tauri-apps/api/core");
-        const savedExportPath = await invoke<string | null>("get_video_export_path");
-        if (!cancelled) setExportPath(savedExportPath ?? "");
-      } catch {
-        if (!cancelled) setExportPath("");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   async function handleParse() {
     if (!inputUrl.trim()) {

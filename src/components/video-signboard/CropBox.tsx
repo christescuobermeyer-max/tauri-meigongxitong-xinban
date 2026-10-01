@@ -1,5 +1,5 @@
 import { useEffect, useState, type RefObject } from "react";
-import type { CropArea } from "./VideoEditor";
+import type { CropArea } from "./types";
 
 interface Props {
   containerRef: RefObject<HTMLDivElement>;

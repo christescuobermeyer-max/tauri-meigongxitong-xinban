@@ -1,31 +1,9 @@
+import ChartLegend from "./line-chart/ChartLegend";
 import { useId, useMemo, useRef, useState } from "react";
-
-export interface LineChartSeries {
-  /** 折线名称，用于图例 */
-  name: string;
-  /** 颜色 hex */
-  color: string;
-  /** 数据点，长度必须与 labels 对齐；缺值用 null */
-  values: Array<number | null>;
-}
-
-interface LineChartProps {
-  /** X 轴标签（按顺序对齐每个 series.values） */
-  labels: string[];
-  /** 一条或多条折线 */
-  series: LineChartSeries[];
-  /** SVG 视口高度（不含图例），默认 240 */
-  height?: number;
-  /** 上方标题（可选） */
-  title?: string;
-  /** 是否在 y 轴标签后加单位（如"张"） */
-  yUnit?: string;
-}
-
-const PADDING_LEFT = 48;
-const PADDING_RIGHT = 18;
-const PADDING_TOP = 20;
-const PADDING_BOTTOM = 32;
+import { PADDING_LEFT, PADDING_RIGHT, PADDING_TOP, PADDING_BOTTOM, buildSmoothPath, niceCeiling } from "./line-chart/geometry";
+import ChartTooltip from "./line-chart/ChartTooltip";
+import type { ChartHover, LineChartProps } from "./line-chart/types";
+export type { LineChartSeries } from "./line-chart/types";
 
 export default function LineChart({
   labels,
@@ -35,14 +13,7 @@ export default function LineChart({
   yUnit = "",
 }: LineChartProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
-  const [hover, setHover] = useState<{
-    index: number;
-    /** 数据点在 SVG viewBox 内的 cx 坐标（用于画竖线） */
-    cx: number;
-    /** tooltip 在容器内的实际像素坐标（跟随鼠标） */
-    tipX: number;
-    tipY: number;
-  } | null>(null);
+  const [hover, setHover] = useState<ChartHover | null>(null);
   const gradientPrefix = useId().replace(/[^a-z0-9]/gi, "");
 
   const dimensions = useMemo(() => {
@@ -232,101 +203,10 @@ export default function LineChart({
           ) : null}
         </svg>
 
-        {/* hover tooltip 跟随鼠标 */}
-        {hover && (
-          <div
-            className="chart__tooltip"
-            style={{
-              left: clampTooltipX(hover.tipX, wrapRef.current?.clientWidth ?? 800),
-              top: Math.max(8, hover.tipY - 12),
-            }}
-          >
-            <div className="chart__tooltip-title">{labels[hover.index]}</div>
-            {series
-              .map((s) => ({ s, v: s.values[hover.index] }))
-              .filter((row) => row.v != null && row.v !== 0)
-              .sort((a, b) => (b.v as number) - (a.v as number))
-              .map(({ s, v }) => (
-                <div key={s.name} className="chart__tooltip-row">
-                  <span className="chart__tooltip-dot" style={{ background: s.color }} />
-                  <span className="chart__tooltip-name">{s.name}</span>
-                  <span className="chart__tooltip-value">{v}{yUnit}</span>
-                </div>
-              ))}
-            {series.every((s) => {
-              const v = s.values[hover.index];
-              return v == null || v === 0;
-            }) ? (
-              <div className="chart__tooltip-row chart__tooltip-row--empty">
-                <span className="chart__tooltip-name">当天无生图</span>
-              </div>
-            ) : null}
-          </div>
-        )}
+        {hover ? <ChartTooltip hover={hover} labels={labels} series={series} yUnit={yUnit} containerWidth={wrapRef.current?.clientWidth ?? 800} /> : null}
       </div>
 
-      {series.length >= 2 && (
-        <div className="chart__legend">
-          {series.map((s) => (
-            <span key={s.name} className="chart__legend-item">
-              <span className="chart__legend-dot" style={{ background: s.color }} />
-              {s.name}
-            </span>
-          ))}
-        </div>
-      )}
+      <ChartLegend series={series} />
     </div>
   );
-}
-
-/**
- * 用 Catmull-Rom → 三次贝塞尔，把数据点画成平滑曲线。
- * tension=0.2 视觉柔和但不至于产生过大弯曲。
- */
-function buildSmoothPath(
-  pts: Array<{ cx: number; cy: number }>,
-  tension = 0.2
-): string {
-  if (pts.length === 0) return "";
-  if (pts.length === 1) return `M${pts[0].cx},${pts[0].cy}`;
-  if (pts.length === 2) {
-    return `M${pts[0].cx},${pts[0].cy} L${pts[1].cx},${pts[1].cy}`;
-  }
-  let d = `M${pts[0].cx.toFixed(2)},${pts[0].cy.toFixed(2)}`;
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[i - 1] ?? pts[i];
-    const p1 = pts[i];
-    const p2 = pts[i + 1];
-    const p3 = pts[i + 2] ?? p2;
-    const cp1x = p1.cx + (p2.cx - p0.cx) * tension;
-    const cp1y = p1.cy + (p2.cy - p0.cy) * tension;
-    const cp2x = p2.cx - (p3.cx - p1.cx) * tension;
-    const cp2y = p2.cy - (p3.cy - p1.cy) * tension;
-    d += ` C${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2.cx.toFixed(2)},${p2.cy.toFixed(2)}`;
-  }
-  return d;
-}
-
-/** tooltip 横向边界控制：让它在鼠标右上方出现，靠近右边时反转到左侧 */
-function clampTooltipX(mouseX: number, containerWidth: number): number {
-  const TIP_WIDTH = 180;
-  const MARGIN = 12;
-  const desired = mouseX + 12;
-  if (desired + TIP_WIDTH + MARGIN > containerWidth) {
-    return Math.max(MARGIN, mouseX - TIP_WIDTH - 12);
-  }
-  return desired;
-}
-
-/** 让 y 轴最大值向上取一个"好看"的整数，避免出现 7.3、19.1 这种刻度 */
-function niceCeiling(value: number): number {
-  if (value <= 5) return 5;
-  if (value <= 10) return 10;
-  if (value <= 20) return 20;
-  if (value <= 50) return 50;
-  if (value <= 100) return 100;
-  if (value <= 200) return 200;
-  if (value <= 500) return 500;
-  const magnitude = Math.pow(10, Math.floor(Math.log10(value)));
-  return Math.ceil(value / magnitude) * magnitude;
 }

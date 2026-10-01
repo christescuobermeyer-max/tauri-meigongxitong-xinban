@@ -1,14 +1,13 @@
+import LineStatusTable from "./gateway/LineStatusTable";
+import AccountUsageTable from "./gateway/AccountUsageTable";
 import { useEffect, useState } from "react";
 import {
-  HEALTH_LABEL,
   displayNameOf,
   fetchGatewayStats,
   formatWaited,
-  lineUtilization,
   type GatewayStatsResponse,
   type WaitingTicketSnapshot,
 } from "../../lib/gateway-stats";
-import { formatLastSeen, formatLatency } from "../../lib/line-health";
 import { IconRefresh } from "../Icons";
 
 const POLL_INTERVAL_MS = 5000;
@@ -94,32 +93,7 @@ export default function AdminGatewayMonitor() {
   if (!stats) return null;
 
   const queue = stats.queue;
-  const health = stats.health.lines;
   const names = stats.display_names;
-  // line -> 暂停信息（reason + paused_at）。线路表第一列据此显示"已暂停"badge。
-  const pausedMap = new Map(
-    (stats.paused_lines ?? []).map((p) => [p.line, p] as const)
-  );
-
-  // 计算"等候队列里的运营"汇总（按用户聚合）
-  const waitingByUser = new Map<string, number>();
-  for (const ticket of queue.waiting) {
-    waitingByUser.set(ticket.user_id, (waitingByUser.get(ticket.user_id) ?? 0) + 1);
-  }
-
-  // 汇集所有出现的用户（在跑 + 排队）
-  const allUserIds = new Set<string>([
-    ...Object.keys(queue.active_by_user),
-    ...waitingByUser.keys(),
-  ]);
-  const userRows = Array.from(allUserIds)
-    .map((id) => ({
-      id,
-      name: displayNameOf(id, names),
-      active: queue.active_by_user[id] ?? 0,
-      waiting: waitingByUser.get(id) ?? 0,
-    }))
-    .sort((a, b) => b.active + b.waiting - (a.active + a.waiting));
 
   const globalUtilizationPct = queue.global_limit > 0
     ? Math.round((queue.global_active / queue.global_limit) * 100)
@@ -169,94 +143,8 @@ export default function AdminGatewayMonitor() {
           />
         </div>
 
-        {/* 2) 每线路状态 */}
-        <div>
-          <div className="section-heading" style={{ fontSize: 14, marginBottom: 8 }}>
-            各线路状态
-          </div>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>线路</th>
-                <th>占用 / 上限</th>
-                <th>健康</th>
-                <th>中位延迟</th>
-                <th>最近样本</th>
-                <th>失败数</th>
-                <th>最近上报</th>
-              </tr>
-            </thead>
-            <tbody>
-              {queue.lines.map((line) => {
-                const h = health[line.line];
-                const util = lineUtilization(line);
-                const pct = Math.round(util * 100);
-                const paused = pausedMap.get(line.line);
-                return (
-                  <tr key={line.line} data-paused={paused ? "true" : undefined}>
-                    <td>
-                      <strong>{line.line}</strong>
-                      {paused ? (
-                        <span
-                          className="badge badge--danger"
-                          style={{ marginLeft: 6 }}
-                          title={`${paused.reason}\n暂停时间：${paused.paused_at}\n来源：${paused.source}`}
-                        >
-                          已暂停
-                        </span>
-                      ) : null}
-                    </td>
-                    <td>
-                      {line.active} / {line.limit}
-                      <span className="meta-row" style={{ marginLeft: 4, opacity: 0.7 }}>
-                        ({pct}%)
-                      </span>
-                    </td>
-                    <td>{paused ? "—" : h ? HEALTH_LABEL[h.status] ?? h.status : "—"}</td>
-                    <td>{h ? formatLatency(h.latency_ms) : "—"}</td>
-                    <td>{h ? h.sample_count : 0}</td>
-                    <td>{h ? h.failure_count : 0}</td>
-                    <td>{h ? formatLastSeen(h.last_at) : "—"}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* 3) 每账号 */}
-        <div>
-          <div className="section-heading" style={{ fontSize: 14, marginBottom: 8 }}>
-            各账号占用情况
-          </div>
-          {userRows.length === 0 ? (
-            <div className="meta-row" style={{ opacity: 0.7 }}>当前没有账号在跑或排队</div>
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>运营</th>
-                  <th>正在跑</th>
-                  <th>等待中</th>
-                  <th>账号 ID（前 8 位）</th>
-                </tr>
-              </thead>
-              <tbody>
-                {userRows.map((row) => (
-                  <tr key={row.id}>
-                    <td><strong>{row.name}</strong></td>
-                    <td>{row.active}</td>
-                    <td>{row.waiting}</td>
-                    <td>
-                      <code style={{ fontSize: 11 }}>{row.id.slice(0, 8)}</code>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
+        <LineStatusTable stats={stats} />
+        <AccountUsageTable stats={stats} />
         {/* 4) 等待队列明细 */}
         <div>
           <div className="section-heading" style={{ fontSize: 14, marginBottom: 8 }}>

@@ -1,8 +1,6 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import type {
-  AssetKind,
   BrandStyle,
-  GenerationLine,
   GenerationItem,
   Platform,
   PlatformSpec,
@@ -10,8 +8,6 @@ import type {
   UploadedImage,
 } from "../types";
 import { getPlatform } from "../lib/platforms";
-import { buildProductBatchPromptConfig } from "../lib/prompt-config";
-import { buildProductBatchPrompt } from "../lib/prompts";
 import { downloadProductBatchItem, downloadProductBatchItems } from "../lib/product-batch-download";
 import {
   applyProductBatchEntryUpdate,
@@ -19,31 +15,16 @@ import {
   getProductBatchCompletedCount,
   hasBusyProductBatchEntries,
   PRODUCT_BATCH_MAX_IMAGES,
-  resolveProductBatchReferenceImages,
   syncProductBatchEntries,
   type ProductBatchEntry,
 } from "../lib/product-batch";
 import {
-  emptyItem,
-  runOneGeneration,
   syncImagesWithOss,
-  type RunOneResult,
 } from "../lib/workspace-session";
 
-interface Options {
-  generationLine: GenerationLine;
-  setGenerationLine: (line: GenerationLine) => void;
-  onToast: (message: string, tone: "error" | "info" | "success") => void;
-  onRecordHistory: (
-    kind: AssetKind,
-    item: GenerationItem,
-    shopName: string,
-    platform: Platform
-  ) => void;
-}
-
-const noopSetter: Dispatch<SetStateAction<GenerationItem>> = () => undefined;
-export type ProductBatchProductNameMode = "with" | "without";
+import type { Options, ProductBatchProductNameMode } from "./product-batch/types";
+import { createProductBatchRunner } from "./product-batch/generation";
+export type { ProductBatchProductNameMode } from "./product-batch/types";
 
 export default function useProductBatchWorkspace({
   generationLine,
@@ -106,93 +87,7 @@ export default function useProductBatchWorkspace({
     };
   }
 
-  async function runBatchItem(
-    sourceImage: UploadedImage,
-    syncedStyleImages: UploadedImage[],
-    snapshot: {
-      shopName: string;
-      platform: Platform;
-      currentPlatform: PlatformSpec;
-      generationLine: GenerationLine;
-      themeColor: ThemeColor | "";
-      brandStyle: BrandStyle | "";
-      productNameMode: ProductBatchProductNameMode;
-    }
-  ): Promise<RunOneResult | null> {
-    const resolvedProductName = sourceImage.productName.trim() || "未命名产品";
-    const includeProductName = snapshot.productNameMode === "with";
-    const productNameForGeneration = includeProductName ? resolvedProductName : "";
-    const referenceImages = resolveProductBatchReferenceImages(syncedStyleImages, sourceImage);
-    if (referenceImages.length < 2) {
-      onToast("参考设计风格图或产品图上传状态异常，请重新上传后再试", "error");
-      return null;
-    }
-
-    const appearance = {
-      themeColor: snapshot.themeColor || undefined,
-      brandStyle: snapshot.brandStyle || undefined,
-    };
-
-    const result = await runOneGeneration({
-      kind: "product",
-      sourceImages: [sourceImage],
-      referenceImages,
-      promptOverride: buildProductBatchPrompt(
-        snapshot.shopName,
-        resolvedProductName,
-        snapshot.platform,
-        appearance,
-        { includeProductName }
-      ),
-      promptConfig: buildProductBatchPromptConfig({
-        shopName: snapshot.shopName,
-        productName: resolvedProductName,
-        platform: snapshot.platform,
-        appearance,
-        includeProductName,
-      }),
-      setters: {
-        avatar: noopSetter,
-        storefront: noopSetter,
-        poster: noopSetter,
-        product: createProductSetter(sourceImage.id),
-      },
-      shopName: snapshot.shopName,
-      productName: productNameForGeneration,
-      historyProductName: resolvedProductName,
-      platform: snapshot.platform,
-      currentPlatform: snapshot.currentPlatform,
-      avatar: emptyItem("avatar"),
-      storefront: emptyItem("storefront"),
-      avatarMode: "image",
-      avatarCategory: "",
-      generationLine: snapshot.generationLine,
-      onToast,
-    });
-
-    if (!result) return null;
-
-    onRecordHistory(
-      "product",
-      {
-        kind: "product",
-        rawBase64: result.rawBase64,
-        rawDataUrl: result.rawDataUrl,
-        remoteUrl: result.remoteUrl,
-        generationLine: result.generationLine,
-        status: "succeeded",
-        elapsedMs: result.elapsedMs,
-        attempt: result.attempt,
-        historyRecorded: result.historyRecorded,
-        historyError: result.historyError,
-        productName: result.productName,
-      },
-      snapshot.shopName,
-      snapshot.platform
-    );
-
-    return result;
-  }
+  const runBatchItem = createProductBatchRunner({ onToast, onRecordHistory, createProductSetter });
 
   async function handleGenerate() {
     if (uploadingOss) return;

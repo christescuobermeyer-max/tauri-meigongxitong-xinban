@@ -79,7 +79,7 @@ export default function Sidebar({
         />
 
         <div className="sidebar__footer">
-          <code>v3.0.51</code>
+          <code>v3.0.52</code>
           <span>呈尚策划运营部</span>
         </div>
       </div>

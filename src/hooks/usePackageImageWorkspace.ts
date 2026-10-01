@@ -3,7 +3,6 @@ import { getPlatform } from "../lib/platforms";
 import { buildPackageImagePromptConfig } from "../lib/prompt-config";
 import {
   buildPackageImagePrompt,
-  resolvePackageImageProductName,
   resolvePackageImageProductNames,
   resolvePackageImageReferences,
 } from "../lib/package-image";
@@ -42,6 +41,7 @@ export default function usePackageImageWorkspace({
   onRecordHistory,
 }: Options) {
   const [shopName, setShopName] = useState("");
+  const [packageImageName, setPackageImageName] = useState("");
   const [platform, setPlatform] = useState<Platform | null>(null);
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [styleImages, setStyleImages] = useState<UploadedImage[]>([]);
@@ -52,6 +52,10 @@ export default function usePackageImageWorkspace({
   const productNames = resolvePackageImageProductNames(images);
 
   function validateInputs() {
+    if (!packageImageName.trim()) {
+      onToast("请填写套餐图名称", "error");
+      return false;
+    }
     if (!platform || !currentPlatform) {
       onToast("请先选择投放平台：美团或淘宝闪购", "error");
       return false;
@@ -80,11 +84,12 @@ export default function usePackageImageWorkspace({
   function buildSnapshot(syncedImages: UploadedImage[], syncedStyleImages: UploadedImage[]) {
     if (!platform || !currentPlatform) return null;
     return {
-      shopName: shopName.trim() || "套餐图",
+      shopName: shopName.trim(),
+      packageImageName: packageImageName.trim(),
       platform,
       currentPlatform,
       generationLine,
-      productName: resolvePackageImageProductName(syncedImages),
+      productName: packageImageName.trim(),
       productNames: resolvePackageImageProductNames(syncedImages),
       productImageCount: syncedImages.length,
       referenceImages: resolvePackageImageReferences(syncedStyleImages, syncedImages),
@@ -151,14 +156,21 @@ export default function usePackageImageWorkspace({
       onToast("请先选择投放平台：美团或淘宝闪购", "error");
       return;
     }
-    const productName = resolvePackageImageProductName(images);
-    const saved = await saveGeneratedAsset("product", item, shopName || "套餐图", currentPlatform, productName);
+    const saved = await saveGeneratedAsset(
+      "product",
+      item,
+      shopName || "套餐图",
+      currentPlatform,
+      packageImageName.trim()
+    );
     if (saved) onToast(`已保存至：${saved}`, "success");
   }
 
   return {
     shopName,
     setShopName,
+    packageImageName,
+    setPackageImageName,
     platform,
     setPlatform,
     currentPlatform,

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { TimeRange } from "./VideoEditor";
+import type { TimeRange } from "./types";
 
 interface TimelineSliderProps {
   duration: number;

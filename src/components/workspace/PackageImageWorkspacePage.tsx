@@ -31,6 +31,8 @@ export default function PackageImageWorkspacePage({
       <PackageImagePage
         shopName={packageImage.shopName}
         setShopName={packageImage.setShopName}
+        packageImageName={packageImage.packageImageName}
+        setPackageImageName={packageImage.setPackageImageName}
         platform={packageImage.platform}
         setPlatform={packageImage.setPlatform}
         currentPlatform={packageImage.currentPlatform}

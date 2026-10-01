@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   CURRENT_APP_VERSION,
-  fetchMandatoryUpdate,
+  fetchAvailableUpdate,
   type MandatoryUpdateInfo,
 } from "../lib/app-update";
 import { installAppUpdate, listenAppUpdateProgress, type AppUpdateProgress } from "../lib/tauri";
@@ -42,8 +42,8 @@ export default function MandatoryUpdateGate({ suspend = false }: Props) {
       };
     }
 
-    // 只在本次软件启动时检查一次；运行中生图或后续云端开启强制更新，都等下次重启再触发。
-    fetchMandatoryUpdate()
+    // 只在本次软件启动时检查一次；运行中生图或后续云端更新，都等下次重启再触发。
+    fetchAvailableUpdate()
       .then((result) => {
         if (alive && !updateDeferredUntilRestartRef.current) setUpdate(result);
       })
@@ -88,7 +88,7 @@ export default function MandatoryUpdateGate({ suspend = false }: Props) {
   if (!update) return null;
 
   async function handleInstall() {
-    if (!update) return;
+    if (!update || update.installBlockedReason || !update.installerSha256) return;
     setInstalling(true);
     setInstallError("");
     setProgress(EMPTY_PROGRESS);
@@ -96,6 +96,7 @@ export default function MandatoryUpdateGate({ suspend = false }: Props) {
       await installAppUpdate({
         installerUrl: update.installerUrl,
         latestVersion: update.latestVersion,
+        installerSha256: update.installerSha256,
       });
     } catch (error: unknown) {
       setInstallError(error instanceof Error ? error.message : String(error));
@@ -107,10 +108,10 @@ export default function MandatoryUpdateGate({ suspend = false }: Props) {
     <div className="mandatory-update__mask" role="dialog" aria-modal="true">
       <div className="mandatory-update__dialog">
         <span className="mandatory-update__eyebrow">检测到新版本</span>
-        <h2>需要更新后继续使用</h2>
+        <h2>发现新版本</h2>
         <p className="mandatory-update__desc">
-          当前版本 v{CURRENT_APP_VERSION}，最新版本 v{update.latestVersion}。本次更新为强制更新，
-          下载完成后会自动安装并重新打开软件。
+          当前版本 v{CURRENT_APP_VERSION}，最新版本 v{update.latestVersion}。可立即更新，
+          也可以稍后处理；下次重启软件时会再次检查。
         </p>
 
         {update.releaseNotes.length > 0 ? (
@@ -126,6 +127,7 @@ export default function MandatoryUpdateGate({ suspend = false }: Props) {
 
         {checkingFailed ? <p className="mandatory-update__error">{checkingFailed}</p> : null}
         {installError ? <p className="mandatory-update__error">{installError}</p> : null}
+        {update.installBlockedReason ? <p className="mandatory-update__error">{update.installBlockedReason}</p> : null}
 
         {installing ? (
           <div className="mandatory-update__progress">
@@ -151,9 +153,16 @@ export default function MandatoryUpdateGate({ suspend = false }: Props) {
           </div>
         ) : null}
 
-        <button className="btn btn--primary btn--lg" type="button" onClick={handleInstall} disabled={installing}>
-          {installing ? "更新中..." : "自动更新"}
-        </button>
+        <div className="mandatory-update__actions">
+          {!installing ? (
+            <button className="btn btn--ghost btn--lg" type="button" onClick={() => setUpdate(null)}>
+              稍后更新
+            </button>
+          ) : null}
+          <button className="btn btn--primary btn--lg" type="button" onClick={handleInstall} disabled={installing || Boolean(update.installBlockedReason)}>
+            {installing ? "更新中..." : "立即更新"}
+          </button>
+        </div>
       </div>
     </div>
   );

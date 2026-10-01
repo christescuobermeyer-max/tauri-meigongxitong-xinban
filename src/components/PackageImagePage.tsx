@@ -9,6 +9,8 @@ import ProgressSteps from "./ProgressSteps";
 interface Props {
   shopName: string;
   setShopName: (value: string) => void;
+  packageImageName: string;
+  setPackageImageName: (value: string) => void;
   platform: Platform | null;
   setPlatform: (value: Platform) => void;
   currentPlatform: PlatformSpec | null;
@@ -29,6 +31,8 @@ interface Props {
 export default function PackageImagePage({
   shopName,
   setShopName,
+  packageImageName,
+  setPackageImageName,
   platform,
   setPlatform,
   currentPlatform,
@@ -48,7 +52,7 @@ export default function PackageImagePage({
   const platformSpec = platform ? getPlatform(platform) : null;
   const source = platformSpec?.product.source;
   const target = platformSpec?.product.export;
-  const canSubmit = Boolean(platform) && styleImages.length > 0 && images.length > 0 && !submitDisabled;
+  const canSubmit = Boolean(packageImageName.trim()) && Boolean(platform) && styleImages.length > 0 && images.length > 0 && !submitDisabled;
   const fileHint = platformSpec?.product.maxBytes
     ? ` · JPG 不超过 ${Math.floor(platformSpec.product.maxBytes / 1024)}KB`
     : "";
@@ -69,11 +73,25 @@ export default function PackageImagePage({
               <label className="field__label">店铺名称（可选）</label>
               <input
                 className="input"
-                placeholder="用于归档命名，也会辅助画面文字"
+                placeholder="用于历史记录和文件归档识别"
                 value={shopName}
                 onChange={(event) => setShopName(event.target.value)}
                 maxLength={40}
               />
+            </div>
+
+            <div className="field">
+              <label className="field__label" htmlFor="package-image-name">套餐图名称（必填）</label>
+              <input
+                id="package-image-name"
+                className="input"
+                placeholder="例如：双人招牌套餐"
+                value={packageImageName}
+                onChange={(event) => setPackageImageName(event.target.value)}
+                maxLength={40}
+                required
+              />
+              <span className="field__hint">生成图片会原样展示此名称，不再根据产品文件名自动生成套餐标题</span>
             </div>
 
             <div className="field">

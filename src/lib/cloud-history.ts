@@ -1,4 +1,3 @@
-import { getHistoryRetentionCutoffIso } from "./history-retention.js";
 import {
   HISTORY_PAGE_SIZE,
   getHistoryPageCountFromTotal,
@@ -90,18 +89,6 @@ export async function fetchGenerationLogsPage(
     page: Math.min(Math.max(1, page), pageCount),
     pageCount,
   };
-}
-
-/** 清理 7 天前已过期的云端生图记录。 */
-export async function cleanupExpiredGenerationLogs(): Promise<number> {
-  const { data, error } = await supabase.rpc("cleanup_expired_generation_logs", {
-    p_cutoff: getHistoryRetentionCutoffIso(),
-  });
-  if (error) {
-    console.warn("[cloud-history] cleanupExpiredGenerationLogs failed:", error.message);
-    return 0;
-  }
-  return typeof data === "number" ? data : 0;
 }
 
 /** 读取当前用户今日已生成的图片数量（按 Asia/Shanghai 切日）。 */

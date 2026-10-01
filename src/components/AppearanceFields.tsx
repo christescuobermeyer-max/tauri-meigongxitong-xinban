@@ -13,9 +13,12 @@ const THEME_COLOR_OPTIONS: Array<{ value: ThemeColor; label: string }> = [
   { value: "red", label: "红色主题色" },
   { value: "yellow", label: "黄色主题色" },
   { value: "orange", label: "橙色主题色" },
-  { value: "blue", label: "深蓝主题色" },
+  { value: "softOrangeYellow", label: "淡橙黄主题色（炸鸡汉堡等优先）" },
+  { value: "citrusGreen", label: "青柠果绿主题色（饮品果茶等优先）" },
+  { value: "freshGreen", label: "清新绿色主题色（轻食等优先）" },
+  { value: "blue", label: "深蓝主题色（兰州拉面等优先）" },
   { value: "pink", label: "浅粉主题色" },
-  { value: "deepSea", label: "深海冰川主题色" },
+  { value: "deepSea", label: "深海冰川主题色（生鲜三文鱼等优先）" },
 ];
 
 const BRAND_STYLE_OPTIONS: Array<{ value: BrandStyle; label: string }> = [

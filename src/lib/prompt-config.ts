@@ -1,10 +1,7 @@
-import type { AppearanceOptions, AssetKind, AvatarReferenceMode, Platform } from "../types";
-import type { ImageEditKind } from "./image-edit";
+import type { AppearanceOptions, AssetKind, AvatarReferenceMode, Platform, RemotePromptConfig } from "../types";
+import type { ImageEditKind } from "./image-edit/types";
 
-export interface RemotePromptConfig {
-  key: string;
-  variables: Record<string, unknown>;
-}
+export type { RemotePromptConfig } from "../types";
 
 export function buildGenerationPromptConfig(options: {
   kind: AssetKind;
@@ -85,7 +82,7 @@ export function buildProductBatchPromptConfig(options: {
 }
 
 export function buildPackageImagePromptConfig(options: {
-  shopName: string;
+  packageImageName: string;
   productNames: string[];
   productImageCount?: number;
   platform: Platform;
@@ -93,7 +90,7 @@ export function buildPackageImagePromptConfig(options: {
   return {
     key: "package.image",
     variables: {
-      shopName: options.shopName,
+      shopName: options.packageImageName,
       productNames: options.productNames,
       productImageCount: options.productImageCount,
       platform: options.platform,

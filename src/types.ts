@@ -3,8 +3,13 @@ export type AvatarReferenceMode = "category" | "image";
 export type GenerationLine = "line2" | "line3" | "line4" | "line5" | "line6" | "line7";
 export type HistoricalGenerationLine = "line1" | GenerationLine;
 
+export interface RemotePromptConfig {
+  key: string;
+  variables: Record<string, unknown>;
+}
+
 /** 主题色偏好（可选，未选时不影响 prompt） */
-export type ThemeColor = "light" | "dark" | "red" | "yellow" | "orange" | "blue" | "pink" | "deepSea";
+export type ThemeColor = "light" | "dark" | "red" | "yellow" | "orange" | "softOrangeYellow" | "citrusGreen" | "freshGreen" | "blue" | "pink" | "deepSea";
 /** 设计风格偏好（可选，未选时不影响 prompt） */
 export type BrandStyle = "young" | "lifeFire" | "fresh";
 

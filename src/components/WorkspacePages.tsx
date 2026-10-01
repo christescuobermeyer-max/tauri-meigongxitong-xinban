@@ -2,6 +2,7 @@ import AdminPage from "./AdminPage";
 import MenuDesignPage from "./MenuDesignPage";
 import HistoryPanel from "./HistoryPanel";
 import ImagePlazaPage from "./ImagePlazaPage";
+import ImageResizePage from "./ImageResizePage";
 import AdminGatewayMonitor from "./admin/AdminGatewayMonitor";
 import BrandStoryWorkspacePage from "./workspace/BrandStoryWorkspacePage";
 import DataAnalysisWorkspacePage from "./workspace/DataAnalysisWorkspacePage";
@@ -195,6 +196,14 @@ export default function WorkspacePages({ workspace }: Props) {
     );
   }
 
+  if (workspace.tab === "imageResize") {
+    return (
+      <div className="page page--single image-resize-page-shell">
+        <ImageResizePage />
+      </div>
+    );
+  }
+
   if (workspace.tab === "imagePlaza") {
     return (
       <div className="page page--single">
@@ -203,9 +212,17 @@ export default function WorkspacePages({ workspace }: Props) {
     );
   }
 
-  return (
-    <div className="page page--single">
-      <AdminPage />
-    </div>
-  );
+  if (workspace.tab === "admin") {
+    return (
+      <div className="page page--single">
+        <AdminPage />
+      </div>
+    );
+  }
+
+  return assertNever(workspace.tab);
+}
+
+function assertNever(value: never): never {
+  throw new Error(`未注册的工作区页面：${String(value)}`);
 }

@@ -4,6 +4,7 @@ import TopBar from "./TopBar";
 import TopBarStatus from "./TopBarStatus";
 import WorkspacePages from "./WorkspacePages";
 import useGenerationWorkspace from "../hooks/useGenerationWorkspace";
+import { getWorkspaceTitle } from "../lib/workspace-catalog";
 import { useTheme } from "../hooks/useTheme";
 import type { ProfileRow } from "../lib/supabase";
 import type { ResolvedTheme, Theme } from "../lib/theme";
@@ -75,38 +76,7 @@ function WorkspaceRuntime({
     onResetWorkspace();
   };
 
-  const title =
-    workspace.tab === "avatarStorefront"
-      ? "三件套设计"
-      : workspace.tab === "productImage"
-        ? "制作1张设计图"
-        : workspace.tab === "productBatch"
-          ? "制作全店图"
-          : workspace.tab === "packageImage"
-            ? "制作套餐图"
-            : workspace.tab === "pictureWall"
-              ? "图片墙生成"
-              : workspace.tab === "pSignboard"
-                ? "P门头"
-                : workspace.tab === "videoSignboard"
-                  ? "视频店招"
-                  : workspace.tab === "imageEdit"
-                    ? "修改图片"
-                    : workspace.tab === "detailPage"
-                      ? "详情页生成"
-                      : workspace.tab === "brandStory"
-                        ? "品牌故事"
-                        : workspace.tab === "menuDesign"
-                          ? "菜单设计"
-                        : workspace.tab === "dataAnalysis"
-                          ? "数据分析"
-                      : workspace.tab === "history"
-                        ? "历史记录"
-                        : workspace.tab === "gatewayMonitor"
-                          ? "实时监控"
-                          : workspace.tab === "imagePlaza"
-                            ? "图片广场"
-                          : "后台管理";
+  const title = getWorkspaceTitle(workspace.tab);
 
   return (
     <div className="app-shell">

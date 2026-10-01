@@ -3,17 +3,9 @@ import { IconPause, IconPlay, IconRefresh } from "../Icons";
 import CropBox from "./CropBox";
 import TimelineSlider from "./TimelineSlider";
 
-export interface CropArea {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+import type { CropArea, TimeRange } from "./types";
 
-export interface TimeRange {
-  start: number;
-  end: number;
-}
+export type { CropArea, TimeRange } from "./types";
 
 interface Props {
   videoUrl: string;
