@@ -1,18 +1,8 @@
+import { WORKSPACE_CATALOG, listWorkspaceNavigation } from "../src/lib/workspace-catalog.js";
 import { deepEqual, equal, ok } from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import ts from "typescript";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 
-const libSource = readFileSync(new URL("../src/lib/image-edit.ts", import.meta.url), "utf8")
-  .replace('import type { AssetKind, PlatformSpec } from "../types";', "")
-  .replace(
-    'import { PICTURE_WALL_EXPORT_SIZE, PICTURE_WALL_SOURCE_SIZE } from "./picture-wall";',
-    "const PICTURE_WALL_EXPORT_SIZE = { w: 240, h: 330 }; const PICTURE_WALL_SOURCE_SIZE = { w: 1086, h: 1448 };"
-  );
-const libModule = await import(
-  `data:text/javascript;base64,${Buffer.from(ts.transpileModule(libSource, {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
-  }).outputText).toString("base64")}`
-);
+const libModule = await import("../src/lib/image-edit.ts");
 
 equal(libModule.IMAGE_EDIT_KINDS.join(","), "avatar,storefront,poster,product,picture_wall");
 equal(libModule.IMAGE_EDIT_LABEL.picture_wall, "图片墙");
@@ -136,13 +126,13 @@ const inputCardSource = readFileSync(
   "utf8"
 );
 
-equal(sidebarSource.includes('key: "pSignboard"'), true);
-ok(sidebarSource.indexOf('key: "imageEdit"') > sidebarSource.indexOf('key: "pSignboard"'));
-equal(sidebarSource.includes('label: "修改图片"'), true);
+equal(listWorkspaceNavigation(true).some((item) => item.key === "pSignboard"), false);
+equal(listWorkspaceNavigation(true).some((item) => item.label === "P门头"), false);
+equal(listWorkspaceNavigation(true).some((item) => item.label === "修改图片"), true);
 equal(pagesSource.includes('workspace.tab === "imageEdit"'), true);
 equal(pagesSource.includes("ImageEditWorkspacePage"), true);
-equal(workspaceSource.includes(' | "imageEdit"'), true);
-equal(workspaceSource.includes(' | "detailPage"'), true);
+equal(Object.hasOwn(WORKSPACE_CATALOG, "imageEdit"), true);
+equal(Object.hasOwn(WORKSPACE_CATALOG, "detailPage"), true);
 equal(workspaceSource.includes("useImageEditWorkspace"), true);
 equal(workspaceSource.includes("imageEditSlots,"), true);
 equal(workspaceSource.includes("useDetailPageWorkspace"), true);

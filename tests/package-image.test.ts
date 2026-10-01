@@ -1,5 +1,7 @@
+import { WORKSPACE_CATALOG, listWorkspaceNavigation } from "../src/lib/workspace-catalog.js";
 import { deepEqual, equal, ok } from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 import ts from "typescript";
 
 const root = new URL("../", import.meta.url);
@@ -25,6 +27,7 @@ equal(typeof packageImageModule.resolvePackageImageReferences, "function");
 
 const prompt = packageImageModule.buildPackageImagePrompt({
   shopName: "套餐小馆",
+  packageImageName: "双人招牌套餐",
   productNames: ["鸡腿饭", "牛肉面", "炸鸡", "小食拼盘", "煎饺", "豆浆"],
   productImageCount: 6,
   platform: "meituan",
@@ -40,12 +43,16 @@ ok(prompt.includes("不得添加名单外的菜品、饮品、小食、包装商
 ok(prompt.includes("只提取该图的目标产品主体，其他元素忽略"));
 ok(prompt.includes("所有上传产品图中的真实食物主体"));
 ok(prompt.includes("同一张套餐图"));
+ok(prompt.includes("套餐图名称：双人招牌套餐"));
+ok(prompt.includes("逐字原样展示"));
+ok(prompt.includes("不得从文件名自动生成或改写套餐图名称"));
 ok(prompt.includes("不能遗漏任何一张产品图"));
 ok(prompt.includes("不要要求用户手动输入描述文字"));
 ok(prompt.includes("横版产品图"));
 
 const twoImagePrompt = packageImageModule.buildPackageImagePrompt({
   shopName: "套餐小馆",
+  packageImageName: "双人招牌套餐",
   productNames: ["鸡腿饭", "牛肉面"],
   productImageCount: 2,
   platform: "taobao",
@@ -72,35 +79,22 @@ deepEqual(
   ]
 );
 
-equal(
-  packageImageModule.resolvePackageImageProductName([
-    { productName: "鸡腿饭" },
-    { productName: "牛肉面" },
-    { productName: "炸鸡" },
-    { productName: "小食拼盘" },
-    { productName: "煎饺" },
-    { productName: "豆浆" },
-    { productName: "第七张不应纳入" },
-  ]),
-  "鸡腿饭、牛肉面、炸鸡、小食拼盘、煎饺、豆浆套餐图"
-);
-
 const sidebarSource = read("src/components/Sidebar.tsx");
-ok(sidebarSource.includes('key: "packageImage"'), "侧边栏应包含制作套餐图入口");
-ok(sidebarSource.includes('label: "制作套餐图"'), "侧边栏应显示制作套餐图");
+ok(listWorkspaceNavigation(true).some((item) => item.key === "packageImage"), "侧边栏应包含制作套餐图入口");
+ok(listWorkspaceNavigation(true).some((item) => item.label === "制作套餐图"), "侧边栏应显示制作套餐图");
 ok(
-  sidebarSource.indexOf('key: "packageImage"') > sidebarSource.indexOf('key: "productBatch"'),
+  listWorkspaceNavigation(true).findIndex((item) => item.key === "packageImage") > listWorkspaceNavigation(true).findIndex((item) => item.key === "productBatch"),
   "制作套餐图应放在制作全店图下方"
 );
 ok(
-  sidebarSource.indexOf('key: "packageImage"') < sidebarSource.indexOf('key: "pictureWall"'),
+  listWorkspaceNavigation(true).findIndex((item) => item.key === "packageImage") < listWorkspaceNavigation(true).findIndex((item) => item.key === "pictureWall"),
   "制作套餐图应放在图片墙前方"
 );
 
 const workspaceSource = read("src/hooks/useGenerationWorkspace.ts");
-ok(workspaceSource.includes(' | "packageImage"'), "工作区类型应包含 packageImage");
+ok(Object.hasOwn(WORKSPACE_CATALOG, "packageImage"), "工作区类型应包含 packageImage");
 ok(workspaceSource.includes("usePackageImageWorkspace"), "工作区应接入套餐图 hook");
-ok(workspaceSource.includes("countBusySlots(packageImageSlots)"), "全局忙碌状态应包含套餐图");
+ok(workspaceSource.includes("Object.values(slotGroups).reduce"), "全局忙碌状态应聚合全部槽位");
 ok(workspaceSource.includes("packageImageSlots,"), "工作区返回值应包含套餐图状态");
 
 const pagesSource = read("src/components/WorkspacePages.tsx");
@@ -108,14 +102,22 @@ ok(pagesSource.includes('workspace.tab === "packageImage"'), "页面路由应包
 ok(pagesSource.includes("PackageImageWorkspacePage"), "页面路由应渲染套餐图页面");
 
 const shellSource = read("src/components/WorkspaceShell.tsx");
-ok(shellSource.includes('"制作套餐图"'), "顶部标题应支持制作套餐图");
+ok(shellSource.includes("getWorkspaceTitle(workspace.tab)"), "顶部标题应使用统一工作区目录");
+ok(WORKSPACE_CATALOG.packageImage.title === "制作套餐图");
 
 const packagePageSource = read("src/components/PackageImagePage.tsx");
 ok(packagePageSource.includes("制作套餐图"), "套餐图页面标题应正确");
+ok(packagePageSource.includes("套餐图名称（必填）"), "套餐图应允许用户填写图片标题");
+ok(packagePageSource.includes("value={packageImageName}"), "套餐图名称字段应可编辑");
 ok(packagePageSource.includes("maxCount={6}"), "产品图最多 6 张");
 ok(packagePageSource.includes("maxCount={1}"), "参考图最多 1 张");
 equal(packagePageSource.includes("<textarea"), false, "套餐图不应要求手动输入描述文字");
 ok(packagePageSource.includes("开始制作套餐图"), "套餐图应有独立生成按钮");
+ok(packagePageSource.includes("required"), "套餐图名称应作为必填项");
+
+const packageHookSource = read("src/hooks/usePackageImageWorkspace.ts");
+ok(packageHookSource.includes("productName: packageImageName.trim()"), "归档名称应使用用户填写的套餐图名称");
+ok(packageHookSource.includes("if (!packageImageName.trim())"), "生成前应校验套餐图名称");
 
 const apiValidationSource = read("src-tauri/src/api_validation.rs");
 equal(

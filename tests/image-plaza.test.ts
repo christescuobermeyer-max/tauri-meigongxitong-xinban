@@ -1,5 +1,7 @@
+import { WORKSPACE_CATALOG, listWorkspaceNavigation } from "../src/lib/workspace-catalog.js";
 import { equal, ok } from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 import { fileURLToPath } from "node:url";
 
 function read(path: string) {
@@ -12,24 +14,24 @@ const workspaceShellSource = read("src/components/WorkspaceShell.tsx");
 const workspacePagesSource = read("src/components/WorkspacePages.tsx");
 const imagePlazaSource = read("src/components/ImagePlazaPage.tsx");
 const imagePlazaLibSource = read("src/lib/image-plaza.ts");
-const gatewaySource = read("src-tauri/src/bin/backend_gateway.rs");
+const gatewaySource = read("src-tauri/src/gateway_bin/backend_gateway.rs");
 const stylesSource = read("src/styles/global.css");
 
 equal(existsSync(fileURLToPath(new URL("../src/components/ImagePlazaPage.tsx", import.meta.url))), true);
 equal(existsSync(fileURLToPath(new URL("../src/lib/image-plaza.ts", import.meta.url))), true);
 
-const gatewayIndex = sidebarSource.indexOf('key: "gatewayMonitor"');
-const plazaIndex = sidebarSource.indexOf('key: "imagePlaza"');
-const adminIndex = sidebarSource.indexOf('key: "admin"');
+const gatewayIndex = listWorkspaceNavigation(true).findIndex((item) => item.key === "gatewayMonitor");
+const plazaIndex = listWorkspaceNavigation(true).findIndex((item) => item.key === "imagePlaza");
+const adminIndex = listWorkspaceNavigation(true).findIndex((item) => item.key === "admin");
 ok(gatewayIndex > 0, "侧边栏应保留实时监控入口");
 ok(plazaIndex > gatewayIndex, "图片广场应位于实时监控下方");
 ok(adminIndex > plazaIndex, "图片广场应位于后台管理上方");
-ok(sidebarSource.includes('label: "图片广场"'), "侧边栏应展示图片广场名称");
-ok(sidebarSource.includes('desc: "所有账号最新生图只读预览"'), "侧边栏描述应说明只读预览");
+ok(listWorkspaceNavigation(true).some((item) => item.label === "图片广场"), "侧边栏应展示图片广场名称");
+ok(listWorkspaceNavigation(true).some((item) => item.description === "所有账号最新生图只读预览"), "侧边栏描述应说明只读预览");
 
-ok(workspaceHookSource.includes('| "imagePlaza"'), "WorkspaceTab 应包含 imagePlaza");
-ok(workspaceShellSource.includes('workspace.tab === "imagePlaza"'), "顶部标题应识别图片广场");
-ok(workspaceShellSource.includes('? "图片广场"'), "顶部标题应显示图片广场");
+ok(Object.hasOwn(WORKSPACE_CATALOG, "imagePlaza"), "WorkspaceTab 应包含 imagePlaza");
+ok(workspaceShellSource.includes("getWorkspaceTitle(workspace.tab)"), "顶部标题应使用工作区目录");
+equal(WORKSPACE_CATALOG.imagePlaza.title, "图片广场");
 ok(workspacePagesSource.includes('import ImagePlazaPage from "./ImagePlazaPage";'));
 ok(workspacePagesSource.includes('workspace.tab === "imagePlaza"'));
 ok(workspacePagesSource.includes('<ImagePlazaPage />'));

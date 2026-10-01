@@ -1,6 +1,7 @@
 import { equal, ok } from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import ts from "typescript";
+import { inlinePromptConfig } from "./helpers/prompt-source";
 
 const root = new URL("../", import.meta.url);
 
@@ -31,7 +32,8 @@ ok(typesSource.includes('"line5"'), "前端 GenerationLine 类型应包含线路
 ok(!topbarSource.includes("自动分配线路"), "顶部不应再显示自动分配线路文案块");
 ok(!topbarSource.includes("自动分配线路"), "顶部不应再显示自动分配线路文案块");
 
-ok(supabaseSource.includes('"line5"'), "云端生图记录类型应允许线路5");
+ok(supabaseSource.includes("generation_line: HistoricalGenerationLine | null"), "云端生图记录应使用共享历史线路类型");
+ok(typesSource.includes('"line5"'), "共享历史线路类型应允许线路5");
 ok(historySource.includes('"line5"'), "历史记录规范化应保留线路5");
 ok(historyPanelSource.includes('if (line === "line5") return "线路5";'), "历史记录应显示线路5");
 ok(adminLogListSource.includes('if (line === "line5") return "线路5";'), "后台明细应显示线路5");
@@ -111,7 +113,7 @@ const pictureWallSource = read("src/lib/picture-wall.ts")
   )
   .replace('import { safeFileName } from "./utils";', "function safeFileName(input) { return input.trim() || 'shop'; }")
   .replace('import type { GenerationItem, GenerationLine, GenerationStatus, UploadedImage } from "../types";', "");
-const pictureWallModuleSource = ts.transpileModule(pictureWallSource, {
+const pictureWallModuleSource = ts.transpileModule(inlinePromptConfig(pictureWallSource), {
   compilerOptions: {
     module: ts.ModuleKind.ESNext,
     target: ts.ScriptTarget.ES2020,

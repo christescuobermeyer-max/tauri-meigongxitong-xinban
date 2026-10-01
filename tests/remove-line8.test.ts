@@ -1,5 +1,6 @@
 import { equal, ok } from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 
 const root = new URL("../", import.meta.url);
 
@@ -21,7 +22,7 @@ const textFiles = [
   "src-tauri/src/balance.rs",
   "src-tauri/src/line_health.rs",
   "src-tauri/src/gateway_limiter.rs",
-  "src-tauri/src/bin/backend_gateway.rs",
+  "src-tauri/src/gateway_bin/backend_gateway.rs",
   "docs/backend-gateway-deploy.md",
   "docs/cloud-gateway/gateway.env.example",
 ];

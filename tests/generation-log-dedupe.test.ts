@@ -1,5 +1,5 @@
 import { equal } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 import ts from "typescript";
 
 const helperSource = readFileSync(

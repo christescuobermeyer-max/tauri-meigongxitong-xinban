@@ -35,11 +35,11 @@ equal(detailPageSource.includes('meta={`已完成 ${completedCount}/3`}'), true)
 equal(resultPanelSource.includes("BatchDownloadButton"), true);
 equal(resultPanelSource.includes('label="批量下载美团尺寸"'), true);
 equal(resultPanelSource.includes('label="批量下载淘宝闪购尺寸"'), true);
-equal(resultPanelSource.includes('meta="头像 / 店招 / 海报"'), true);
+equal(resultPanelSource.includes("meta={selectedLabel}"), true);
 
 equal(pictureWallSource.includes("BatchDownloadButton"), true);
 equal(pictureWallSource.includes('label={downloadStatus?.active ? "下载中…" : "批量下载图片墙"}'), true);
-equal(pictureWallSource.includes('meta={`已完成 ${completedCount}/${entries.length || 3}`}'), true);
+equal(pictureWallSource.includes('meta={`已完成 ${completedCount}/${targetCount}`}'), true);
 
 equal(productBatchSource.includes("BatchDownloadButton"), true);
 equal(productBatchSource.includes('label="批量下载全店图"'), true);

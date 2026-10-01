@@ -1,5 +1,7 @@
+import { WORKSPACE_CATALOG, listWorkspaceNavigation } from "../src/lib/workspace-catalog.js";
 import { ok } from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 import { fileURLToPath } from "node:url";
 
 function read(path) {
@@ -25,20 +27,20 @@ ok(exists("src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe"));
 ok(exists("src-tauri/binaries/yt-dlp-x86_64-pc-windows-msvc.exe"));
 
 const workspaceSource = read("src/hooks/useGenerationWorkspace.ts");
-ok(workspaceSource.includes('| "videoSignboard"'));
+ok(Object.hasOwn(WORKSPACE_CATALOG, "videoSignboard"));
 
 const sidebarSource = read("src/components/Sidebar.tsx");
-ok(sidebarSource.includes('key: "videoSignboard"'));
-ok(sidebarSource.includes('label: "视频店招"'));
-ok(sidebarSource.includes('desc: "外卖视频裁剪导出"'));
+ok(listWorkspaceNavigation(true).some((item) => item.key === "videoSignboard"));
+ok(listWorkspaceNavigation(true).some((item) => item.label === "视频店招"));
+ok(listWorkspaceNavigation(true).some((item) => item.description === "外卖视频裁剪导出"));
 
 const pagesSource = read("src/components/WorkspacePages.tsx");
 ok(pagesSource.includes("VideoSignboardWorkspacePage"));
 ok(pagesSource.includes('workspace.tab === "videoSignboard"'));
 
 const shellSource = read("src/components/WorkspaceShell.tsx");
-ok(shellSource.includes('workspace.tab === "videoSignboard"'));
-ok(shellSource.includes('"视频店招"'));
+ok(shellSource.includes("getWorkspaceTitle(workspace.tab)"));
+ok(WORKSPACE_CATALOG.videoSignboard.title === "视频店招");
 
 const iconsSource = read("src/components/Icons.tsx");
 ok(iconsSource.includes("IconVideo"));
@@ -91,7 +93,7 @@ ok(videoCommandsSource.includes("is_douyin_url"), "抖音解析应支持完整 d
 ok(videoCommandsSource.includes("is_safe_video_download_header"), "本地视频下载应过滤网关返回的请求头");
 ok(videoCommandsSource.includes("download_video(video_url, platform, headers"), "远程视频导出应复用解析返回的下载请求头");
 
-const gatewaySource = read("src-tauri/src/bin/backend_gateway.rs");
+const gatewaySource = read("src-tauri/src/gateway_bin/backend_gateway.rs");
 ok(gatewaySource.includes('"/api/video/parse-douyin"'), "网关应提供抖音解析接口");
 ok(gatewaySource.includes("parse_douyin_video_with_ytdlp"), "网关应只解析抖音直链");
 ok(gatewaySource.includes("DOUYIN_COOKIE_PATH"), "网关应支持服务器侧抖音 cookie 路径配置");
@@ -108,7 +110,6 @@ ok(cargoSource.includes("uuid ="));
 const tauriConfigSource = read("src-tauri/tauri.conf.json");
 ok(tauriConfigSource.includes('"assetProtocol"'));
 ok(tauriConfigSource.includes('"externalBin"'));
-ok(tauriConfigSource.includes('"resources"'));
-ok(tauriConfigSource.includes('"../抖音cookie.txt"'), "抖音 cookie 应作为本机私密资源打进安装包");
+ok(!tauriConfigSource.includes('"../抖音cookie.txt"'), "认证 cookie 只能由本机运行环境提供，不能随安装包分发");
 ok(tauriConfigSource.includes('"binaries/ffmpeg"'));
 ok(tauriConfigSource.includes('"binaries/yt-dlp"'));

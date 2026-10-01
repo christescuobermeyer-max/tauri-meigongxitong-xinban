@@ -1,5 +1,5 @@
 import { equal, ok } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 import ts from "typescript";
 
 const promptConfigSource = readFileSync(
@@ -23,6 +23,18 @@ equal(productConfig.key, "product.single");
 equal(productConfig.variables.shopName, "测试店");
 equal(productConfig.variables.productName, "牛肉饭");
 equal(productConfig.variables.includeProductName, true);
+equal(productConfig.variables.themeColor, "red");
+
+const packageConfig = promptConfigModule.buildPackageImagePromptConfig({
+  shopName: "测试套餐店",
+  packageImageName: "双人招牌套餐",
+  productNames: ["鸡腿饭", "牛肉面"],
+  productImageCount: 2,
+  platform: "meituan",
+});
+equal(packageConfig.key, "package.image");
+equal(packageConfig.variables.shopName, "双人招牌套餐");
+equal(packageConfig.variables.productNames.length, 2);
 
 const avatarConfig = promptConfigModule.buildGenerationPromptConfig({
   kind: "avatar",
@@ -54,7 +66,7 @@ ok(workspaceGenerationSource.includes("prompt_config: remotePromptConfig"));
 ok(workspaceGenerationSource.includes("buildGenerationPromptConfig"));
 
 const gatewaySource = readFileSync(
-  new URL("../src-tauri/src/bin/backend_gateway.rs", import.meta.url),
+  new URL("../src-tauri/src/gateway_bin/backend_gateway.rs", import.meta.url),
   "utf8"
 );
 ok(gatewaySource.includes("prompt_config: Option<prompt_templates::PromptRenderRequest>"));
@@ -84,6 +96,9 @@ for (const key of [
 ]) {
   ok(template.templates[key], `缺少云端 prompt 模板：${key}`);
 }
+ok(template.templates["package.image"].includes("{{shop}}"));
+ok(template.templates["package.image"].includes("{{packageNameText}}"));
+ok(template.templates["package.image"].includes("不得从文件名自动生成或改写套餐图名称"));
 
 const updateScript = readFileSync(
   new URL("../docs/cloud-gateway/update.sh", import.meta.url),

@@ -82,6 +82,8 @@ deepEqual(mapped[0], {
   title: "头像",
   shopName: "云端店铺 0",
   remoteUrl: "https://example.com/cloud-0.png",
+  platform: "meituan",
+  productName: undefined,
   generationLine: "line1",
   createdAt: "2026-05-10T12:00:00.000Z",
 });

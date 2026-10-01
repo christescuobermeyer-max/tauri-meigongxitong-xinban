@@ -1,5 +1,5 @@
 import { ok } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 
 function read(path) {
   return readFileSync(new URL(`../${path}`, import.meta.url), "utf8");

@@ -1,5 +1,5 @@
 import { equal, ok } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 
 const root = new URL("../", import.meta.url);
 
@@ -10,7 +10,7 @@ function read(path: string) {
 const provider = read("src-tauri/src/image_provider.rs");
 const validation = read("src-tauri/src/api_validation.rs");
 const limiter = read("src-tauri/src/gateway_limiter.rs");
-const gateway = read("src-tauri/src/bin/backend_gateway.rs");
+const gateway = read("src-tauri/src/gateway_bin/backend_gateway.rs");
 const backendHealth = read("src-tauri/src/line_health.rs");
 const frontendHealth = read("src/lib/line-health.ts");
 const frontendBalance = read("src/lib/balance.ts");

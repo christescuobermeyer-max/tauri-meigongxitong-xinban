@@ -1,12 +1,13 @@
 {
   "name": "csgh-image-studio",
   "private": true,
-  "version": "3.0.51",
+  "version": "3.0.52",
   "type": "module",
   "description": "呈尚策划 · 美工生图系统PRO — 基于 GPT-Image-2 的外卖店招/头像生成桌面应用",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "test": "node scripts/tests/run.mjs",
     "update:publish": "node --env-file=.env.local scripts/publish-app-update.mjs",
     "preview": "vite preview",
     "supabase:usage": "node scripts/supabase-usage-report.mjs",
@@ -35,7 +36,9 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
+    "exceljs": "4.4.0",
     "postgres": "^3.4.5",
+    "tsx": "4.23.15",
     "typescript": "^5.6.3",
     "vite": "^6.0.3"
   },

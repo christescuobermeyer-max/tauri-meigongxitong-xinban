@@ -1,3 +1,4 @@
+import { WORKSPACE_CATALOG, listWorkspaceNavigation } from "../src/lib/workspace-catalog.js";
 import { equal, ok } from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import ts from "typescript";
@@ -53,8 +54,8 @@ const sidebarSource = readFileSync(
   new URL("../src/components/Sidebar.tsx", import.meta.url),
   "utf8"
 );
-equal(sidebarSource.includes('label: "制作1张设计图"'), true);
-equal(sidebarSource.includes('label: "制作全店图"'), true);
+equal(listWorkspaceNavigation(true).some((item) => item.label === "制作1张设计图"), true);
+equal(listWorkspaceNavigation(true).some((item) => item.label === "制作全店图"), true);
 
 const batchPanelUrl = new URL("../src/components/ProductBatchGeneratePanel.tsx", import.meta.url);
 const batchPanelExists = existsSync(batchPanelUrl);

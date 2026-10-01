@@ -1,5 +1,5 @@
 import { equal, ok } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 
 const workspaceSource = readFileSync(
   new URL("../src/lib/workspace-generation.ts", import.meta.url),

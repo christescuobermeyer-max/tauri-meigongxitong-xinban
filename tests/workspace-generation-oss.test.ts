@@ -1,6 +1,7 @@
 import { equal } from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
+import { inlinePromptConfig } from "./helpers/prompt-source";
 
 const source = readFileSync(
   new URL("../src/lib/workspace-generation.ts", import.meta.url),
@@ -59,7 +60,7 @@ export function __getGenerateCalls() { return generateCalls; }
   )
   .replace(/import type \{[\s\S]*?\} from "\.\.\/types";/, "");
 
-const transpiled = ts.transpileModule(source, {
+const transpiled = ts.transpileModule(inlinePromptConfig(source), {
   compilerOptions: {
     module: ts.ModuleKind.ESNext,
     target: ts.ScriptTarget.ES2020,

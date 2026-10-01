@@ -1,8 +1,9 @@
 import { equal, ok } from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 import { fileURLToPath } from "node:url";
 
-const gatewayUrl = new URL("../src-tauri/src/bin/backend_gateway.rs", import.meta.url);
+const gatewayUrl = new URL("../src-tauri/src/gateway_bin/backend_gateway.rs", import.meta.url);
 const docsUrl = new URL("../docs/reference/账号生图统计API对接说明.md", import.meta.url);
 
 equal(existsSync(fileURLToPath(gatewayUrl)), true);

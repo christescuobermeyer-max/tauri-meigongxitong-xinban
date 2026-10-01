@@ -1,10 +1,7 @@
+import { WORKSPACE_CATALOG, listWorkspaceNavigation } from "../src/lib/workspace-catalog.js";
 import { equal, ok } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 
-const sidebar = readFileSync(
-  new URL("../src/components/Sidebar.tsx", import.meta.url),
-  "utf8",
-);
 const workspaceHook = readFileSync(
   new URL("../src/hooks/useGenerationWorkspace.ts", import.meta.url),
   "utf8",
@@ -29,7 +26,7 @@ const gatewayStatsClient = readFileSync(
   "utf8",
 );
 const gateway = readFileSync(
-  new URL("../src-tauri/src/bin/backend_gateway.rs", import.meta.url),
+  new URL("../src-tauri/src/gateway_bin/backend_gateway.rs", import.meta.url),
   "utf8",
 );
 
@@ -46,26 +43,23 @@ function occurrences(source: string, value: string): number {
   return source.split(value).length - 1;
 }
 
-const historyIndex = sidebar.indexOf('key: "history"');
-const monitorIndex = sidebar.indexOf('key: "gatewayMonitor"');
-const adminIndex = sidebar.indexOf('key: "admin"');
+const historyIndex = listWorkspaceNavigation(true).findIndex((item) => item.key === "history");
+const monitorIndex = listWorkspaceNavigation(true).findIndex((item) => item.key === "gatewayMonitor");
+const adminIndex = listWorkspaceNavigation(true).findIndex((item) => item.key === "admin");
 
 ok(historyIndex >= 0, "侧边栏应保留历史记录");
 ok(monitorIndex > historyIndex, "实时监控应位于历史记录之后");
 ok(adminIndex > monitorIndex, "后台管理应位于实时监控之后");
 
-const monitorItem = sourceBetween(
-  sidebar,
-  'key: "gatewayMonitor"',
-  'key: "admin"',
-);
-ok(monitorItem.includes('label: "实时监控"'));
-ok(monitorItem.includes("<IconMonitor"));
-equal(monitorItem.includes("adminOnly"), false);
+const monitorItem = listWorkspaceNavigation(false).find((item) => item.key === "gatewayMonitor");
+ok(monitorItem);
+equal(monitorItem.label, "实时监控");
+equal(monitorItem.icon, "monitor");
+ok(Object.hasOwn(WORKSPACE_CATALOG, "gatewayMonitor"));
+ok(workspaceHook.includes("useWorkspaceSlots"));
+ok(workspaceShell.includes("getWorkspaceTitle(workspace.tab)"));
+equal(WORKSPACE_CATALOG.gatewayMonitor.title, "实时监控");
 
-ok(workspaceHook.includes('| "gatewayMonitor"'));
-ok(workspaceShell.includes('workspace.tab === "gatewayMonitor"'));
-ok(workspaceShell.includes('? "实时监控"'));
 ok(
   workspacePages.includes(
     'import AdminGatewayMonitor from "./admin/AdminGatewayMonitor";',
@@ -75,7 +69,7 @@ ok(workspacePages.includes('workspace.tab === "gatewayMonitor"'));
 const monitorPage = sourceBetween(
   workspacePages,
   'if (workspace.tab === "gatewayMonitor")',
-  "\n\n  return (",
+  'if (workspace.tab === "imageResize")',
 );
 equal(
   occurrences(monitorPage, "<AdminGatewayMonitor />"),

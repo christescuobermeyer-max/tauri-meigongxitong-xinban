@@ -1,5 +1,5 @@
 import { equal, ok } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 
 const sessionSource = readFileSync(
   new URL("../src/lib/workspace-session.ts", import.meta.url),
@@ -13,11 +13,11 @@ const ossSource = readFileSync(new URL("../src/lib/oss-assets.ts", import.meta.u
 
 ok(sessionSource.includes("generationLine"));
 ok(
-  generationFlowSource.includes("buildStorefrontPrompt(shopName, avatarCategory)"),
+  generationFlowSource.includes("buildStorefrontPrompt(shopName, avatarCategory, appearance)"),
   "店招 prompt 应接收经营品类输入框的值"
 );
 ok(
-  generationFlowSource.includes("buildPosterPrompt(shopName, avatarCategory)"),
+  generationFlowSource.includes("buildPosterPrompt(shopName, avatarCategory, appearance)"),
   "海报 prompt 应接收经营品类输入框的值"
 );
 ok(
@@ -38,5 +38,5 @@ equal(
   false,
   "海报不应把店招 OSS URL 作为参考图"
 );
-equal(ossSource.includes('if (kind === "avatar")'), true);
+equal(ossSource.includes("avatar: { maxDimension: 1024, quality: 90 }"), true);
 equal(ossSource.includes("compressGeneratedImage"), true);

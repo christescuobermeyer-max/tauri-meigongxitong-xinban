@@ -1,5 +1,5 @@
 import { equal, ok } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 
 const workspaceSource = readFileSync(new URL("../src/hooks/useGenerationWorkspace.ts", import.meta.url), "utf8");
 const workspacePagesSource = readFileSync(new URL("../src/components/WorkspacePages.tsx", import.meta.url), "utf8");
@@ -10,16 +10,15 @@ const imageEditHookSource = readFileSync(new URL("../src/hooks/useImageEditWorks
 const batchHookSource = readFileSync(new URL("../src/hooks/useProductBatchWorkspace.ts", import.meta.url), "utf8");
 const platformSelectSource = readFileSync(new URL("../src/components/PlatformSelect.tsx", import.meta.url), "utf8");
 
-ok(workspaceSource.includes('useState<Platform | null>(null)'), "全局平台状态默认应为未选择");
-ok(workspaceSource.includes("productPlatform"), "制作1张设计图应使用独立平台状态");
-ok(workspaceSource.includes("productBatchPlatform"), "制作全店图应使用独立平台状态");
-ok(workspaceSource.includes("imageEditPlatform"), "修改图片应使用独立平台状态");
-ok(workspaceSource.includes("const productCurrentPlatform = productPlatform ? getPlatform(productPlatform) : null"), "制作1张设计图未选择平台时不应默认取美团规格");
-ok(workspaceSource.includes("const productBatchCurrentPlatform = productBatchPlatform ? getPlatform(productBatchPlatform) : null"), "制作全店图未选择平台时不应默认取美团规格");
-ok(workspaceSource.includes("const imageEditCurrentPlatform = imageEditPlatform ? getPlatform(imageEditPlatform) : null"), "修改图片未选择平台时不应默认取美团规格");
-ok(workspaceSource.includes('toast.show("请先选择投放平台：美团或淘宝闪购"'), "制作1张设计图应校验平台");
-ok(workspacePagesSource.includes("platform={workspace.productBatchPlatform}"), "制作全店图页面应使用独立平台状态");
-ok(workspacePagesSource.includes("platform={workspace.imageEditPlatform}"), "修改图片页面应使用独立平台状态");
+const productHook = readFileSync(new URL("../src/hooks/useProductImageWorkspace.ts", import.meta.url), "utf8");
+for (const source of [productHook, batchHookSource, imageEditHookSource]) {
+  ok(source.includes('useState<Platform | null>(null)'), "每个工具应保留未选择的平台初始值");
+  ok(source.includes("platform ? getPlatform(platform) : null"), "未选平台不能默认为美团");
+  ok(source.includes("请先选择投放平台：美团或淘宝闪购"), "生成前必须校验投放平台");
+}
+ok(workspaceSource.includes("useWorkspaceSlots"), "工具平台状态由各独立槽位持有");
+ok(workspacePagesSource.includes("ProductBatchWorkspacePage"));
+ok(workspacePagesSource.includes("ImageEditWorkspacePage"));
 
 ok(productPanelSource.includes("platform: Platform | null"), "制作1张设计图平台 props 应允许未选择");
 ok(productPanelSource.includes("platformSpec ?"), "制作1张设计图未选平台时应展示引导文案");
@@ -35,4 +34,5 @@ ok(imageEditPageSource.includes("currentPlatform: PlatformSpec | null"), "修改
 ok(imageEditHookSource.includes("if (!platform || !currentPlatform)"), "修改图片生成层应拦截未选择平台");
 
 ok(platformSelectSource.includes("value: Platform | null"), "平台切换组件应支持无选中态");
-equal(platformSelectSource.includes('data-active={value === p.id}'), true);
+equal(platformSelectSource.includes('const isActive = value === p.id'), true);
+equal(platformSelectSource.includes('data-active={isActive}'), true);

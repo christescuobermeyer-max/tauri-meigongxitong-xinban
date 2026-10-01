@@ -1,5 +1,5 @@
 import { equal, ok } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 import ts from "typescript";
 
 const lineHealthSource = readFileSync(
@@ -11,7 +11,7 @@ const useLineHealthSource = readFileSync(
   "utf8",
 );
 const gatewaySource = readFileSync(
-  new URL("../src-tauri/src/bin/backend_gateway.rs", import.meta.url),
+  new URL("../src-tauri/src/gateway_bin/backend_gateway.rs", import.meta.url),
   "utf8",
 );
 const moduleSource = readFileSync(

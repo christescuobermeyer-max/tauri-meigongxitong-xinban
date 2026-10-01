@@ -28,7 +28,7 @@ equal(updateGateSource.includes("if (suspend) return"), true, "忙碌时 Mandato
 equal(updateGateSource.includes("updateDeferredUntilRestartRef"), true, "忙碌过的会话应把强制更新延后到重启后再处理");
 equal(updateGateSource.includes("等下次重启再触发"), true, "组件注释应明确运行中更新等下次重启再触发");
 equal(
-  /fetchMandatoryUpdate\(\)[\s\S]*?\}, \[\]\);/.test(updateGateSource),
+  /fetchAvailableUpdate\(\)[\s\S]*?\}, \[\]\);/.test(updateGateSource),
   true,
   "强制更新检查应只在软件启动时执行一次，避免生图结束后补弹全屏窗口"
 );

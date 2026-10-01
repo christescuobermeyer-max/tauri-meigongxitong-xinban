@@ -1,32 +1,11 @@
-import { equal } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { equal, ok } from "node:assert/strict";
+import { readFileSync, existsSync } from "node:fs";
 
-const dialogSource = readFileSync(
-  new URL("../src/components/RetryConfirmDialog.tsx", import.meta.url),
-  "utf8"
-);
-const tileSource = readFileSync(
-  new URL("../src/components/GenerationResultTile.tsx", import.meta.url),
-  "utf8"
-);
-const pictureWallSource = readFileSync(
-  new URL("../src/components/PictureWallResults.tsx", import.meta.url),
-  "utf8"
-);
-
-equal(dialogSource.includes("确认重新生成"), true);
-equal(dialogSource.includes("取消"), true);
-equal(dialogSource.includes("重新生成会再次调用生图接口"), true);
-equal(dialogSource.includes("role=\"dialog\""), true);
-
-equal(tileSource.includes("RetryConfirmDialog"), true);
-equal(tileSource.includes("setRetryConfirmOpen(true)"), true);
-equal(tileSource.includes("handleConfirmRetry"), true);
-equal(tileSource.includes("重新生成「${title}」"), true);
-equal(tileSource.includes("downloadOptions"), true);
-equal(tileSource.includes("result-download-menu"), true);
-
-equal(pictureWallSource.includes("RetryConfirmDialog"), true);
-equal(pictureWallSource.includes("setRetryConfirmOpen(true)"), true);
-equal(pictureWallSource.includes("handleConfirmRetry"), true);
-equal(pictureWallSource.includes("重新生成图片墙第 ${index + 1} 张"), true);
+const tile = readFileSync(new URL("../src/components/GenerationResultTile.tsx", import.meta.url), "utf8");
+const wall = readFileSync(new URL("../src/components/PictureWallResults.tsx", import.meta.url), "utf8");
+equal(existsSync(new URL("../src/components/RetryConfirmDialog.tsx", import.meta.url)), false);
+ok(tile.includes("onClick={onRetry}"), "结果卡片保留显式重试命令");
+ok(tile.includes("disabled={busy || actionsDisabled}"), "忙碌或未选择结果时不能重复提交");
+ok(tile.includes("downloadOptions") && tile.includes("result-download-menu"), "保留独立下载选项");
+ok(wall.includes("onRetry(entry.sourceImageId)"), "图片墙重试只提交选中原图");
+ok(!tile.includes("setRetryConfirmOpen"), "不恢复已移除的确认弹窗状态");

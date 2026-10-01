@@ -40,6 +40,7 @@ ok(
   "线路4单次生成最长超时应为 350 秒"
 );
 ok(
-  httpClientSource.includes("const API_TIMEOUT_SECS: u64 = 350;"),
-  "通用生图 HTTP 客户端单次最长超时应为 350 秒"
+  httpClientSource.includes("const API_TIMEOUT_SECS: u64 = 600;") &&
+    httpClientSource.includes("const CONNECT_TIMEOUT_SECS: u64 = 15;"),
+  "通用上游应保留 600 秒响应预算和 15 秒连接超时"
 );

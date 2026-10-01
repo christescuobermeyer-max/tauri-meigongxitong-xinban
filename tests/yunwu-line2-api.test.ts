@@ -1,5 +1,5 @@
 import { ok } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 
 const providerSource = readFileSync(
   new URL("../src-tauri/src/image_provider.rs", import.meta.url),
@@ -29,7 +29,7 @@ const apiKeyBillingSource = readFileSync(
   "utf8"
 );
 const backendGatewaySource = readFileSync(
-  new URL("../src-tauri/src/bin/backend_gateway.rs", import.meta.url),
+  new URL("../src-tauri/src/gateway_bin/backend_gateway.rs", import.meta.url),
   "utf8"
 );
 const adminBalancePanelSource = readFileSync(

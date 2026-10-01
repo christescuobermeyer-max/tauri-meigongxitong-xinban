@@ -1,5 +1,6 @@
+import { WORKSPACE_CATALOG, listWorkspaceNavigation } from "../src/lib/workspace-catalog.js";
 import { equal, ok } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 import ts from "typescript";
 
 const tauriStubs = `
@@ -133,12 +134,12 @@ const adminDetailSource = readFileSync(new URL("../src/components/admin/AdminGen
 const supabaseSource = readFileSync(new URL("../src/lib/supabase.ts", import.meta.url), "utf8");
 const schemaSource = readFileSync(new URL("../supabase/schema.sql", import.meta.url), "utf8");
 
-ok(sidebarSource.includes('key: "detailPage"'));
-ok(sidebarSource.includes('label: "详情页生成"'));
-ok(sidebarSource.indexOf('key: "detailPage"') > sidebarSource.indexOf('key: "imageEdit"'));
+ok(listWorkspaceNavigation(true).some((item) => item.key === "detailPage"));
+ok(listWorkspaceNavigation(true).some((item) => item.label === "详情页生成"));
+ok(listWorkspaceNavigation(true).findIndex((item) => item.key === "detailPage") > listWorkspaceNavigation(true).findIndex((item) => item.key === "imageEdit"));
 ok(pagesSource.includes('workspace.tab === "detailPage"'));
 ok(pagesSource.includes("DetailPageWorkspacePage"));
-ok(workspaceSource.includes(' | "detailPage"'));
+ok(Object.hasOwn(WORKSPACE_CATALOG, "detailPage"));
 ok(workspaceSource.includes("useDetailPageWorkspace"));
 ok(workspaceSource.includes("useDetailPageWorkspace"));
 ok(historySource.includes('kind === "detail_page"'));

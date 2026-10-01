@@ -1,5 +1,6 @@
+import { WORKSPACE_CATALOG, listWorkspaceNavigation } from "../src/lib/workspace-catalog.js";
 import { equal, ok } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 import ts from "typescript";
 
 const libSource = readFileSync(new URL("../src/lib/p-signboard.ts", import.meta.url), "utf8")
@@ -141,14 +142,14 @@ equal(hookSource.includes("onRecordHistory"), true);
 
 const workspaceSource = readFileSync(new URL("../src/hooks/useGenerationWorkspace.ts", import.meta.url), "utf8");
 equal(workspaceSource.includes("usePSignboardWorkspace"), true);
-equal(workspaceSource.includes('"pSignboard"'), true);
+equal(Object.hasOwn(WORKSPACE_CATALOG, "pSignboard"), true);
 equal(workspaceSource.includes('tab !== "history"'), true);
 equal(workspaceSource.includes("fetchGenerationLogsPage(userId"), true);
 equal(workspaceSource.includes("pSignboard"), true);
 
 const sidebarSource = readFileSync(new URL("../src/components/Sidebar.tsx", import.meta.url), "utf8");
-equal(sidebarSource.includes('key: "pSignboard"'), true);
-equal(sidebarSource.includes('label: "P门头"'), true);
+equal(listWorkspaceNavigation(true).some((item) => item.key === "pSignboard"), false);
+equal(listWorkspaceNavigation(true).some((item) => item.label === "P门头"), false);
 
 const shellSource = readFileSync(new URL("../src/components/WorkspacePages.tsx", import.meta.url), "utf8");
 equal(shellSource.includes("PSignboardWorkspacePage"), true);

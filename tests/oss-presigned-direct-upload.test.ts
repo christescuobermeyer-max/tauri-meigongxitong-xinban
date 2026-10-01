@@ -1,5 +1,5 @@
 import { equal, ok } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 import ts from "typescript";
 
 // ---- 后端兼容契约：presign 端点仍保留，供非生成图直传场景使用 ----
@@ -16,7 +16,7 @@ ok(ossSrc.includes("sign_upload_url"), "应调用 SDK 的 sign_upload_url");
 ok(ossSrc.includes("sign_download_url"), "应同时签 download URL 返回给前端");
 
 const gatewaySrc = readFileSync(
-  new URL("../src-tauri/src/bin/backend_gateway.rs", import.meta.url),
+  new URL("../src-tauri/src/gateway_bin/backend_gateway.rs", import.meta.url),
   "utf8",
 );
 ok(gatewaySrc.includes('"/api/oss-presigned-urls"'), "网关应保留 /api/oss-presigned-urls 路由");

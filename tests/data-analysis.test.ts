@@ -1,5 +1,7 @@
+import { WORKSPACE_CATALOG, listWorkspaceNavigation } from "../src/lib/workspace-catalog.js";
 import { equal, ok } from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
@@ -46,21 +48,21 @@ equal(module.DATA_ANALYSIS_ASSET_KIND, "data_analysis");
 equal(module.DATA_ANALYSIS_PLATFORM, "meituan");
 
 const workspaceSource = read("src/hooks/useGenerationWorkspace.ts");
-ok(workspaceSource.includes('| "dataAnalysis"'));
+ok(Object.hasOwn(WORKSPACE_CATALOG, "dataAnalysis"));
 ok(workspaceSource.includes("useDataAnalysisWorkspace"));
 ok(workspaceSource.includes("dataAnalysisSlots"));
-ok(workspaceSource.includes("countBusySlots(dataAnalysisSlots)"));
+ok(workspaceSource.includes("Object.values(slotGroups).reduce"));
 
 const shellSource = read("src/components/WorkspaceShell.tsx");
-ok(shellSource.includes('workspace.tab === "dataAnalysis"'));
-ok(shellSource.includes('"数据分析"'));
+ok(shellSource.includes("getWorkspaceTitle(workspace.tab)"));
+equal(WORKSPACE_CATALOG.dataAnalysis.title, "数据分析");
 
 const sidebarSource = read("src/components/Sidebar.tsx");
-const brandIndex = sidebarSource.indexOf('key: "brandStory"');
-const dataIndex = sidebarSource.indexOf('key: "dataAnalysis"');
+const brandIndex = listWorkspaceNavigation(true).findIndex((item) => item.key === "brandStory");
+const dataIndex = listWorkspaceNavigation(true).findIndex((item) => item.key === "dataAnalysis");
 ok(brandIndex > -1);
 ok(dataIndex > brandIndex);
-ok(sidebarSource.includes('label: "数据分析"'));
+ok(listWorkspaceNavigation(true).some((item) => item.label === "数据分析"));
 
 const pagesSource = read("src/components/WorkspacePages.tsx");
 ok(pagesSource.includes('workspace.tab === "dataAnalysis"'));

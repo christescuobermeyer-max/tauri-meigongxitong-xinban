@@ -1,5 +1,5 @@
 import { equal, ok } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 
 const generatePanel = readFileSync(
   new URL("../src/components/GeneratePanel.tsx", import.meta.url),

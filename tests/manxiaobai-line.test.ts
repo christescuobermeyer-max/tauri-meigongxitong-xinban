@@ -1,5 +1,6 @@
 import { ok } from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 
 const root = new URL("../", import.meta.url);
 
@@ -28,7 +29,7 @@ const gatewayLimiterSource = read("src-tauri/src/gateway_limiter.rs");
 const frontendBalanceSource = read("src/lib/balance.ts");
 const backendBalanceSource = read("src-tauri/src/balance.rs");
 const apiKeyBillingSource = read("src-tauri/src/api_key_billing.rs");
-const backendGatewaySource = read("src-tauri/src/bin/backend_gateway.rs");
+const backendGatewaySource = read("src-tauri/src/gateway_bin/backend_gateway.rs");
 const line6ValidationArm =
   validationSource.match(/ImageApiLine::Line6\s*=>\s*matches!\([\s\S]*?\n\s*\),/)?.[0] ?? "";
 

@@ -1,9 +1,10 @@
 import { ok } from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 
 const root = new URL("../", import.meta.url);
 const gatewaySource = readFileSync(
-  new URL("src-tauri/src/bin/backend_gateway.rs", root),
+  new URL("src-tauri/src/gateway_bin/backend_gateway.rs", root),
   "utf8",
 );
 const apimartSource = readFileSync(new URL("src-tauri/src/apimart.rs", root), "utf8");

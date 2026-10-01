@@ -1,14 +1,15 @@
+import { WORKSPACE_CATALOG, listWorkspaceNavigation } from "../src/lib/workspace-catalog.js";
 import { equal } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 
 const sidebarSource = readFileSync(new URL("../src/components/Sidebar.tsx", import.meta.url), "utf8");
-equal(sidebarSource.includes('label: "图片墙生成"'), true);
+equal(listWorkspaceNavigation(true).some((item) => item.label === "图片墙生成"), true);
 
 const workspaceHookSource = readFileSync(
   new URL("../src/hooks/useGenerationWorkspace.ts", import.meta.url),
   "utf8"
 );
-equal(workspaceHookSource.includes('"pictureWall"'), true);
+equal(Object.hasOwn(WORKSPACE_CATALOG, "pictureWall"), true);
 equal(workspaceHookSource.includes("usePictureWallWorkspace"), true);
 equal(workspaceHookSource.includes("onRecordHistory: recordHistory"), true);
 equal(workspaceHookSource.includes("pictureWallSlots"), true);
@@ -27,7 +28,7 @@ equal(pictureWallHookSource.includes("queuePictureWallEntriesForRetry"), true);
 equal(pictureWallHookSource.includes("function reset"), false);
 
 const shellSource = readFileSync(new URL("../src/components/WorkspaceShell.tsx", import.meta.url), "utf8");
-equal(shellSource.includes('? "图片墙生成"'), true);
+equal(shellSource.includes("getWorkspaceTitle(workspace.tab)"), true);
 
 const pagesSource = readFileSync(new URL("../src/components/WorkspacePages.tsx", import.meta.url), "utf8");
 equal(pagesSource.includes("PictureWallWorkspacePage"), true);

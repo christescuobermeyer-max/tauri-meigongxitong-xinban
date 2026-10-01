@@ -1,5 +1,5 @@
 import { ok } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 
 const hookSource = readFileSync(
   new URL("../src/hooks/useProductBatchWorkspace.ts", import.meta.url),
@@ -32,21 +32,9 @@ ok(
   "hook 不应再自管理 generationLine state",
 );
 
-// workspace 应实例化 10 个 slot
-ok(workspaceSource.includes("productBatchSlot1 = useProductBatchWorkspace"));
-ok(workspaceSource.includes("productBatchSlot2 = useProductBatchWorkspace"));
-ok(workspaceSource.includes("productBatchSlot3 = useProductBatchWorkspace"));
-ok(workspaceSource.includes("productBatchSlot4 = useProductBatchWorkspace"));
-ok(workspaceSource.includes("productBatchSlot5 = useProductBatchWorkspace"));
-ok(workspaceSource.includes("productBatchSlot6 = useProductBatchWorkspace"));
-ok(workspaceSource.includes("productBatchSlot7 = useProductBatchWorkspace"));
-ok(workspaceSource.includes("productBatchSlot8 = useProductBatchWorkspace"));
-ok(workspaceSource.includes("productBatchSlot9 = useProductBatchWorkspace"));
-ok(workspaceSource.includes("productBatchSlot10 = useProductBatchWorkspace"));
-ok(
-  workspaceSource.includes("countBusySlots(productBatchSlots)"),
-  "全局 busy 应聚合 8 个 slot",
-);
+// 固定组合钩子为全店工具创建 10 个独立状态，统一聚合忙碌数。
+ok((workspaceSource.match(/useProductBatchWorkspace\(/g) ?? []).length === 10);
+ok(workspaceSource.includes("Object.values(slotGroups).reduce"));
 
 // 页面应渲染 10 个 tab
 for (const label of ["店铺1", "店铺2", "店铺3", "店铺4", "店铺5", "店铺6", "店铺7", "店铺8", "店铺9", "店铺10"]) {

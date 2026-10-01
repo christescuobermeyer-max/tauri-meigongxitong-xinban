@@ -1,17 +1,7 @@
 import { deepEqual, equal, ok } from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import ts from "typescript";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 
-const libSource = readFileSync(new URL("../src/lib/image-edit.ts", import.meta.url), "utf8")
-  .replace(
-    'import { PICTURE_WALL_EXPORT_SIZE, PICTURE_WALL_SOURCE_SIZE } from "./picture-wall";',
-    "const PICTURE_WALL_EXPORT_SIZE = { w: 240, h: 330 }; const PICTURE_WALL_SOURCE_SIZE = { w: 1086, h: 1448 };"
-  );
-const libModule = await import(
-  `data:text/javascript;base64,${Buffer.from(ts.transpileModule(libSource, {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
-  }).outputText).toString("base64")}`
-);
+const libModule = await import("../src/lib/image-edit.ts");
 
 equal(libModule.IMAGE_EDIT_BATCH_MAX_IMAGES, 20);
 equal(libModule.getImageEditSourceMaxCount("avatar", "single"), 1);
@@ -77,7 +67,7 @@ const batchDownloadSource = readFileSync(
 );
 
 ok(hookSource.includes('useState<ImageEditMode>("single")'), "修改图片默认应保持单张修改");
-ok(hookSource.includes('if (mode === "batch")'), "生成入口应按模式分支到批量逻辑");
+ok(hookSource.includes('if (state.mode === "batch")'), "生成入口应按模式分支到批量逻辑");
 ok(hookSource.includes("async function generateBatch"), "hook 应实现批量生成");
 ok(hookSource.includes("async function runBatchItem"), "hook 应逐张运行批量任务");
 ok(hookSource.includes("sourceImages: [sourceImage]"), "批量模式每次只能把当前原图传给模型");

@@ -1,6 +1,7 @@
 import { deepEqual, equal, ok } from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
+import { inlinePromptConfig } from "./helpers/prompt-source";
 
 function transpile(source: string) {
   return ts.transpileModule(source, {
@@ -45,7 +46,7 @@ async function generateBrandStoryText() { return {}; }`
   );
 
 const brandStoryModule = await import(
-  `data:text/javascript;base64,${Buffer.from(transpile(brandStorySource)).toString("base64")}`
+  `data:text/javascript;base64,${Buffer.from(transpile(inlinePromptConfig(brandStorySource))).toString("base64")}`
 );
 
 deepEqual(

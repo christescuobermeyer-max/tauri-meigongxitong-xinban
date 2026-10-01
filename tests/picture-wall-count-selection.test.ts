@@ -1,6 +1,7 @@
 import { deepEqual, equal, ok } from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
+import { inlinePromptConfig } from "./helpers/prompt-source";
 
 const tauriStubs = `
 async function uploadImageToOss(req) { return { url: "https://oss.example.com/" + req.file_name, key: req.file_name }; }
@@ -14,7 +15,7 @@ const libSource = readFileSync(new URL("../src/lib/picture-wall.ts", import.meta
   .replace('import { resolveGeneratedArchiveUrl } from "./oss-assets";', "")
   .replace('import { runWithAutoRetry } from "./generation-retry";', retryStub)
   .replace('import { safeFileName } from "./utils";', "function safeFileName(input) { return input.trim() || 'shop'; }");
-const libTranspiled = ts.transpileModule(libSource, {
+const libTranspiled = ts.transpileModule(inlinePromptConfig(libSource), {
   compilerOptions: {
     module: ts.ModuleKind.ESNext,
     target: ts.ScriptTarget.ES2020,

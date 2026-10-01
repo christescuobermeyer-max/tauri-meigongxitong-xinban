@@ -1,5 +1,5 @@
 import { ok } from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 
 const historySource = readFileSync(new URL("../src/lib/history.ts", import.meta.url), "utf8");
 const historyDownloadSource = readFileSync(new URL("../src/lib/history-download.ts", import.meta.url), "utf8");

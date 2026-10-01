@@ -1,8 +1,10 @@
 import { deepEqual, equal } from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 import { fileURLToPath } from "node:url";
 import {
   compareVersions,
+  resolveAvailableUpdate,
   resolveMandatoryUpdate,
   type AppUpdateConfigRow,
 } from "../src/lib/app-update.js";
@@ -18,6 +20,8 @@ const mandatoryRow: AppUpdateConfigRow = {
   latest_version: "3.1.0",
   force_update: true,
   installer_url: "https://oss.example.com/csgh-3.1.0.msi",
+  installer_sha256: "a".repeat(64),
+  update_enabled: true,
   release_notes: "新增强制更新\n修复线路状态",
   updated_at: "2026-06-18T00:00:00Z",
 };
@@ -25,6 +29,15 @@ const mandatoryRow: AppUpdateConfigRow = {
 deepEqual(resolveMandatoryUpdate(mandatoryRow, "3.0.0"), {
   latestVersion: "3.1.0",
   installerUrl: "https://oss.example.com/csgh-3.1.0.msi",
+  installerSha256: "a".repeat(64),
+  installBlockedReason: null,
+  releaseNotes: ["新增强制更新", "修复线路状态"],
+});
+deepEqual(resolveAvailableUpdate({ ...mandatoryRow, force_update: false }, "3.0.0"), {
+  latestVersion: "3.1.0",
+  installerUrl: "https://oss.example.com/csgh-3.1.0.msi",
+  installerSha256: "a".repeat(64),
+  installBlockedReason: null,
   releaseNotes: ["新增强制更新", "修复线路状态"],
 });
 equal(resolveMandatoryUpdate(mandatoryRow, "3.1.0"), null);
@@ -46,14 +59,16 @@ const componentSource = readFileSync(componentUrl, "utf8");
 equal(componentSource.includes("suspend?: boolean"), true);
 equal(componentSource.includes("if (suspend) return"), true);
 equal(componentSource.includes("updateDeferredUntilRestartRef"), true);
+equal(componentSource.includes("fetchAvailableUpdate"), true);
+equal(componentSource.includes("稍后更新"), true);
 equal(componentSource.includes("等下次重启再触发"), true);
 equal(
-  /fetchMandatoryUpdate\(\)[\s\S]*?\}, \[\]\);/.test(componentSource),
+  /fetchAvailableUpdate\(\)[\s\S]*?\}, \[\]\);/.test(componentSource),
   true,
   "强制更新检查应只在软件启动时执行一次，避免生图结束后补弹全屏窗口"
 );
 equal(componentSource.includes("检测到新版本"), true);
-equal(componentSource.includes("自动更新"), true);
+equal(componentSource.includes("立即更新"), true);
 equal(componentSource.includes("installAppUpdate"), true);
 equal(componentSource.includes("listenAppUpdateProgress"), true);
 equal(componentSource.includes('role="progressbar"'), true);

@@ -18,7 +18,7 @@ equal(styles.includes(".login-editorial-poster"), true);
 equal(styles.includes("width: 100vw;"), true);
 equal(styles.includes("height: 100vh;"), true);
 equal(styles.includes("padding: 0;"), true);
-equal(styles.includes("grid-template-columns: minmax(0, 1fr) minmax(460px, 520px);"), true);
+equal(styles.includes("grid-template-columns: minmax(0, 1.05fr) minmax(440px, 0.95fr);"), true);
 equal(styles.includes("gap: 0;"), true);
 equal(styles.includes("max-width: 420px;"), true);
 equal(styles.includes("@keyframes login-editorial-rise"), true);

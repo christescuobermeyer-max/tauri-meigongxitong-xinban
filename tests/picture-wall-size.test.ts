@@ -1,6 +1,7 @@
 import { deepStrictEqual, equal, ok } from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
+import { inlinePromptConfig } from "./helpers/prompt-source";
 
 const tauriStubs = `
 let apiCalls = [];
@@ -32,7 +33,7 @@ const libSource = readFileSync(new URL("../src/lib/picture-wall.ts", import.meta
   )
   .replace('import { safeFileName } from "./utils";', "function safeFileName(input) { return input.trim() || 'shop'; }")
   .replace('import type { GenerationItem, GenerationLine, GenerationStatus, UploadedImage } from "../types";', "");
-const libTranspiled = ts.transpileModule(libSource, {
+const libTranspiled = ts.transpileModule(inlinePromptConfig(libSource), {
   compilerOptions: {
     module: ts.ModuleKind.ESNext,
     target: ts.ScriptTarget.ES2020,

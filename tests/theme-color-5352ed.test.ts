@@ -6,6 +6,8 @@ import { buildProductPrompt } from "../src/lib/prompts.js";
 const themeColor = "blue" as never;
 const pinkThemeColor = "pink" as never;
 const deepSeaThemeColor = "deepSea" as never;
+const citrusGreenThemeColor = "citrusGreen" as never;
+const softOrangeYellowThemeColor = "softOrangeYellow" as never;
 
 const productPrompt = buildProductPrompt("鲜椒鸡排", "招牌鸡排饭", "meituan", {
   themeColor,
@@ -54,6 +56,30 @@ ok(!deepSeaProductPrompt.includes("刺身"));
 ok(!deepSeaProductPrompt.includes("冷鲜食品"));
 ok(!deepSeaProductPrompt.includes("橙红色海鲜"));
 
+const citrusGreenProductPrompt = buildProductPrompt("青柠鲜果", "招牌柠檬茶", "meituan", {
+  themeColor: citrusGreenThemeColor,
+});
+ok(citrusGreenProductPrompt.includes("青柠果绿主题配色"));
+ok(citrusGreenProductPrompt.includes("深草绿 #34741E"));
+ok(citrusGreenProductPrompt.includes("明亮果绿 #74B75A"));
+ok(citrusGreenProductPrompt.includes("嫩芽绿 #6DBC4F"));
+ok(citrusGreenProductPrompt.includes("浅青柠 #BFEA92"));
+ok(citrusGreenProductPrompt.includes("避免荧光绿"));
+
+const softOrangeYellowProductPrompt = buildProductPrompt("韩式炸鸡店", "招牌脆皮炸鸡", "meituan", {
+  themeColor: softOrangeYellowThemeColor,
+});
+ok(softOrangeYellowProductPrompt.includes("淡橙黄色炸鸡快餐主题配色"));
+ok(softOrangeYellowProductPrompt.includes("奶油浅黄 #FFF3D1"));
+ok(softOrangeYellowProductPrompt.includes("暖白 #FFF9EC"));
+ok(softOrangeYellowProductPrompt.includes("柔和淡橙 #F4A043"));
+ok(softOrangeYellowProductPrompt.includes("酥脆金黄 #F5B735"));
+ok(softOrangeYellowProductPrompt.includes("少量番茄红 #E64224"));
+ok(softOrangeYellowProductPrompt.includes("深可可棕 #4A2519"));
+ok(softOrangeYellowProductPrompt.includes("对炸鸡自然表现松脆面衣与金黄质感"));
+ok(softOrangeYellowProductPrompt.includes("其他菜品保留自身真实颜色、形状与食材"));
+ok(softOrangeYellowProductPrompt.includes("不改变菜品主体、文字内容、版式或构图"));
+
 const appearanceFieldsSource = readFileSync(
   new URL("../src/components/AppearanceFields.tsx", import.meta.url),
   "utf8"
@@ -64,6 +90,10 @@ ok(appearanceFieldsSource.includes("pink"));
 ok(appearanceFieldsSource.includes("浅粉主题色"));
 ok(appearanceFieldsSource.includes("deepSea"));
 ok(appearanceFieldsSource.includes("深海冰川主题色"));
+ok(appearanceFieldsSource.includes("citrusGreen"));
+ok(appearanceFieldsSource.includes("青柠果绿主题色"));
+ok(appearanceFieldsSource.includes("softOrangeYellow"));
+ok(appearanceFieldsSource.includes("淡橙黄主题色（炸鸡汉堡等优先）"));
 ok(!appearanceFieldsSource.includes("#262C75 深蓝主题色"));
 ok(!appearanceFieldsSource.includes("bluePurple"));
 ok(!appearanceFieldsSource.includes("#5352ed"));
@@ -75,6 +105,7 @@ const pictureWallSource = readFileSync(
 )
   .replace('import { generateArchivedImageWithLine, uploadImageToOss } from "./tauri";', "")
   .replace('import { resolveGeneratedArchiveUrl } from "./oss-assets";', "")
+  .replace('import { buildPictureWallPromptConfig } from "./prompt-config";', "")
   .replace('import { runWithAutoRetry } from "./generation-retry";', "")
   .replace('import { safeFileName } from "./utils";', "function safeFileName(input) { return input.trim() || 'shop'; }")
   .replace(/import type \{[\s\S]*?\} from "\.\.\/types";/, "");
@@ -134,3 +165,29 @@ const deepSeaPictureWallPrompt = pictureWallModule.buildPictureWallPrompt(
 ok(deepSeaPictureWallPrompt.includes("深海冰川蓝主题配色"));
 ok(deepSeaPictureWallPrompt.includes("主色使用深海墨蓝 #062333"));
 ok(deepSeaPictureWallPrompt.includes("辅色使用冰川浅青 #BFEAF2"));
+
+const citrusGreenPictureWallPrompt = pictureWallModule.buildPictureWallPrompt(
+  "青柠鲜果",
+  "招牌柠檬茶",
+  "https://oss.example.com/source.jpg",
+  { themeColor: citrusGreenThemeColor }
+);
+ok(citrusGreenPictureWallPrompt.includes("青柠果绿主题配色"));
+ok(citrusGreenPictureWallPrompt.includes("深草绿 #34741E"));
+ok(citrusGreenPictureWallPrompt.includes("浅青柠 #BFEA92"));
+
+const softOrangeYellowPictureWallPrompt = pictureWallModule.buildPictureWallPrompt(
+  "韩式炸鸡店",
+  "招牌脆皮炸鸡",
+  "https://oss.example.com/source.jpg",
+  { themeColor: softOrangeYellowThemeColor }
+);
+ok(softOrangeYellowPictureWallPrompt.includes("淡橙黄色炸鸡快餐主题配色"));
+ok(softOrangeYellowPictureWallPrompt.includes("奶油浅黄 #FFF3D1"));
+ok(softOrangeYellowPictureWallPrompt.includes("酥脆金黄 #F5B735"));
+ok(softOrangeYellowPictureWallPrompt.includes("不改变菜品主体、文字内容、版式或构图"));
+
+const generationTemplate = JSON.parse(
+  readFileSync(new URL("../prompt-templates/generation-prompts.json", import.meta.url), "utf8")
+) as { theme_color_hints: Record<string, string> };
+ok(generationTemplate.theme_color_hints.softOrangeYellow);

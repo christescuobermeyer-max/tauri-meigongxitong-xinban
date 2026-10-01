@@ -1,12 +1,13 @@
 import { equal } from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 import { fileURLToPath } from "node:url";
 
 const tauriSource = readFileSync(new URL("../src/lib/tauri.ts", import.meta.url), "utf8");
 const adminSource = readFileSync(new URL("../src/lib/admin.ts", import.meta.url), "utf8");
 const envTypesSource = readFileSync(new URL("../src/env.d.ts", import.meta.url), "utf8");
 const cargoSource = readFileSync(new URL("../src-tauri/Cargo.toml", import.meta.url), "utf8");
-const gatewayUrl = new URL("../src-tauri/src/bin/backend_gateway.rs", import.meta.url);
+const gatewayUrl = new URL("../src-tauri/src/gateway_bin/backend_gateway.rs", import.meta.url);
 
 equal(existsSync(fileURLToPath(gatewayUrl)), true);
 
@@ -29,6 +30,8 @@ equal(cargoSource.includes("axum"), true);
 equal(cargoSource.includes('default-run = "csgh-image-studio"'), true);
 equal(cargoSource.includes("[[bin]]"), true);
 equal(cargoSource.includes("backend-gateway"), true);
+equal(cargoSource.includes('required-features = ["gateway"]'), true);
+equal(cargoSource.includes("gateway = []"), true);
 equal(gatewaySource.includes("/api/generate-image"), true);
 equal(gatewaySource.includes("/api/video/parse-douyin"), true);
 equal(gatewaySource.includes("parse_douyin_video"), true);
