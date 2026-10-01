@@ -137,11 +137,15 @@ equal(
 );
 equal(
   source.includes("<code>v3.0.52</code>"),
+  false
+);
+equal(
+  source.includes("<code>v3.0.53</code>"),
   true
 );
-equal(packageJson.version, "3.0.52");
-equal(tauriConfig.version, "3.0.52");
-equal(cargoToml.includes('version = "3.0.52"'), true);
+equal(packageJson.version, "3.0.53");
+equal(tauriConfig.version, "3.0.53");
+equal(cargoToml.includes('version = "3.0.53"'), true);
 equal(source.includes('label: "巡店话术"'), false);
 equal(source.includes("patrolScript"), false);
 equal(source.includes("disabled: true"), false);
