@@ -1,7 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "呈尚策划美工生图系统PRO",
-  "version": "3.0.51",
+  "mainBinaryName": "csgh-image-studio",
+  "version": "3.0.52",
   "identifier": "com.csgh.image-studio",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -26,18 +27,15 @@
       }
     ],
     "security": {
-      "csp": null,
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost https://asset.localhost data: blob: https: http:; media-src 'self' asset: http://asset.localhost https://asset.localhost data: blob: https: http:; connect-src 'self' ipc: http://ipc.localhost https://ipc.localhost https: http:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-src 'none'",
+      "devCsp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost https://asset.localhost data: blob: https: http:; media-src 'self' asset: http://asset.localhost https://asset.localhost data: blob: https: http:; connect-src 'self' ipc: http://ipc.localhost https://ipc.localhost https: http: ws: wss:; font-src 'self' data:; object-src 'none'; base-uri 'self'",
       "assetProtocol": {
         "enable": true,
         "scope": [
           "$APPLOCALDATA/**",
           "$APPCACHE/**",
           "$TEMP/**",
-          "$APPDATA/**",
-          "C:\\**",
-          "D:\\**",
-          "E:\\**",
-          "F:\\**"
+          "$APPDATA/**"
         ]
       }
     }
@@ -53,9 +51,6 @@
     "externalBin": [
       "binaries/ffmpeg",
       "binaries/yt-dlp"
-    ],
-    "resources": [
-      "../抖音cookie.txt"
     ],
     "icon": [
       "icons/32x32.png",
