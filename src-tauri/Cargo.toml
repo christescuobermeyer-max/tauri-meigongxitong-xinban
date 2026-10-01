@@ -1,6 +1,6 @@
 [package]
 name = "csgh-image-studio"
-version = "3.0.51"
+version = "3.0.52"
 description = "呈尚策划 · 美工生图系统PRO"
 authors = ["呈尚策划"]
 edition = "2021"
@@ -12,10 +12,12 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 
 [[bin]]
 name = "backend-gateway"
-path = "src/bin/backend_gateway.rs"
+path = "src/gateway_bin/backend_gateway.rs"
+required-features = ["gateway"]
 
 [features]
 default = ["tauri-commands"]
+gateway = []
 tauri-commands = ["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-plugin-fs", "dep:tauri-plugin-shell", "dep:tauri-build"]
 
 [build-dependencies]
@@ -28,6 +30,7 @@ tauri-plugin-fs = { version = "2", optional = true }
 tauri-plugin-shell = { version = "2", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.10"
 reqwest = { version = "0.12", default-features = false, features = ["json", "multipart", "rustls-tls-native-roots", "stream", "system-proxy"] }
 futures-util = "0.3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync", "fs"] }
