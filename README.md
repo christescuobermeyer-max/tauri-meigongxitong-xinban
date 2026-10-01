@@ -92,7 +92,7 @@ npm run tauri:build
 - [.env.example](.env.example)
 - [docs/cloud-gateway/gateway.env.example](docs/cloud-gateway/gateway.env.example)
 
-生产推荐网关模式：桌面安装包只内置 `VITE_BACKEND_GATEWAY_URL`、`VITE_SUPABASE_URL`、`VITE_SUPABASE_ANON_KEY` 这类公开配置；生图 API Key、OSS AccessKey、Supabase service role 放在服务器 `/opt/csgh-gateway/secrets/gateway.env`。
+生产推荐网关模式：桌面安装包只内置 `VITE_BACKEND_GATEWAY_URL`、`VITE_SUPABASE_URL`、`VITE_SUPABASE_ANON_KEY` 这类公开配置；生图 API Key、OSS AccessKey、Supabase service role 放在服务器 `/opt/csgh-gateway/secrets/gateway.env`。Rust 构建不再读取和嵌入本地秘密；受控直连运行时可读取程序目录旁的配置，认证 cookie 不随安装包分发。
 
 不要把真实密钥、数据库连接串、OSS AccessKey 或完整签名 URL 写进仓库文档。
 

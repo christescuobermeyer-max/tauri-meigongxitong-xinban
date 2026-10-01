@@ -31,9 +31,10 @@ sudo -u csgh git -C "$PROJECT_ROOT" pull --ff-only
 log "重新编译..."
 sudo -u csgh bash -c "cd '$PROJECT_ROOT/src-tauri' && \
   source ~/.cargo/env && \
-  cargo build --release --bin backend-gateway --no-default-features"
+  cargo build --release --bin backend-gateway --no-default-features --features gateway"
 
 log "替换二进制..."
+install -d -o csgh -g csgh -m 0700 /opt/csgh-gateway/state
 install -o csgh -g csgh -m 0755 \
   "$PROJECT_ROOT/src-tauri/target/release/backend-gateway" \
   /opt/csgh-gateway/bin/backend-gateway
@@ -45,6 +46,11 @@ install -o csgh -g csgh -m 0644 \
   /opt/csgh-gateway/prompts/generation-prompts.json
 
 log "重启服务..."
+install -d -m 0755 /etc/systemd/system/csgh-backend-gateway.service.d
+install -m 0644 \
+  "$PROJECT_ROOT/docs/cloud-gateway/state-directory.conf" \
+  /etc/systemd/system/csgh-backend-gateway.service.d/state-directory.conf
+systemctl daemon-reload
 systemctl restart csgh-backend-gateway
 sleep 2
 systemctl status csgh-backend-gateway --no-pager -l | head -20

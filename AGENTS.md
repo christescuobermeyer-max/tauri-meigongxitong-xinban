@@ -43,7 +43,8 @@
 | `src/hooks/` | 各工作区状态、登录态、线路健康与流程编排 |
 | `src/lib/` | 前端业务 API、Tauri 调用、Supabase/OSS/历史/下载辅助逻辑 |
 | `src-tauri/` | Tauri 2 + Rust 桌面端和云网关共享源码 |
-| `src-tauri/src/bin/backend_gateway.rs` | Rust/Axum 云服务器网关入口 |
+| `src-tauri/src/gateway_bin/backend_gateway.rs` | Rust/Axum 云服务器网关入口 |
+| `src-tauri/src/gateway_bin/gateway/` | 按生成、鉴权、统计、视频与配置分层的网关实现 |
 | `supabase/` | Postgres schema、RLS、迁移 SQL |
 | `prompt-templates/` | 云端 prompt 模板源文件，部署同步到 `/opt/csgh-gateway/prompts/` |
 | `scripts/` | 构建、诊断、数据导出、运维脚本 |
@@ -71,6 +72,7 @@
 
 ```powershell
 npm run build
+npm test
 npm run tauri:build
 npx tsx tests/mandatory-update.test.ts
 npx tsx tests/sidebar-layout.test.ts
@@ -82,10 +84,11 @@ cmd.exe /c "call ""D:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTool
 | 文档 | 什么时候读 |
 |---|---|
 | `docs/项目总览.md` | 需要了解完整技术栈、云资源、运行架构、数据流、文件边界 |
+| `docs/plans/2026-09-30-项目修复实施文档.md` | 安全、更新校验、模块拆分的修复状态、验证结果与待部署步骤 |
 | `docs/plans/2026-09-18-menu-design.md` | 菜单文字/截图整理、品类风格生图与部署依赖 |
 | `docs/文档索引.md` | 不确定要读哪份文档，或新增/归档文档前 |
 | `docs/云服务器信息.md` | 查询服务器 IP、域名、SSH 用户、服务器目录、服务名 |
-| `docs/自动更新.md` | 发布新版本、构建安装包、OSS 上传、Supabase 强制更新 |
+| `docs/自动更新.md` | 可稍后更新、安装包摘要验证、构建与发布流程 |
 | `docs/operations/云端部署与分发手册.md` | 了解生产云部署、成本、员工客户端分发 |
 | `docs/operations/云端Prompt模板维护.md` | 修改云服务器 prompt 模板、不重打客户端包时 |
 | `docs/operations/云服务器全量迁移计划.md` | 迁移整台服务器到椰子云目标机、盘点同机项目、跨发行版重建、切换 DNS/GA、验收或回滚 |

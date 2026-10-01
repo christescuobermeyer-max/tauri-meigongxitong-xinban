@@ -33,9 +33,10 @@ log "切换到 csgh 用户编译 backend-gateway（release 模式，禁用 tauri
 chown -R csgh:csgh "$PROJECT_ROOT"
 sudo -u csgh bash -c "cd '$PROJECT_ROOT/src-tauri' && \
   source ~/.cargo/env && \
-  cargo build --release --bin backend-gateway --no-default-features"
+  cargo build --release --bin backend-gateway --no-default-features --features gateway"
 
 # ----- 2. 安装二进制 ---------------------------------------------------------
+install -d -o csgh -g csgh -m 0700 /opt/csgh-gateway/state
 log "安装二进制到 /opt/csgh-gateway/bin/..."
 install -o csgh -g csgh -m 0755 \
   "$PROJECT_ROOT/src-tauri/target/release/backend-gateway" \

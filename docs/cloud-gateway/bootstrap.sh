@@ -71,6 +71,7 @@ log "准备 /opt/csgh-gateway 目录..."
 install -d -o csgh -g csgh -m 0755 /opt/csgh-gateway
 install -d -o csgh -g csgh -m 0755 /opt/csgh-gateway/bin
 install -d -o csgh -g csgh -m 0700 /opt/csgh-gateway/secrets
+install -d -o csgh -g csgh -m 0700 /opt/csgh-gateway/state
 install -d -o csgh -g csgh -m 0755 /var/log/csgh-gateway
 
 # ----- 8. 安装 Caddy（反向代理 + 自动 HTTPS）-------------------------------
