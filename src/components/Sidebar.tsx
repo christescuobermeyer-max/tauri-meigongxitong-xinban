@@ -56,7 +56,8 @@ export default function Sidebar({
             className="sidebar__nav-item"
             data-active={active === it.key}
             onClick={() => onChange(it.key)}
-            title={it.description}
+            title={`${it.label} · ${it.description}`}
+            aria-label={it.label}
           >
             <Icon />
             <span>{it.label}</span>
@@ -64,7 +65,7 @@ export default function Sidebar({
         );
       })}
 
-      <div className="sidebar__section">支持平台</div>
+      <div className="sidebar__section sidebar__section--platform">支持平台</div>
       <div className="sidebar__chip" aria-hidden="true">
         <IconStore />
         <span>美团 · 淘宝闪购</span>

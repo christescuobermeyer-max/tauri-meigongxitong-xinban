@@ -23,13 +23,19 @@ export default function TopBarStatus({
   return (
     <>
       <span className="badge" data-tone="accent" title="所有账号累计成功归档到 OSS 的图片数">
-        所有账号累计 <strong style={{ marginLeft: 4 }}>{globalTotalCount}</strong> 张
+        <span className="topbar-label-long">所有账号累计</span>
+        <span className="topbar-label-short">全部</span>
+        <strong style={{ marginLeft: 4 }}>{globalTotalCount}</strong> 张
       </span>
       <span className="badge" data-tone="warn" title="当前账号累计成功归档到 OSS 的图片数">
-        当前账号累计 <strong style={{ marginLeft: 4 }}>{totalCount}</strong> 张
+        <span className="topbar-label-long">当前账号累计</span>
+        <span className="topbar-label-short">我的</span>
+        <strong style={{ marginLeft: 4 }}>{totalCount}</strong> 张
       </span>
       <span className="badge" data-tone="info" title="今日已成功归档到 OSS 的图片数">
-        今日已生图 <strong style={{ marginLeft: 4 }}>{todayCount}</strong> 张
+        <span className="topbar-label-long">今日已生图</span>
+        <span className="topbar-label-short">今日</span>
+        <strong style={{ marginLeft: 4 }}>{todayCount}</strong> 张
       </span>
       <span className="badge" data-tone={busy ? "info" : "success"}>
         <span className={busy ? "dot dot--pulse" : "dot"} />
@@ -43,7 +49,8 @@ export default function TopBarStatus({
         title="谨慎使用：刷新前请先下载所有图片"
         aria-label="谨慎刷新全部工具输入和上传图片"
       >
-        谨慎刷新
+        <span className="topbar-label-long">谨慎刷新</span>
+        <span className="topbar-label-short">刷新</span>
       </button>
       <ThemeToggle theme={theme} onChange={onThemeChange} />
     </>

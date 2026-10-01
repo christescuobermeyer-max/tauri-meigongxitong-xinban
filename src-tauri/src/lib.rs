@@ -40,6 +40,8 @@ mod video_commands;
 mod xiaohongshu_cookie_support;
 #[cfg(feature = "tauri-commands")]
 mod xiaohongshu_guard;
+#[cfg(feature = "tauri-commands")]
+mod window_fit;
 mod yunwu_edit;
 
 #[cfg(feature = "tauri-commands")]
@@ -49,6 +51,10 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
+        .setup(|app| {
+            window_fit::fit_main_window(app);
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             admin_user::admin_create_user,
             admin_user::admin_soft_delete_user,

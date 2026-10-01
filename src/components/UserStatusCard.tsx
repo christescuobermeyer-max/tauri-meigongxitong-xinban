@@ -119,7 +119,7 @@ export default function UserStatusCard({
       </div>
       <hr className="uc-divider" />
       <div className="uc-foot">
-        <button type="button" className="uc-logout" onClick={onSignOut}>
+        <button type="button" className="uc-logout" onClick={onSignOut} title="退出登录" aria-label="退出登录">
           <UCLogoutIcon />
           <span>退出登录</span>
         </button>
