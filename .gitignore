@@ -43,6 +43,11 @@ src-tauri/binaries/
 .env
 .env.local
 .env.*.local
+.env*.bak*
+id_ed25519*
+id_rsa*
+id_ecdsa*
+id_dsa*
 
 # OSS / 数据库导出（含大量图片，不应入仓）
 数据导出/
