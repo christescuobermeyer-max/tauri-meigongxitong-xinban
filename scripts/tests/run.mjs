@@ -1,4 +1,4 @@
-import { readdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -62,5 +62,7 @@ console.log(`测试结果：${files.length - failures.length}/${files.length} �
 const reportName = filters.length
   ? `.codex-test-results-${filters.join("_").replace(/[^a-zA-Z0-9_-]/g, "_")}.json`
   : ".codex-test-results.json";
-await writeFile(path.join(root, reportName), JSON.stringify(results, null, 2));
+const reportDir = path.join(root, "local", "test-cache");
+await mkdir(reportDir, { recursive: true });
+await writeFile(path.join(reportDir, reportName), JSON.stringify(results, null, 2));
 process.exitCode = failures.length ? 1 : 0;

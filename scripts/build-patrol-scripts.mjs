@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
-const source = join(root, "每日群发话术50条.txt");
+const source = join(root, "assets", "data", "每日群发话术50条.txt");
 const target = join(root, "src", "lib", "patrol-scripts.ts");
 
 const raw = readFileSync(source, "utf8");

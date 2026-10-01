@@ -52,6 +52,8 @@ src-tauri/src/gateway_bin/   backend_gateway.rs 云网关入口及 gateway/ 子�
 supabase/                    Postgres schema、RLS、迁移 SQL
 scripts/                     构建、诊断、数据导出、运维脚本
 tests/                       tsx / mjs 行为断言测试
+assets/                      设计素材与话术等源数据（入仓）
+local/                       本地日志、测试/编译缓存、旧安装包、临时文件（不入仓）
 docs/                        项目说明、部署、架构、参考和计划文档
 ```
 

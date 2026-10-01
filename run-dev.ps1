@@ -285,7 +285,7 @@ switch ($Mode) {
     }
     "cli" {
         if (-not $TauriArgs -or $TauriArgs.Count -eq 0) {
-            throw "cli 模式需要额外的 tauri 参数，例如：npm run tauri -- icon ./source.png"
+            throw "cli 模式需要额外的 tauri 参数，例如：npm run tauri -- icon ./assets/design/source.png"
         }
         if ($TauriArgs[0] -eq "dev") {
             Stop-StaleProcesses

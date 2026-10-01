@@ -12,6 +12,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # Local test/build cache
+# 本地归档：日志、测试缓存、编译缓存、旧安装包、临时文件和素材
+local/
 .codex-*
 output
 *.tsbuildinfo
