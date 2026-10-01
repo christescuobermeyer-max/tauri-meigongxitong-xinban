@@ -1,4 +1,4 @@
-use crate::api::GenerateRequest;
+use crate::image_generation_request::GenerateRequest;
 use crate::image_provider::ImageApiLine;
 
 const MAX_REFERENCE_IMAGES: usize = 7;

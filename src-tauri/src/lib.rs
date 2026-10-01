@@ -22,6 +22,7 @@ mod gemini_response;
 mod http_client;
 mod image_api_response;
 mod image_generation_payload;
+mod image_generation_request;
 mod image_proc;
 mod image_provider;
 mod line_health;
@@ -53,6 +54,10 @@ pub fn run() {
             admin_user::admin_soft_delete_user,
             app_update::install_app_update,
             image_proc::compress_generated_image,
+            image_proc::select_images,
+            image_proc::select_image_folder,
+            image_proc::process_images,
+            image_proc::open_image_output_folder,
             api::generate_image,
             image_proc::resize_and_save_image,
             image_proc::save_base64_image,
