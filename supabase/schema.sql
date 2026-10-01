@@ -234,7 +234,7 @@ begin
 end;
 $$;
 
--- 清理 7 天前已过期的生图记录；前端在登录后/成功生图后调用一次
+-- 全库历史由受控角色和定时任务清理；保留参数仅兼容已有调用签名。
 create or replace function public.cleanup_expired_generation_logs(
   p_cutoff timestamptz default (now() - interval '7 days')
 )
@@ -247,7 +247,7 @@ declare
   deleted_count integer;
 begin
   delete from public.generation_logs
-   where created_at < p_cutoff;
+   where created_at < (now() - interval '7 days');
 
   get diagnostics deleted_count = row_count;
   return deleted_count;
@@ -255,7 +255,9 @@ end;
 $$;
 
 revoke all on function public.cleanup_expired_generation_logs(timestamptz) from public;
-grant execute on function public.cleanup_expired_generation_logs(timestamptz) to authenticated;
+revoke all on function public.cleanup_expired_generation_logs(timestamptz) from anon;
+revoke all on function public.cleanup_expired_generation_logs(timestamptz) from authenticated;
+grant execute on function public.cleanup_expired_generation_logs(timestamptz) to service_role;
 
 -- 每天 04:10 UTC 自动清理 7 天前已失效的 OSS 历史记录
 select cron.schedule(
@@ -290,21 +292,38 @@ group by user_id, stat_day;
 comment on view public.daily_generation_stats is '按用户与日期聚合的生图数量；security_invoker=true 表示沿用调用者的 RLS';
 
 -- -----------------------------------------------------------------------------
--- 7. 桌面软件强制更新配置 app_update_config
+-- 7. 桌面软件可选更新发布配置 app_update_config
 -- -----------------------------------------------------------------------------
 create table if not exists public.app_update_config (
   id text primary key default 'desktop',
   latest_version text not null,
   force_update boolean not null default false,
   installer_url text not null default '',
+  installer_sha256 text,
+  update_enabled boolean not null default false,
   release_notes text not null default '',
   updated_at timestamptz not null default now(),
-  constraint app_update_config_singleton check (id = 'desktop')
+  constraint app_update_config_singleton check (id = 'desktop'),
+  constraint app_update_config_installer_sha256
+    check (installer_sha256 is null or installer_sha256 ~ '^[a-fA-F0-9]{64}$')
 );
 
-comment on table public.app_update_config is '桌面软件强制更新配置';
+alter table public.app_update_config
+  add column if not exists installer_sha256 text,
+  add column if not exists update_enabled boolean;
+update public.app_update_config set update_enabled = force_update where update_enabled is null;
+alter table public.app_update_config
+  alter column update_enabled set default false,
+  alter column update_enabled set not null;
+alter table public.app_update_config drop constraint if exists app_update_config_installer_sha256;
+alter table public.app_update_config add constraint app_update_config_installer_sha256
+  check (installer_sha256 is null or installer_sha256 ~ '^[a-fA-F0-9]{64}$');
+
+comment on table public.app_update_config is '桌面软件可选更新发布配置';
+comment on column public.app_update_config.update_enabled is '是否向新客户端提示该版本；暂存或暂停时为 false';
+comment on column public.app_update_config.installer_sha256 is '安装包 SHA-256 摘要；缺少时新客户端禁止自动安装';
 comment on column public.app_update_config.latest_version is '最新桌面版本号，需高于本机版本才触发强制更新';
-comment on column public.app_update_config.force_update is '是否强制低版本客户端更新';
+comment on column public.app_update_config.force_update is '旧客户端更新提示兼容字段，与发布可见性同步维护';
 comment on column public.app_update_config.installer_url is '可公开访问的 .msi 或 .exe 安装包地址';
 comment on column public.app_update_config.release_notes is '启动弹窗展示的更新内容，每行一条';
 
