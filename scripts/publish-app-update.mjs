@@ -3,11 +3,13 @@ import { pathToFileURL } from "node:url";
 import { releaseConfig } from "./update/config.mjs";
 import { stage, enable, disable, uploadMsi } from "./update/actions.mjs";
 import { readPublicStatus } from "./update/transport.mjs";
+import { assertCommitted } from "./update/git-guard.mjs";
 
 export { stage, enable, disable, uploadMsi, readPublicStatus };
 
 export async function main(args = process.argv.slice(2)) {
   const [command, ...values] = args;
+  if (["stage", "upload-msi", "enable"].includes(command)) assertCommitted();
   const config = releaseConfig();
   if (command === "stage") return stage(config, values[0], values[1], values[2]);
   if (command === "upload-msi") return uploadMsi(config, values[0], values[1]);

@@ -1,4 +1,4 @@
-import { deepEqual, equal, rejects } from "node:assert/strict";
+import { deepEqual, equal, rejects, throws } from "node:assert/strict";
 
 Object.assign(process.env, {
   ALI_OSS_REGION: "oss-test", ALI_OSS_BUCKET: "test", ALI_OSS_ACCESS_KEY_ID: "fake",
@@ -37,3 +37,9 @@ row.installer_url = "http://downloads.example.test/app.exe";
 await rejects(publisher.enable({}, "4.0.0", dependencies), /HTTPS/);
 equal(calls, 0);
 console.log("更新发布离线行为验证通过");
+
+const { assertCommitted } = await import("../../scripts/update/git-guard.mjs");
+const fakeGit = (status, ahead) => (args) => (args[0] === "status" ? status : ahead);
+throws(() => assertCommitted(fakeGit(" M src/App.tsx", "0")), /未提交/);
+assertCommitted(fakeGit("", "0"));
+console.log("发布前提交检查验证通过");
