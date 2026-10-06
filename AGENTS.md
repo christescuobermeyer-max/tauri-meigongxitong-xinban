@@ -92,6 +92,7 @@ cmd.exe /c "call ""D:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTool
 | `docs/自动更新.md` | 可稍后更新、安装包摘要验证、构建与发布流程 |
 | `docs/operations/云端部署与分发手册.md` | 了解生产云部署、成本、员工客户端分发 |
 | `docs/operations/云端Prompt模板维护.md` | 修改云服务器 prompt 模板、不重打客户端包时 |
+| `docs/operations/抖音解析维护.md` | 更新抖音 Cookie、处理解析 403、部署 yt-dlp 兼容插件时 |
 | `docs/operations/云服务器全量迁移计划.md` | 迁移整台服务器到椰子云目标机、盘点同机项目、跨发行版重建、切换 DNS/GA、验收或回滚 |
 | `docs/operations/美工生图系统新服务器连接说明.md` | 美工客户端、网关、SSH、部署、验收和回滚的当前生产连接信息 |
 | `docs/operations/自动出餐系统新服务器连接说明.md` | 自动出餐项目连接新机、部署及单 worker 正式切换流程 |

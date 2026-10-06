@@ -48,6 +48,9 @@ install -o csgh -g csgh -m 0644 \
   "$PROJECT_ROOT/prompt-templates/generation-prompts.json" \
   /opt/csgh-gateway/prompts/generation-prompts.json
 
+log "安装抖音解析插件..."
+bash "$PROJECT_ROOT/scripts/video/install-plugin.sh"
+
 # ----- 3. 处理 .env ----------------------------------------------------------
 ENV_FILE=/opt/csgh-gateway/secrets/gateway.env
 if [[ ! -f "$ENV_FILE" ]]; then

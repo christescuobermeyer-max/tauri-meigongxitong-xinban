@@ -45,6 +45,9 @@ install -o csgh -g csgh -m 0644 \
   "$PROJECT_ROOT/prompt-templates/generation-prompts.json" \
   /opt/csgh-gateway/prompts/generation-prompts.json
 
+log "同步抖音解析插件..."
+bash "$PROJECT_ROOT/scripts/video/install-plugin.sh"
+
 log "重启服务..."
 install -d -m 0755 /etc/systemd/system/csgh-backend-gateway.service.d
 install -m 0644 \
