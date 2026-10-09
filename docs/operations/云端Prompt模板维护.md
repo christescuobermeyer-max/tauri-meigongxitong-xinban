@@ -80,6 +80,8 @@ curl https://gw.hbcsch.pw/health
 
 这类变更应先改仓库内 `prompt-templates/generation-prompts.json` 和相关代码，再部署网关；若涉及客户端字段，发布新客户端自动更新。
 
+全店图的碗一致性选项使用 `prompt_config.variables.matchReferenceBowl`。值为 `true` 时，网关补充保留第 1 张参考设计风格图中碗的形状、颜色、材质和轮廓的约束，只替换食物；值为 `false` 或旧客户端未传字段时，不追加该约束。该能力已随 2026-10-09 的 `3.0.54` 网关、模板和客户端发布，验收记录见 [自动更新](../自动更新.md)。
+
 ## 5. 模板写法
 
 模板使用 `{{变量名}}` 占位符。变量来自客户端 `prompt_config.variables`，网关会额外补充部分派生变量。
@@ -95,6 +97,7 @@ curl https://gw.hbcsch.pw/health
 | `{{appearanceClause}}` | 主题色和品牌风格派生说明 |
 | `{{productNameIntro}}` | 产品名是否写入的说明 |
 | `{{productNameInstruction}}` | 产品名入图要求 |
+| `{{bowlConsistencyClause}}` | 全店图参考碗约束，由 `matchReferenceBowl` 派生，默认空字符串 |
 | `{{sourceReferenceList}}` | 修改图片主产品图列表 |
 | `{{optionalReferenceList}}` | 修改图片可选参考图列表 |
 | `{{imageEditRoleClause}}` | 修改图片的主图/参考图角色说明 |
