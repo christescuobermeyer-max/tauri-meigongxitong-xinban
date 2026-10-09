@@ -80,7 +80,7 @@ export default function Sidebar({
         />
 
         <div className="sidebar__footer">
-          <code>v3.0.53</code>
+          <code>v{__APP_VERSION__}</code>
           <span>呈尚策划运营部</span>
         </div>
       </div>
