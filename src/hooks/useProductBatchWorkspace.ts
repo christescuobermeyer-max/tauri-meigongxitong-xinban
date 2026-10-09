@@ -22,9 +22,9 @@ import {
   syncImagesWithOss,
 } from "../lib/workspace-session";
 
-import type { Options, ProductBatchProductNameMode } from "./product-batch/types";
+import type { Options, ProductBatchProductNameMode, ProductBatchReferenceBowlMode } from "./product-batch/types";
 import { createProductBatchRunner } from "./product-batch/generation";
-export type { ProductBatchProductNameMode } from "./product-batch/types";
+export type { ProductBatchProductNameMode, ProductBatchReferenceBowlMode } from "./product-batch/types";
 
 export default function useProductBatchWorkspace({
   generationLine,
@@ -37,6 +37,7 @@ export default function useProductBatchWorkspace({
   const [themeColor, setThemeColor] = useState<ThemeColor | "">("");
   const [brandStyle, setBrandStyle] = useState<BrandStyle | "">("");
   const [productNameMode, setProductNameMode] = useState<ProductBatchProductNameMode>("with");
+  const [referenceBowlMode, setReferenceBowlMode] = useState<ProductBatchReferenceBowlMode>("free");
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [styleImages, setStyleImages] = useState<UploadedImage[]>([]);
   const [entries, setEntries] = useState<ProductBatchEntry[]>([]);
@@ -101,6 +102,7 @@ export default function useProductBatchWorkspace({
       themeColor,
       brandStyle,
       productNameMode,
+      referenceBowlMode,
     };
 
     setUploadingOss(true);
@@ -152,6 +154,7 @@ export default function useProductBatchWorkspace({
       themeColor,
       brandStyle,
       productNameMode,
+      referenceBowlMode,
     };
 
     setUploadingOss(true);
@@ -208,6 +211,8 @@ export default function useProductBatchWorkspace({
     setBrandStyle,
     productNameMode,
     setProductNameMode,
+    referenceBowlMode,
+    setReferenceBowlMode,
     images,
     setImages,
     styleImages,

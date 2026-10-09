@@ -6,7 +6,7 @@ import PlatformSelect from "./PlatformSelect";
 import ImageUpload from "./ImageUpload";
 import { IconSparkles } from "./Icons";
 import ProgressSteps from "./ProgressSteps";
-import type { ProductBatchProductNameMode } from "../hooks/useProductBatchWorkspace";
+import type { ProductBatchProductNameMode, ProductBatchReferenceBowlMode } from "../hooks/useProductBatchWorkspace";
 
 interface Props {
   shopName: string;
@@ -19,6 +19,8 @@ interface Props {
   setBrandStyle: (value: BrandStyle | "") => void;
   productNameMode: ProductBatchProductNameMode;
   setProductNameMode: (value: ProductBatchProductNameMode) => void;
+  referenceBowlMode: ProductBatchReferenceBowlMode;
+  setReferenceBowlMode: (value: ProductBatchReferenceBowlMode) => void;
   images: UploadedImage[];
   setImages: (images: UploadedImage[]) => void;
   styleImages: UploadedImage[];
@@ -42,6 +44,8 @@ export default function ProductBatchGeneratePanel({
   setBrandStyle,
   productNameMode,
   setProductNameMode,
+  referenceBowlMode,
+  setReferenceBowlMode,
   images,
   setImages,
   styleImages,
@@ -122,6 +126,23 @@ export default function ProductBatchGeneratePanel({
               {productNameMode === "with"
                 ? "默认会把各产品名称分别替换到对应的全店图文案中"
                 : "不带产品名称时，只替换店铺名，不向画面写入产品名称"}
+            </span>
+          </div>
+
+          <div className="field">
+            <label className="field__label">参考图碗一致性</label>
+            <select
+              className="input"
+              value={referenceBowlMode}
+              onChange={(event) => setReferenceBowlMode(event.target.value as ProductBatchReferenceBowlMode)}
+            >
+              <option value="free">参考图碗不一致</option>
+              <option value="match">参考图碗一致</option>
+            </select>
+            <span className="field__hint">
+              {referenceBowlMode === "match"
+                ? "生成时保持参考设计风格图中碗的形状和颜色一致"
+                : "默认不限制新产品图中碗的形状和颜色"}
             </span>
           </div>
 

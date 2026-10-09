@@ -13,3 +13,4 @@ export interface Options {
 }
 
 export type ProductBatchProductNameMode = "with" | "without";
+export type ProductBatchReferenceBowlMode = "match" | "free";

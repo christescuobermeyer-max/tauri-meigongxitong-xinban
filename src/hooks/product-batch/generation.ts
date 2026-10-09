@@ -5,7 +5,7 @@ import { buildProductBatchPrompt } from "../../lib/prompts";
 import { resolveProductBatchReferenceImages } from "../../lib/product-batch";
 import { emptyItem, runOneGeneration, type RunOneResult } from "../../lib/workspace-session";
 import type { Platform, PlatformSpec, GenerationLine, ThemeColor, BrandStyle, UploadedImage } from "../../types";
-import type { ProductBatchProductNameMode, Options } from "./types";
+import type { ProductBatchProductNameMode, ProductBatchReferenceBowlMode, Options } from "./types";
 
 const noopSetter: Dispatch<SetStateAction<GenerationItem>> = () => undefined;
 
@@ -23,6 +23,7 @@ export function createProductBatchRunner({ onToast, onRecordHistory, createProdu
       themeColor: ThemeColor | "";
       brandStyle: BrandStyle | "";
       productNameMode: ProductBatchProductNameMode;
+      referenceBowlMode: ProductBatchReferenceBowlMode;
     }
   ): Promise<RunOneResult | null> {
     const resolvedProductName = sourceImage.productName.trim() || "未命名产品";
@@ -48,7 +49,7 @@ export function createProductBatchRunner({ onToast, onRecordHistory, createProdu
         resolvedProductName,
         snapshot.platform,
         appearance,
-        { includeProductName }
+        { includeProductName, matchReferenceBowl: snapshot.referenceBowlMode === "match" }
       ),
       promptConfig: buildProductBatchPromptConfig({
         shopName: snapshot.shopName,
@@ -56,6 +57,7 @@ export function createProductBatchRunner({ onToast, onRecordHistory, createProdu
         platform: snapshot.platform,
         appearance,
         includeProductName,
+        matchReferenceBowl: snapshot.referenceBowlMode === "match",
       }),
       setters: {
         avatar: noopSetter,

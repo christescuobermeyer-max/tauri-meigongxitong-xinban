@@ -34,6 +34,31 @@ fn renders_template_with_computed_context() {
 }
 
 #[test]
+fn product_batch_bowl_constraint_only_when_selected() {
+    let file = PromptTemplateFile {
+        templates: HashMap::from([(
+            "product.batch".to_string(),
+            "生成产品图。{{bowlConsistencyClause}}".to_string(),
+        )]),
+        theme_color_hints: HashMap::new(),
+        brand_style_hints: HashMap::new(),
+        detail_page_types: Vec::new(),
+    };
+    let selected = render_prompt(&file, &PromptRenderRequest {
+        key: "product.batch".to_string(),
+        variables: json!({ "matchReferenceBowl": true }),
+    }).expect("渲染碗一致提示词");
+    assert!(selected.contains("第1张参考设计风格图中的碗"));
+    assert!(selected.contains("碗的形状、颜色"));
+
+    let default = render_prompt(&file, &PromptRenderRequest {
+        key: "product.batch".to_string(),
+        variables: json!({}),
+    }).expect("渲染默认提示词");
+    assert_eq!(default, "生成产品图。");
+}
+
+#[test]
 fn image_edit_reference_base_reorders_role_text() {
     let file = PromptTemplateFile {
         templates: HashMap::from([(

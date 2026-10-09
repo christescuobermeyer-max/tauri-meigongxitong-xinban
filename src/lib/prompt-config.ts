@@ -69,6 +69,7 @@ export function buildProductBatchPromptConfig(options: {
   platform: Platform;
   appearance?: AppearanceOptions;
   includeProductName?: boolean;
+  matchReferenceBowl?: boolean;
 }): RemotePromptConfig {
   return {
     key: "product.batch",
@@ -77,6 +78,7 @@ export function buildProductBatchPromptConfig(options: {
       productName: options.productName,
       platform: options.platform,
       includeProductName: options.includeProductName !== false,
+      matchReferenceBowl: options.matchReferenceBowl === true,
     },
   };
 }

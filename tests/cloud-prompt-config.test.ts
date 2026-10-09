@@ -25,6 +25,15 @@ equal(productConfig.variables.productName, "牛肉饭");
 equal(productConfig.variables.includeProductName, true);
 equal(productConfig.variables.themeColor, "red");
 
+const batchBowlConfig = promptConfigModule.buildProductBatchPromptConfig({
+  shopName: "测试店", productName: "牛肉饭", platform: "meituan", matchReferenceBowl: true,
+});
+equal(batchBowlConfig.variables.matchReferenceBowl, true);
+const batchDefaultConfig = promptConfigModule.buildProductBatchPromptConfig({
+  shopName: "测试店", productName: "牛肉饭", platform: "meituan",
+});
+equal(batchDefaultConfig.variables.matchReferenceBowl, false);
+
 const packageConfig = promptConfigModule.buildPackageImagePromptConfig({
   shopName: "测试套餐店",
   packageImageName: "双人招牌套餐",
@@ -99,6 +108,7 @@ for (const key of [
 ok(template.templates["package.image"].includes("{{shop}}"));
 ok(template.templates["package.image"].includes("{{packageNameText}}"));
 ok(template.templates["package.image"].includes("不得从文件名自动生成或改写套餐图名称"));
+ok(template.templates["product.batch"].includes("{{bowlConsistencyClause}}"));
 
 const updateScript = readFileSync(
   new URL("../docs/cloud-gateway/update.sh", import.meta.url),

@@ -68,6 +68,15 @@ pub(super) fn build_context(file: &PromptTemplateFile, req: &PromptRenderRequest
             format!("请把第1张图中的店铺名、产品名或其他原有产品文案替换为店铺名“{shop}”；生成时产品名称为空，不要写入产品名称文字，也不要保留参考设计风格图里的原产品名。")
         },
     );
+    let match_reference_bowl = bool_var(&req.variables, "matchReferenceBowl").unwrap_or(false);
+    context.insert(
+        "bowlConsistencyClause".to_string(),
+        if match_reference_bowl {
+            "若第1张参考设计风格图中有碗，最终图必须沿用第1张参考设计风格图中的碗，保持碗的形状、颜色、材质和边缘轮廓一致，不得改成其他碗或改变碗的颜色；只替换碗中的食物为第2张产品图中的真实食物，不要保留第1张图的原食物。若第1张图没有碗，不要额外添加碗。".to_string()
+        } else {
+            String::new()
+        },
+    );
 
     add_package_context(&mut context, &req.variables);
     add_detail_page_context(&mut context, file, &req.variables);

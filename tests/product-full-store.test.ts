@@ -50,6 +50,14 @@ ok(!batchPromptWithoutProductName.includes("产品名称：招牌牛肉汉堡"))
 ok(!batchPromptWithoutProductName.includes("产品名称“招牌牛肉汉堡”"));
 ok(!batchPromptWithoutProductName.includes("招牌牛肉汉堡"));
 
+const batchPromptWithMatchingBowl = promptsModule.buildProductBatchPrompt(
+  "鲜椒鸡排", "招牌牛肉汉堡", "meituan", {},
+  { matchReferenceBowl: true }
+);
+ok(batchPromptWithMatchingBowl.includes("第1张参考设计风格图中的碗"));
+ok(batchPromptWithMatchingBowl.includes("碗的形状、颜色"));
+ok(!batchPrompt.includes("碗的形状、颜色"));
+
 const sidebarSource = readFileSync(
   new URL("../src/components/Sidebar.tsx", import.meta.url),
   "utf8"
@@ -72,6 +80,9 @@ equal(batchPanelSource.includes("产品名称显示方式"), true);
 equal(batchPanelSource.includes("带产品名称"), true);
 equal(batchPanelSource.includes("不带产品名称"), true);
 equal(batchPanelSource.includes("productNameMode"), true);
+equal(batchPanelSource.includes("参考图碗一致"), true);
+equal(batchPanelSource.includes("参考图碗不一致"), true);
+equal(batchPanelSource.includes("referenceBowlMode"), true);
 equal(batchPanelSource.includes("buildProductBatchPrompt"), false);
 equal(batchPanelSource.includes("传给系统的参考图"), true);
 equal(batchPanelSource.includes("传给模型的参考图"), false);
