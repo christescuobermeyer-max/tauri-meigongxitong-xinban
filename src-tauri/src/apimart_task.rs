@@ -9,6 +9,13 @@ const INITIAL_WAIT_SECS: u64 = 4;
 const POLL_INTERVAL_SECS: u64 = 2;
 const MAX_POLL_ATTEMPTS: usize = 120;
 
+#[path = "apimart_task/transport.rs"]
+mod transport;
+
+#[cfg(test)]
+#[path = "apimart_task/submission_tests.rs"]
+mod submission_tests;
+
 pub async fn submit_apimart_task<T: Serialize + ?Sized>(
     client: &reqwest::Client,
     api_url: &str,
@@ -25,14 +32,7 @@ pub async fn submit_apimart_task_with_label<T: Serialize + ?Sized>(
     payload: &T,
     label: &str,
 ) -> Result<String, String> {
-    let response = client
-        .post(api_url)
-        .bearer_auth(api_key)
-        .header("Content-Type", "application/json")
-        .json(payload)
-        .send()
-        .await
-        .map_err(|error| format!("调用{label}接口失败：{}", format_reqwest_error(&error)))?;
+    let response = transport::submit_request(client, api_url, api_key, payload, label).await?;
 
     let status = response.status();
     let body_text = response
