@@ -95,6 +95,7 @@ cmd.exe /c "call ""D:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTool
 | `docs/operations/抖音解析维护.md` | 更新抖音 Cookie、处理解析 403、部署 yt-dlp 兼容插件时 |
 | `docs/operations/云服务器全量迁移计划.md` | 迁移整台服务器到椰子云目标机、盘点同机项目、跨发行版重建、切换 DNS/GA、验收或回滚 |
 | `docs/operations/美工生图系统新服务器连接说明.md` | 美工客户端、网关、SSH、部署、验收和回滚的当前生产连接信息 |
+| `docs/operations/2026-10-15-线路部署日志复核与修复.md` | 部署日志审计、服务器正确构建方式、线路5重试补丁与线路7新模型上线记录 |
 | `docs/operations/自动出餐系统新服务器连接说明.md` | 自动出餐项目连接新机、部署及单 worker 正式切换流程 |
 | `docs/cloud-gateway/README.md` | 部署或调整阿里云轻量服务器 Rust 网关 |
 | `docs/cloud-gateway/global-accelerator.md` | 调整阿里云 GA、DNS、回滚和排错 |
