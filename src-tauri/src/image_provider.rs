@@ -40,7 +40,7 @@ const LINE6_API_KEY_ENV_KEYS: [&str; 2] = ["MANXIAOBAI_IMAGE_2_API_KEY", "IMAGE_
 
 const LINE7_API_URL: &str = "https://api.novaeworld.top/v1/images/generations";
 const LINE7_EDIT_API_URL: &str = "https://api.novaeworld.top/v1/images/edits";
-const LINE7_MODEL: &str = "gpt-image-2-em";
+const LINE7_MODEL: &str = "gpt-image-2.5";
 const LINE7_API_KEY_ENV_KEYS: [&str; 2] = ["NOVA_IMAGE_2_API_KEY", "IMAGE_2_LINE7_API_KEY"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -287,7 +287,7 @@ mod tests {
             provider.edit_api_url,
             Some("https://api.novaeworld.top/v1/images/edits")
         );
-        assert_eq!(provider.model, "gpt-image-2-em");
+        assert_eq!(provider.model, "gpt-image-2.5");
         assert_eq!(provider.log_label, "image-2:line7-novaeworld");
         assert_eq!(provider.api_key_env_keys[0], "NOVA_IMAGE_2_API_KEY");
     }
