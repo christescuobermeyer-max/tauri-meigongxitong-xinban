@@ -40,7 +40,7 @@ ok(!prompt.includes("模板参考图"));
 equal(module.resolveDataAnalysisSize("line1"), "1536x1024");
 equal(module.resolveDataAnalysisSize("line2"), "1536x1024");
 equal(module.resolveDataAnalysisSize("line3"), "1536x1024");
-equal(module.resolveDataAnalysisSize("line4"), "16:9");
+equal(module.resolveDataAnalysisSize("line4"), "1536x1024");
 equal(module.resolveDataAnalysisSize("line5"), "16:9");
 ok(module.DATA_ANALYSIS_COPY_TEXT.includes("老板"));
 

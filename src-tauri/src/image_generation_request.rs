@@ -9,7 +9,7 @@ pub struct GenerateRequest {
     pub size: String,
     /// 参考图列表：支持不含 data: 前缀的 base64，也支持可访问 URL；可为空
     pub product_images: Vec<String>,
-    /// 生图线路：线路2/3/4复用 Zikl 上游，线路5为 APIMart 兼容线路
+    /// 生图线路：线路2/3复用 Zikl 上游，线路4/6复用漫小白上游，线路5为 APIMart 兼容线路
     #[serde(default)]
     pub api_line: ImageApiLine,
 }

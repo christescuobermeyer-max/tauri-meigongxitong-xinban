@@ -230,6 +230,6 @@ fn maps_auto_request_size_to_selected_provider_size() {
     );
     assert_eq!(
         generation_size_for_line("line4", "auto").as_deref(),
-        Some("16:9")
+        Some("1824x1024")
     );
 }

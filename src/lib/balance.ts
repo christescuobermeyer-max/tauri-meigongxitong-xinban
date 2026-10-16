@@ -16,7 +16,7 @@ export interface BalanceLineDef {
 export const BALANCE_LINES: BalanceLineDef[] = [
   { id: "line2", name: "线路2（Zikl）", consoleUrl: "https://img.zikl.dev/console", balanceMode: "api_key", supported: true },
   { id: "line3", name: "线路3（vectorengine）", consoleUrl: "https://api.vectorengine.ai/console", balanceMode: "api_key", supported: true },
-  { id: "line4", name: "线路4（pockgo）", consoleUrl: "https://newapi.pockgo.com/console", supported: true },
+  { id: "line4", name: "线路4（漫小白）", consoleUrl: "https://api.manxiaobai.online/console", balanceMode: "api_key", supported: true },
   { id: "line5", name: "线路5（APIMart）", consoleUrl: "https://apimart.ai/zh/overview", supported: true },
   { id: "line6", name: "线路6（manxiaobai）", consoleUrl: "https://api.manxiaobai.online/console", balanceMode: "api_key", supported: true },
   { id: "line7", name: "线路7（novaeworld）", consoleUrl: "https://api.novaeworld.top/console", balanceMode: "api_key", supported: true },

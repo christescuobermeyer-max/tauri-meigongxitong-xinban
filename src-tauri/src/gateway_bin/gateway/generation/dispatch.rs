@@ -1,12 +1,12 @@
 use super::*;
 
 pub(crate) const GENERATE_IMAGE_MAX_ATTEMPTS: usize = 6;
-pub(crate) const ZIKL_SHARED_LINES: [&str; 3] = ["line2", "line3", "line4"];
+pub(crate) const ZIKL_SHARED_LINES: [&str; 2] = ["line2", "line3"];
 
 pub(crate) fn exclude_shared_zikl_lines(tried_lines: &mut HashSet<String>, line: ImageApiLine) -> bool {
     if !matches!(
         line,
-        ImageApiLine::Line2 | ImageApiLine::Line3 | ImageApiLine::Line4
+        ImageApiLine::Line2 | ImageApiLine::Line3
     ) {
         return false;
     }
@@ -204,13 +204,13 @@ pub(crate) async fn generate_image(
                 }
                 if exclude_shared_zikl_lines(&mut tried_lines, line) {
                     eprintln!(
-                        "[gateway] excluded shared Zikl lines line2,line3,line4 after {} failure",
+                        "[gateway] excluded shared Zikl lines line2,line3 after {} failure",
                         line.as_str()
                     );
                 }
                 last_error = Some(err);
                 // permit 在这里 drop，释放 slot；下一次循环会重新 acquire 排除已试过的线路。
-                // 线路2/3/4共用一个 Zikl 上游，任一条失败后本次请求整体排除三条。
+                // 线路2/3共用一个 Zikl 上游，任一条失败后本次请求整体排除两条。
                 if ambiguous {
                     eprintln!(
                         "[gateway] stop retries request_id={} because upstream result is ambiguous",

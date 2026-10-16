@@ -109,14 +109,14 @@ function posterSize(line: "line1" | "line2" | "line3" | "line4" | "line5" | "lin
 equal(storefrontSize("line1"), "1536x1024");
 equal(storefrontSize("line2"), "16:9");
 equal(storefrontSize("line3"), "1536x1024");
-equal(storefrontSize("line4"), "16:9");
+equal(storefrontSize("line4"), "2384x1024");
 equal(storefrontSize("line5"), "16:9");
 equal(storefrontSize("line6"), "2384x1024");
 
 equal(posterSize("line1"), "21:9");
 equal(posterSize("line2"), "21:9");
 equal(posterSize("line3"), "21:9");
-equal(posterSize("line4"), "21:9");
+equal(posterSize("line4"), "2384x1024");
 equal(posterSize("line5"), "21:9");
 equal(posterSize("line6"), "2384x1024");
 equal(posterSize("line7"), "1792x768");

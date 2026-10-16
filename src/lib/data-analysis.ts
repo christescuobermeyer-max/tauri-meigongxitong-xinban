@@ -29,5 +29,5 @@ export function buildDataAnalysisPrompt(storeName: string): string {
 }
 
 export function resolveDataAnalysisSize(line: GenerationLine): string {
-  return line === "line4" || line === "line5" ? "16:9" : "1536x1024";
+  return line === "line5" ? "16:9" : "1536x1024";
 }

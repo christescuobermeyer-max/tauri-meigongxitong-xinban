@@ -2,7 +2,6 @@ import type { AssetKind, GenerationLine, PlatformSpec } from "../types";
 
 const IMAGE_GENERATION_STOREFRONT_SIZE = "1536x1024";
 const DETAIL_PAGE_GENERATION_SIZE = "1024x1536";
-const POCKGO_STOREFRONT_RATIO = "16:9";
 const YUNWU_STOREFRONT_SIZE = "16:9";
 const YUNWU_POSTER_SIZE = "21:9";
 const MANXIAOBAI_WIDE_SIZE = "2384x1024";
@@ -10,8 +9,8 @@ const NOVAEWORLD_POSTER_SIZE = "1792x768";
 
 export function resolveStorefrontGenerationSize(line: GenerationLine = "line5") {
   if (line === "line2") return YUNWU_STOREFRONT_SIZE;
-  if (line === "line6") return MANXIAOBAI_WIDE_SIZE;
-  return line === "line4" || line === "line5" ? POCKGO_STOREFRONT_RATIO : IMAGE_GENERATION_STOREFRONT_SIZE;
+  if (line === "line4" || line === "line6") return MANXIAOBAI_WIDE_SIZE;
+  return IMAGE_GENERATION_STOREFRONT_SIZE;
 }
 
 export function resolvePSignboardGenerationSize(line: GenerationLine = "line5") {
@@ -30,7 +29,7 @@ export function resolveGenerationSize(
   }
   if (kind === "poster") {
     if (line === "line2") return YUNWU_POSTER_SIZE;
-    if (line === "line6") return MANXIAOBAI_WIDE_SIZE;
+    if (line === "line4" || line === "line6") return MANXIAOBAI_WIDE_SIZE;
     if (line === "line7") return NOVAEWORLD_POSTER_SIZE;
     return currentPlatform.poster.sourceLabel;
   }

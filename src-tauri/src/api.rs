@@ -72,7 +72,7 @@ pub async fn generate_image(req: GenerateRequest) -> Result<String, String> {
         let edit_api_url = provider
             .edit_api_url
             .ok_or_else(|| "线路4编辑接口未配置".to_string())?;
-        let image = generate_yunwu_edit_image(
+        let image = generate_manxiaobai_edit_image(
             &client,
             edit_api_url,
             &api_key,
@@ -84,7 +84,7 @@ pub async fn generate_image(req: GenerateRequest) -> Result<String, String> {
             provider.format,
         )
         .await?;
-        return download_image_if_url(&client, image, "下载线路4编辑远端图片失败").await;
+        return download_image_if_url(&client, image, "下载线路4漫小白编辑远端图片失败").await;
     }
 
     if req.api_line == ImageApiLine::Line3 && !req.product_images.is_empty() {

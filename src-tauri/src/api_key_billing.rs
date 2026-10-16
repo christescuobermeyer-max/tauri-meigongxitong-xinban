@@ -35,7 +35,7 @@ struct ApiKeyBillingConfig {
 }
 
 pub fn supports_api_key_billing_line(line: &str) -> bool {
-    matches!(line, "line2" | "line3" | "line6" | "line7")
+    matches!(line, "line2" | "line3" | "line4" | "line6" | "line7")
 }
 
 fn api_key_billing_config(line: &str) -> Result<ApiKeyBillingConfig, String> {
@@ -55,6 +55,14 @@ fn api_key_billing_config(line: &str) -> Result<ApiKeyBillingConfig, String> {
             usage_url: ZIKL_BILLING_USAGE_URL,
             unit_symbol: "¤",
             display_name: "线路3 API Key",
+        }),
+        "line4" => Ok(ApiKeyBillingConfig {
+            provider_label: "manxiaobai",
+            api_key_env_keys: &MANXIAOBAI_API_KEY_ENV_KEYS,
+            subscription_url: MANXIAOBAI_BILLING_SUBSCRIPTION_URL,
+            usage_url: MANXIAOBAI_BILLING_USAGE_URL,
+            unit_symbol: "¤",
+            display_name: "manxiaobai API Key",
         }),
         "line6" => Ok(ApiKeyBillingConfig {
             provider_label: "manxiaobai",
@@ -169,6 +177,7 @@ mod tests {
     fn only_api_key_lines_use_gateway_billing() {
         assert!(supports_api_key_billing_line("line2"));
         assert!(supports_api_key_billing_line("line3"));
+        assert!(supports_api_key_billing_line("line4"));
         assert!(supports_api_key_billing_line("line6"));
         assert!(supports_api_key_billing_line("line7"));
         assert!(!supports_api_key_billing_line("line5"));

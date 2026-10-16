@@ -33,7 +33,7 @@ const schemaSource = readFileSync(new URL("../supabase/schema.sql", import.meta.
 
 equal(typesSource.includes('export type GenerationLine = "line2" | "line3" | "line4" | "line5" | "line6" | "line7";'), true);
 equal(typesSource.includes('export type HistoricalGenerationLine = "line1" | GenerationLine;'), true);
-equal(tauriSource.includes("线路2/3/4复用 Zikl 上游"), true);
+equal(tauriSource.includes("线路2/3复用 Zikl 上游，线路4/6复用漫小白上游"), true);
 equal(supabaseSource.includes("generation_line: HistoricalGenerationLine | null"), true);
 equal(historySource.includes('if (line === "line3") return "线路3";'), true);
 equal(historySource.includes('if (line === "line4") return "线路4";'), true);
@@ -58,8 +58,8 @@ ok(
   "线路3 billing 应使用线路3自己的 image-2 API Key",
 );
 ok(
-  apiKeyBillingSource.includes('matches!(line, "line2" | "line3" | "line6" | "line7")'),
-  "API Key billing 支持列表应恢复线路3",
+  apiKeyBillingSource.includes('matches!(line, "line2" | "line3" | "line4" | "line6" | "line7")'),
+  "API Key billing 支持列表应包含线路3和共用漫小白配置的线路4",
 );
 equal(imageProviderSource.includes('const LINE3_MODEL: &str = "gpt-image-2.5-flare";'), true);
 ok(
@@ -86,8 +86,8 @@ ok(
 );
 ok(
   apiSource.includes("req.api_line == ImageApiLine::Line4") &&
-    apiSource.includes("generate_yunwu_edit_image"),
-  "线路4应走 Zikl 兼容生图分支"
+    apiSource.includes("generate_manxiaobai_edit_image"),
+  "线路4带参考图时应走漫小白编辑接口"
 );
 ok(imageProviderSource.includes("LINE7_API_URL"), "应定义线路7 novaeworld API URL");
 ok(imageProviderSource.includes("https://api.novaeworld.top/v1/images/generations"), "线路7应使用 novaeworld OpenAI 兼容 generations endpoint");

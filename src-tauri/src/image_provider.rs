@@ -11,14 +11,10 @@ const LINE2_EDIT_API_URL: &str = "https://img.zikl.dev/v1/images/edits";
 const LINE2_MODEL: &str = "gpt-image-2.5-flare";
 const LINE2_API_KEY_ENV_KEYS: [&str; 2] = ["IMAGE_2_LINE2_API_KEY", "YUNWU_IMAGE_2_LINE2_API_KEY"];
 
-const LINE4_API_URL: &str = "https://img.zikl.dev/v1/images/generations";
-const LINE4_EDIT_API_URL: &str = "https://img.zikl.dev/v1/images/edits";
+const LINE4_API_URL: &str = "https://api.manxiaobai.online/v1/images/generations";
+const LINE4_EDIT_API_URL: &str = "https://api.manxiaobai.online/v1/images/edits";
 const LINE4_MODEL: &str = "gpt-image-2.5";
-const LINE4_API_KEY_ENV_KEYS: [&str; 3] = [
-    "IMAGE_2_LINE4_API_KEY",
-    "POCKGO_IMAGE_2_API_KEY",
-    "POCKGO_API_KEY",
-];
+const LINE4_API_KEY_ENV_KEYS: [&str; 2] = ["MANXIAOBAI_IMAGE_2_API_KEY", "IMAGE_2_LINE6_API_KEY"];
 
 const LINE3_API_URL: &str = "https://img.zikl.dev/v1/images/generations";
 const LINE3_EDIT_API_URL: &str = "https://img.zikl.dev/v1/images/edits";
@@ -135,10 +131,10 @@ pub fn resolve_image_provider(line: ImageApiLine) -> ImageProvider {
             api_url: LINE4_API_URL,
             edit_api_url: Some(LINE4_EDIT_API_URL),
             model: LINE4_MODEL,
-            log_label: "image-2:line4-zikl",
-            user_label: "线路4 Zikl",
+            log_label: "image-2:line4-manxiaobai",
+            user_label: "线路4 manxiaobai",
             api_key_env_keys: &LINE4_API_KEY_ENV_KEYS,
-            quality: Some("low"),
+            quality: Some("high"),
             format: Some("png"),
             reference_image_json_field: ReferenceImageJsonField::Image,
         },
@@ -224,23 +220,31 @@ mod tests {
     }
 
     #[test]
-    fn line4_uses_zikl_provider() {
+    fn line4_uses_manxiaobai_provider() {
         let provider = resolve_image_provider(ImageApiLine::Line4);
 
         assert_eq!(
             provider.api_url,
-            "https://img.zikl.dev/v1/images/generations"
+            "https://api.manxiaobai.online/v1/images/generations"
         );
         assert_eq!(
             provider.edit_api_url,
-            Some("https://img.zikl.dev/v1/images/edits")
+            Some("https://api.manxiaobai.online/v1/images/edits")
         );
         assert_eq!(provider.model, "gpt-image-2.5");
-        assert_eq!(provider.log_label, "image-2:line4-zikl");
-        assert_eq!(provider.api_key_env_keys[0], "IMAGE_2_LINE4_API_KEY");
-        assert_eq!(provider.quality, Some("low"));
+        assert_eq!(provider.log_label, "image-2:line4-manxiaobai");
+        assert_eq!(provider.user_label, "线路4 manxiaobai");
+        assert_eq!(provider.api_key_env_keys, resolve_image_provider(ImageApiLine::Line6).api_key_env_keys);
+        assert_eq!(provider.quality, Some("high"));
         assert_eq!(provider.format, Some("png"));
-        assert!(!provider.api_key_env_keys.contains(&"IMAGE_2_LINE2_API_KEY"));
+        assert_eq!(
+            provider.api_url,
+            resolve_image_provider(ImageApiLine::Line6).api_url
+        );
+        assert_eq!(
+            provider.edit_api_url,
+            resolve_image_provider(ImageApiLine::Line6).edit_api_url
+        );
     }
 
     #[test]

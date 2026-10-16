@@ -9,23 +9,32 @@ fn excludes_all_shared_zikl_lines_after_line2_failure() {
         &mut tried_lines,
         ImageApiLine::Line2
     ));
-    assert_eq!(tried_lines.len(), 3);
+    assert_eq!(tried_lines.len(), 2);
     for line in ZIKL_SHARED_LINES {
         assert!(tried_lines.contains(line));
     }
 }
 
 #[test]
-fn excludes_all_shared_zikl_lines_after_line3_or_line4_failure() {
-    for failed_line in [ImageApiLine::Line3, ImageApiLine::Line4] {
-        let mut tried_lines = HashSet::new();
+fn excludes_all_shared_zikl_lines_after_line3_failure() {
+    let mut tried_lines = HashSet::new();
 
-        assert!(exclude_shared_zikl_lines(&mut tried_lines, failed_line));
-        assert_eq!(tried_lines.len(), 3);
-        for line in ZIKL_SHARED_LINES {
-            assert!(tried_lines.contains(line));
-        }
+    assert!(exclude_shared_zikl_lines(&mut tried_lines, ImageApiLine::Line3));
+    assert_eq!(tried_lines.len(), 2);
+    for line in ZIKL_SHARED_LINES {
+        assert!(tried_lines.contains(line));
     }
+}
+
+#[test]
+fn line4_failure_does_not_exclude_zikl_siblings() {
+    let mut tried_lines = HashSet::from(["line4".to_string()]);
+
+    assert!(!exclude_shared_zikl_lines(
+        &mut tried_lines,
+        ImageApiLine::Line4
+    ));
+    assert_eq!(tried_lines, HashSet::from(["line4".to_string()]));
 }
 
 #[test]

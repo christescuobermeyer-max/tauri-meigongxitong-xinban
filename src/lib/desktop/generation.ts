@@ -11,7 +11,7 @@ export interface GenerateImageRequest {
   size: string;
   /** 参考图列表：支持不含 data: 前缀的 base64，也支持可访问 URL；可为空 */
   product_images: string[];
-  /** 线路2/3/4复用 Zikl 上游，线路5为 APIMart 兼容线路 */
+  /** 线路2/3复用 Zikl 上游，线路4/6复用漫小白上游，线路5为 APIMart 兼容线路 */
   api_line?: GenerationLine | "auto";
 }
 

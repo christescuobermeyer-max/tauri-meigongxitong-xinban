@@ -15,9 +15,12 @@ pub fn generation_size_for_line<'a>(line: &str, size: &'a str) -> Option<Cow<'a,
         },
         "line4" => match size {
             "1:1" => Cow::Borrowed("1024x1024"),
-            "4:3" | "3:2" => Cow::Borrowed("1536x1024"),
+            "16:9" | "auto" | "1792x1024" => Cow::Borrowed("1824x1024"),
+            "21:9" | "1792x768" => Cow::Borrowed("2384x1024"),
+            "4:3" => Cow::Borrowed("1360x1024"),
+            "3:2" => Cow::Borrowed("1536x1024"),
             "2:3" => Cow::Borrowed("1024x1536"),
-            "auto" => Cow::Borrowed("16:9"),
+            "3:4" => Cow::Borrowed("1024x1360"),
             other => Cow::Borrowed(other),
         },
         "line2" => match size {
@@ -71,7 +74,7 @@ fn supports_provider_size(line: &str, size: &str) -> bool {
         ),
         "line4" => matches!(
             size,
-            "1024x1024" | "1024x1536" | "1536x1024" | "1792x1024" | "16:9" | "21:9" | "3:4"
+            "1024x1024" | "1536x1024" | "1024x1536" | "1824x1024" | "1024x1824" | "1360x1024" | "1024x1360" | "2384x1024"
         ),
         // line2 支持横版比例；旧客户端传来的 1792x768 在映射层转换为 21:9 后再到这里。
         "line2" => matches!(

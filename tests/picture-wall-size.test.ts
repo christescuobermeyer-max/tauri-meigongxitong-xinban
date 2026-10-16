@@ -84,5 +84,5 @@ const pockgoFormatSource = readFileSync(
 );
 ok(
   pockgoFormatSource.includes('"1024x1536" => "2:3"'),
-  "线路4 pockgo 图片墙应按 1024x1536 对应的 2:3 比例生成"
+  "线路4漫小白图片墙应使用 1024x1536 尺寸"
 );

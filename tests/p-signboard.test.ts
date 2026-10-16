@@ -51,7 +51,7 @@ async function runWithAutoRetry(options) {
 `)
   .replace(
     'import { resolvePSignboardGenerationSize } from "./generation-size";',
-    'function resolvePSignboardGenerationSize(line = "line5") { return line === "line5" ? "auto" : line === "line4" ? "16:9" : "1536x1024"; }'
+    'function resolvePSignboardGenerationSize(line = "line5") { return line === "line5" ? "auto" : line === "line2" ? "16:9" : line === "line4" || line === "line6" ? "2384x1024" : "1536x1024"; }'
   )
   .replace('import { safeFileName } from "./utils";', 'function safeFileName(input) { return input.trim() || "shop"; }')
   .replace('import type { GenerationItem, GenerationLine, UploadedImage } from "../types";', "");

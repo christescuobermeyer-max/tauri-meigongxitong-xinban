@@ -78,10 +78,10 @@ ok(queue.includes("acquire_auto_for_user_excluding"), "服务端队列应允许�
 ok(gateway.includes("GENERATE_IMAGE_MAX_ATTEMPTS"), "网关 generate_image 必须有重试上限常量");
 ok(gateway.includes("tried_lines"), "网关 generate_image 重试时必须跟踪已试过的线路集合");
 ok(
-  gateway.includes('const ZIKL_SHARED_LINES: [&str; 3] = ["line2", "line3", "line4"]') &&
+  gateway.includes('const ZIKL_SHARED_LINES: [&str; 2] = ["line2", "line3"]') &&
     gateway.includes("exclude_shared_zikl_lines") &&
-    gateway.includes("excluded shared Zikl lines line2,line3,line4"),
-  "线路2/3/4任一失败后应整体排除共享 Zikl 三线路，不得相互重试"
+    gateway.includes("excluded shared Zikl lines line2,line3"),
+  "线路2/3任一失败后应整体排除共享 Zikl 两线路，不得相互重试"
 );
 
 // 前端约束：

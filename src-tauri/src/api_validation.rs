@@ -24,7 +24,14 @@ fn is_supported_size_for_line(req: &GenerateRequest) -> bool {
         ),
         ImageApiLine::Line4 => matches!(
             req.size.as_str(),
-            "1024x1024" | "1024x1536" | "1536x1024" | "1792x1024" | "16:9" | "21:9" | "3:4"
+            "1024x1024"
+                | "1536x1024"
+                | "1024x1536"
+                | "1824x1024"
+                | "1024x1824"
+                | "1360x1024"
+                | "1024x1360"
+                | "2384x1024"
         ),
         // supports 表必须和 gateway_limiter::supports_provider_size 保持一致，
         // 否则 limiter 选中线路+映射 size 后，validation 又拒绝，产生 "不支持的尺寸" 内部错误。
@@ -145,10 +152,10 @@ mod tests {
     }
 
     #[test]
-    fn allow_pockgo_storefront_16_9_ratio_size() {
+    fn allow_manxiaobai_wide_pixel_size_for_line4() {
         let req = GenerateRequest {
             prompt: "测试".into(),
-            size: "16:9".into(),
+            size: "1824x1024".into(),
             product_images: vec!["https://example.com/avatar.png".into()],
             api_line: ImageApiLine::Line4,
         };
@@ -161,6 +168,7 @@ mod tests {
         for api_line in [
             ImageApiLine::Line2,
             ImageApiLine::Line3,
+            ImageApiLine::Line4,
             ImageApiLine::Line5,
             ImageApiLine::Line7,
         ] {
