@@ -36,3 +36,10 @@ fn rejects_too_short_store_name() {
     .unwrap_err();
     assert!(err.contains("2-20"));
 }
+
+#[test]
+fn thread1_defaults_to_relayrouter() {
+    let runtime = thread_runtime_env(BrandStoryThreadId::Thread1);
+    assert_eq!(runtime.base_url_default, "https://api.relayrouter.ai");
+    assert_eq!(runtime.base_url_keys[0], "BRAND_STORY_THREAD1_BASE_URL");
+}

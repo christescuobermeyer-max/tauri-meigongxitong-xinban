@@ -4,7 +4,7 @@ pub(super) fn thread_runtime_env(id: BrandStoryThreadId) -> ThreadRuntimeEnv {
     match id {
         BrandStoryThreadId::Thread1 => ThreadRuntimeEnv {
             base_url_keys: &["BRAND_STORY_THREAD1_BASE_URL", "API_BASE_URL"],
-            base_url_default: "https://api.zhongzhuan.vip",
+            base_url_default: "https://api.relayrouter.ai",
             text_key_envs: &[
                 "BRAND_STORY_THREAD1_TEXT_API_KEY",
                 "TEXT_API_KEY",
