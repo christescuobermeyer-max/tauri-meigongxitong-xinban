@@ -14,7 +14,11 @@ const LINE2_API_KEY_ENV_KEYS: [&str; 2] = ["IMAGE_2_LINE2_API_KEY", "YUNWU_IMAGE
 const LINE4_API_URL: &str = "https://api.manxiaobai.online/v1/images/generations";
 const LINE4_EDIT_API_URL: &str = "https://api.manxiaobai.online/v1/images/edits";
 const LINE4_MODEL: &str = "gpt-image-2.5";
-const LINE4_API_KEY_ENV_KEYS: [&str; 2] = ["MANXIAOBAI_IMAGE_2_API_KEY", "IMAGE_2_LINE6_API_KEY"];
+const LINE4_API_KEY_ENV_KEYS: [&str; 3] = [
+    "IMAGE_2_LINE4_API_KEY",
+    "MANXIAOBAI_IMAGE_2_API_KEY",
+    "IMAGE_2_LINE6_API_KEY",
+];
 
 const LINE3_API_URL: &str = "https://img.zikl.dev/v1/images/generations";
 const LINE3_EDIT_API_URL: &str = "https://img.zikl.dev/v1/images/edits";
@@ -234,7 +238,8 @@ mod tests {
         assert_eq!(provider.model, "gpt-image-2.5");
         assert_eq!(provider.log_label, "image-2:line4-manxiaobai");
         assert_eq!(provider.user_label, "线路4 manxiaobai");
-        assert_eq!(provider.api_key_env_keys, resolve_image_provider(ImageApiLine::Line6).api_key_env_keys);
+        assert_eq!(provider.api_key_env_keys[0], "IMAGE_2_LINE4_API_KEY");
+        assert_eq!(provider.api_key_env_keys[1], "MANXIAOBAI_IMAGE_2_API_KEY");
         assert_eq!(provider.quality, Some("high"));
         assert_eq!(provider.format, Some("png"));
         assert_eq!(

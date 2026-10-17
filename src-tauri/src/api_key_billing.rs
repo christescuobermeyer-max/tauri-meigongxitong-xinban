@@ -14,6 +14,11 @@ const ZIKL_BILLING_USAGE_URL: &str = "https://img.zikl.dev/v1/dashboard/billing/
 
 const MANXIAOBAI_API_KEY_ENV_KEYS: [&str; 2] =
     ["MANXIAOBAI_IMAGE_2_API_KEY", "IMAGE_2_LINE6_API_KEY"];
+const LINE4_API_KEY_ENV_KEYS: [&str; 3] = [
+    "IMAGE_2_LINE4_API_KEY",
+    "MANXIAOBAI_IMAGE_2_API_KEY",
+    "IMAGE_2_LINE6_API_KEY",
+];
 const MANXIAOBAI_BILLING_SUBSCRIPTION_URL: &str =
     "https://api.manxiaobai.online/v1/dashboard/billing/subscription";
 const MANXIAOBAI_BILLING_USAGE_URL: &str =
@@ -58,7 +63,7 @@ fn api_key_billing_config(line: &str) -> Result<ApiKeyBillingConfig, String> {
         }),
         "line4" => Ok(ApiKeyBillingConfig {
             provider_label: "manxiaobai",
-            api_key_env_keys: &MANXIAOBAI_API_KEY_ENV_KEYS,
+            api_key_env_keys: &LINE4_API_KEY_ENV_KEYS,
             subscription_url: MANXIAOBAI_BILLING_SUBSCRIPTION_URL,
             usage_url: MANXIAOBAI_BILLING_USAGE_URL,
             unit_symbol: "¤",
