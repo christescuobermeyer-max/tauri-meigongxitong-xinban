@@ -537,7 +537,7 @@ dependencies = [
 
 [[package]]
 name = "csgh-image-studio"
-version = "3.0.54"
+version = "3.0.55"
 dependencies = [
  "aliyun-oss-rust-sdk",
  "anyhow",
