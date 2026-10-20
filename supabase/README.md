@@ -69,6 +69,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR...
 | `generation_monthly_totals` | 每个用户按 Asia/Shanghai 自然月累计成功归档到 OSS 的生图数量 |
 | `login_logs` | 登录日志（审计用） |
 | `daily_generation_stats` | 视图：按用户 × 日期聚合的生图数量 |
+| `jev_chat_stats` schema | 微信助手成功回复次数，独立于生图表，不保存聊天正文 |
 
 ### 历史保留策略
 
@@ -90,6 +91,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR...
 
 - `record_login(p_user_agent text default null)` — 登录成功后由前端调用一次，自动累加 `login_count` + 刷新 `last_login_at` + 写 `login_logs`。
 - `cleanup_expired_generation_logs(p_cutoff timestamptz default now() - interval '7 days')` — 删除超过 7 天的历史生图记录，返回删除条数。
+- 微信助手调用统计迁移：`migrations/20261017_add_jev_chat_usage_stats.sql`；每天成功生成候选时累计一次，失败和“无需回复”不计数。只允许服务端 `service_role` 调用统计 RPC。
 
 ---
 
