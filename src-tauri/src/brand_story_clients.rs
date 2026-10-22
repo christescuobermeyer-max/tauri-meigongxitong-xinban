@@ -254,8 +254,8 @@ mod tests {
             "https://example.com/v1/chat/completions"
         );
         assert_eq!(
-            build_openai_chat_completions_url("https://api.relayrouter.ai"),
-            "https://api.relayrouter.ai/v1/chat/completions"
+            build_openai_chat_completions_url("https://api.openlux.ai"),
+            "https://api.openlux.ai/v1/chat/completions"
         );
     }
 
