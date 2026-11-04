@@ -68,8 +68,8 @@ ok(
   "image_provider 应读取 MANXIAOBAI_IMAGE_2_API_KEY"
 );
 ok(
-  providerSource.includes('const LINE6_MODEL: &str = "gpt-image-2.5";'),
-  "line6 应使用 manxiaobai 的 gpt-image-2.5 模型"
+  providerSource.includes('const LINE6_MODEL: &str = "gpt-image-2.5-flare";'),
+  "line6 应使用 manxiaobai 的 gpt-image-2.5-flare 模型"
 );
 ok(
   apiSource.includes("generate_manxiaobai_edit_image"),
