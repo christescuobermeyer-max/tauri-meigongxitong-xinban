@@ -17,6 +17,15 @@ pub(crate) fn exclude_shared_zikl_lines(tried_lines: &mut HashSet<String>, line:
     true
 }
 
+/// 失败后是否停止换线。结果不确定的错误（可能已扣费）停止，避免重复提交；
+/// 但上游明确返回"没有该模型的可用渠道"时请求未被处理，即使是 503 也可安全换线。
+pub(crate) fn should_stop_retries_after_failure(error: &str) -> bool {
+    let lower = error.to_ascii_lowercase();
+    let model_unavailable =
+        lower.contains("model_not_found") || lower.contains("no available channel");
+    http_client::is_ambiguous_upstream_error(error) && !model_unavailable
+}
+
 pub(crate) async fn generate_image(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -181,7 +190,7 @@ pub(crate) async fn generate_image(
                 }));
             }
             Err(err) => {
-                let ambiguous = http_client::is_ambiguous_upstream_error(&err);
+                let ambiguous = should_stop_retries_after_failure(&err);
                 eprintln!(
                     "[gateway] generate_image attempt {}/{} failed request_id={} on {} ambiguous={}: {}",
                     attempt + 1,

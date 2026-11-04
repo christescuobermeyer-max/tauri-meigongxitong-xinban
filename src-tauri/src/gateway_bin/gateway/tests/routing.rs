@@ -67,3 +67,28 @@ fn ignores_transient_upstream_errors_for_auto_pause() {
         "线路3 vectorengine接口返回 524 <unknown status code>: error code: 524"
     ));
 }
+
+#[test]
+fn switches_line_after_upstream_model_not_found() {
+    // 上游明确说没有该模型的可用渠道，请求根本没被处理，可以安全换线。
+    assert!(!should_stop_retries_after_failure(
+        r#"线路6编辑接口返回 503 Service Unavailable: {"error":{"code":"model_not_found","message":"No available channel for model gpt-image-2.5 under group default (distributor)","type":"new_api_error"}}"#
+    ));
+    assert!(!should_stop_retries_after_failure(
+        "线路4 manxiaobai接口返回 503 Service Unavailable: No available channel for model gpt-image-2.5"
+    ));
+}
+
+#[test]
+fn still_stops_retries_after_ambiguous_upstream_failure() {
+    // 结果不确定的错误（可能已扣费）仍然停止换线，避免重复提交。
+    assert!(should_stop_retries_after_failure(
+        "调用线路6编辑接口失败：error sending request；operation timed out"
+    ));
+    assert!(should_stop_retries_after_failure(
+        "线路6编辑接口返回 503 Service Unavailable: upstream overloaded"
+    ));
+    assert!(!should_stop_retries_after_failure(
+        "线路6编辑接口返回 403 Forbidden: insufficient_user_quota"
+    ));
+}
