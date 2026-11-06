@@ -61,7 +61,7 @@ ok(
   apiKeyBillingSource.includes('matches!(line, "line2" | "line3" | "line4" | "line6" | "line7")'),
   "API Key billing 支持列表应包含线路3和共用漫小白配置的线路4",
 );
-equal(imageProviderSource.includes('const LINE3_MODEL: &str = "gpt-image-2.5-flare";'), true);
+equal(imageProviderSource.includes('const LINE3_MODEL: &str = "gpt-image-2.6";'), true);
 ok(
   imageProviderSource.includes('const LINE3_EDIT_API_URL: &str = "https://img.zikl.dev/v1/images/edits";'),
   "线路3带参考图时应使用线路2图片编辑接口",

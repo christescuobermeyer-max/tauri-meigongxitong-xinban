@@ -14,8 +14,8 @@ ok(
   "线路2应使用 Zikl 生图接口地址"
 );
 ok(
-  providerSource.includes('const LINE2_MODEL: &str = "gpt-image-2.5-flare"'),
-  "线路2应使用 gpt-image-2.5-flare 模型"
+  providerSource.includes('const LINE2_MODEL: &str = "gpt-image-2.6"'),
+  "线路2应使用 gpt-image-2.6 模型"
 );
 ok(
   providerSource.includes('const LINE2_API_KEY_ENV_KEYS: [&str; 2]') &&
@@ -28,8 +28,8 @@ ok(
 );
 ok(
   providerSource.includes('const LINE4_EDIT_API_URL: &str = "https://api.manxiaobai.online/v1/images/edits"') &&
-    providerSource.includes('const LINE4_MODEL: &str = "gpt-image-2.5-flare"'),
-  "线路4应使用漫小白 edits 接口和 gpt-image-2.5-flare 模型"
+    providerSource.includes('const LINE4_MODEL: &str = "gpt-image-2.6-flare"'),
+  "线路4应使用漫小白 edits 接口和 gpt-image-2.6-flare 模型"
 );
 ok(
   !providerSource.match(/const LINE4_API_KEY_ENV_KEYS[\s\S]*?"IMAGE_2_LINE2_API_KEY"[\s\S]*?];/),

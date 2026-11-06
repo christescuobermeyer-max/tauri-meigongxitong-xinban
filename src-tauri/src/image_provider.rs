@@ -8,12 +8,12 @@ pub enum ReferenceImageJsonField {
 
 const LINE2_API_URL: &str = "https://img.zikl.dev/v1/images/generations";
 const LINE2_EDIT_API_URL: &str = "https://img.zikl.dev/v1/images/edits";
-const LINE2_MODEL: &str = "gpt-image-2.5-flare";
+const LINE2_MODEL: &str = "gpt-image-2.6";
 const LINE2_API_KEY_ENV_KEYS: [&str; 2] = ["IMAGE_2_LINE2_API_KEY", "YUNWU_IMAGE_2_LINE2_API_KEY"];
 
 const LINE4_API_URL: &str = "https://api.manxiaobai.online/v1/images/generations";
 const LINE4_EDIT_API_URL: &str = "https://api.manxiaobai.online/v1/images/edits";
-const LINE4_MODEL: &str = "gpt-image-2.5-flare";
+const LINE4_MODEL: &str = "gpt-image-2.6-flare";
 const LINE4_API_KEY_ENV_KEYS: [&str; 3] = [
     "IMAGE_2_LINE4_API_KEY",
     "MANXIAOBAI_IMAGE_2_API_KEY",
@@ -22,7 +22,7 @@ const LINE4_API_KEY_ENV_KEYS: [&str; 3] = [
 
 const LINE3_API_URL: &str = "https://img.zikl.dev/v1/images/generations";
 const LINE3_EDIT_API_URL: &str = "https://img.zikl.dev/v1/images/edits";
-const LINE3_MODEL: &str = "gpt-image-2.5-flare";
+const LINE3_MODEL: &str = "gpt-image-2.6";
 const LINE3_API_KEY_ENV_KEYS: [&str; 3] = [
     "VECTORENGINE_IMAGE_2_API_KEY",
     "VECTOR_ENGINE_IMAGE_2_API_KEY",
@@ -35,12 +35,12 @@ const LINE5_API_KEY_ENV_KEYS: [&str; 2] = ["APIMART_IMAGE_2_API_KEY", "IMAGE_2_L
 
 const LINE6_API_URL: &str = "https://api.manxiaobai.online/v1/images/generations";
 const LINE6_EDIT_API_URL: &str = "https://api.manxiaobai.online/v1/images/edits";
-const LINE6_MODEL: &str = "gpt-image-2.5-flare";
+const LINE6_MODEL: &str = "gpt-image-2.6-flare";
 const LINE6_API_KEY_ENV_KEYS: [&str; 2] = ["MANXIAOBAI_IMAGE_2_API_KEY", "IMAGE_2_LINE6_API_KEY"];
 
 const LINE7_API_URL: &str = "https://api.novaeworld.top/v1/images/generations";
 const LINE7_EDIT_API_URL: &str = "https://api.novaeworld.top/v1/images/edits";
-const LINE7_MODEL: &str = "gpt-image-2.5";
+const LINE7_MODEL: &str = "gpt-image-2.6";
 const LINE7_API_KEY_ENV_KEYS: [&str; 2] = ["NOVA_IMAGE_2_API_KEY", "IMAGE_2_LINE7_API_KEY"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -194,7 +194,7 @@ mod tests {
             provider.edit_api_url,
             Some("https://img.zikl.dev/v1/images/edits")
         );
-        assert_eq!(provider.model, "gpt-image-2.5-flare");
+        assert_eq!(provider.model, "gpt-image-2.6");
         assert_eq!(provider.log_label, "image-2:line2");
         assert_eq!(provider.api_key_env_keys[0], "IMAGE_2_LINE2_API_KEY");
         assert_eq!(provider.quality, Some("low"));
@@ -213,7 +213,7 @@ mod tests {
             provider.edit_api_url,
             Some("https://img.zikl.dev/v1/images/edits")
         );
-        assert_eq!(provider.model, "gpt-image-2.5-flare");
+        assert_eq!(provider.model, "gpt-image-2.6");
         assert_eq!(provider.log_label, "image-2:line3-zikl");
         assert_eq!(provider.quality, Some("low"));
         assert_eq!(provider.format, Some("png"));
@@ -235,7 +235,7 @@ mod tests {
             provider.edit_api_url,
             Some("https://api.manxiaobai.online/v1/images/edits")
         );
-        assert_eq!(provider.model, "gpt-image-2.5-flare");
+        assert_eq!(provider.model, "gpt-image-2.6-flare");
         assert_eq!(provider.log_label, "image-2:line4-manxiaobai");
         assert_eq!(provider.user_label, "线路4 manxiaobai");
         assert_eq!(provider.api_key_env_keys[0], "IMAGE_2_LINE4_API_KEY");
@@ -277,7 +277,7 @@ mod tests {
             provider.edit_api_url,
             Some("https://api.manxiaobai.online/v1/images/edits")
         );
-        assert_eq!(provider.model, "gpt-image-2.5-flare");
+        assert_eq!(provider.model, "gpt-image-2.6-flare");
         assert_eq!(provider.log_label, "image-2:line6-manxiaobai");
         assert_eq!(provider.api_key_env_keys[0], "MANXIAOBAI_IMAGE_2_API_KEY");
         assert_eq!(provider.quality, Some("high"));
@@ -296,7 +296,7 @@ mod tests {
             provider.edit_api_url,
             Some("https://api.novaeworld.top/v1/images/edits")
         );
-        assert_eq!(provider.model, "gpt-image-2.5");
+        assert_eq!(provider.model, "gpt-image-2.6");
         assert_eq!(provider.log_label, "image-2:line7-novaeworld");
         assert_eq!(provider.api_key_env_keys[0], "NOVA_IMAGE_2_API_KEY");
     }
