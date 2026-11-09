@@ -19,8 +19,6 @@ interface DownloadOptions {
   onProgress?: (progress: PictureWallDownloadProgress) => void;
 }
 
-const EXPORT_LABEL = `${PICTURE_WALL_EXPORT_SIZE.w}×${PICTURE_WALL_EXPORT_SIZE.h}`;
-
 export async function downloadPictureWallEntries(
   entries: PictureWallEntry[],
   shopName: string,
@@ -32,7 +30,7 @@ export async function downloadPictureWallEntries(
   const directoryPath = await pickDirectoryPath("选择图片墙下载文件夹");
   if (!directoryPath) return null;
 
-  const totalCount = completed.length * 2;
+  const totalCount = completed.length;
   const savedPaths: string[] = [];
   const stem = safeFileName(shopName);
   const report = (currentImageIndex: number, fileLabel: string, message: string) => {
@@ -49,7 +47,7 @@ export async function downloadPictureWallEntries(
   report(1, "准备下载", `正在下载图片，已下载 0/${totalCount} 个文件`);
   for (const [index, entry] of completed.entries()) {
     const number = index + 1;
-    await saveEntryPair(entry, stem, directoryPath, number, savedPaths, totalCount, report);
+    await saveEntryOriginal(entry, stem, directoryPath, number, savedPaths, totalCount, report);
   }
   report(completed.length, "下载完成", `下载完成，共保存 ${savedPaths.length} 个文件`);
   return savedPaths;
@@ -66,7 +64,7 @@ export async function downloadSinglePictureWallEntry(
   const directoryPath = await pickDirectoryPath(`选择图片墙第 ${numberInGrid} 张下载文件夹`);
   if (!directoryPath) return null;
 
-  const totalCount = 2;
+  const totalCount = 1;
   const savedPaths: string[] = [];
   const stem = safeFileName(shopName);
   const report = (fileLabel: string, message: string) => {
@@ -81,7 +79,7 @@ export async function downloadSinglePictureWallEntry(
   };
 
   report("准备下载", `正在下载第 ${numberInGrid} 张图片，已下载 0/${totalCount} 个文件`);
-  await saveEntryPair(entry, stem, directoryPath, numberInGrid, savedPaths, totalCount, (_index, fileLabel, message) =>
+  await saveEntryOriginal(entry, stem, directoryPath, numberInGrid, savedPaths, totalCount, (_index, fileLabel, message) =>
     report(fileLabel, message)
   );
   report("下载完成", `下载完成，共保存 ${savedPaths.length} 个文件`);
@@ -122,7 +120,7 @@ export async function saveEditedPictureWallPair(
   return { directory: directoryPath, paths };
 }
 
-async function saveEntryPair(
+async function saveEntryOriginal(
   entry: PictureWallEntry,
   stem: string,
   directoryPath: string,
@@ -143,20 +141,6 @@ async function saveEntryPair(
     })
   );
   report(numberInGrid, "高清原图", `已下载 ${savedPaths.length}/${totalCount} 个文件`);
-
-  report(numberInGrid, EXPORT_LABEL, `正在下载第 ${numberInGrid} 张：${EXPORT_LABEL}`);
-  savedPaths.push(
-    await resizeAndSaveImage({
-      base64_data: rawBase64,
-      target_width: PICTURE_WALL_EXPORT_SIZE.w,
-      target_height: PICTURE_WALL_EXPORT_SIZE.h,
-      output_path: joinPath(
-        directoryPath,
-        `${stem}_图片墙_${numberInGrid}_${PICTURE_WALL_EXPORT_SIZE.w}x${PICTURE_WALL_EXPORT_SIZE.h}.png`
-      ),
-    })
-  );
-  report(numberInGrid, EXPORT_LABEL, `已下载 ${savedPaths.length}/${totalCount} 个文件`);
 }
 
 function joinPath(directoryPath: string, fileName: string) {

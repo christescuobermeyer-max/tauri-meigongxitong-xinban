@@ -229,9 +229,19 @@ const savedPaths = await downloadModule.downloadPictureWallEntries(
       downloadProgress.push(progress),
   }
 );
-equal(savedPaths.length, 4);
+equal(savedPaths.length, 2);
+ok(savedPaths.every((path: string) => path.includes("高清原图")));
+ok(savedPaths.every((path: string) => !path.includes("240x330")));
 equal(downloadProgress[0].savedCount, 0);
-equal(downloadProgress[0].totalCount, 4);
+equal(downloadProgress[0].totalCount, 2);
 ok(downloadProgress[0].message.includes("正在下载"));
-equal(downloadProgress.at(-1)?.savedCount, 4);
+equal(downloadProgress.at(-1)?.savedCount, 2);
 ok(downloadProgress.at(-1)?.message.includes("下载完成"));
+
+const singleSavedPaths = await downloadModule.downloadSinglePictureWallEntry(
+  { ...entries[0], item: { ...entries[0].item, status: "succeeded", rawBase64: "raw-a" } },
+  "测试店铺",
+  1
+);
+equal(singleSavedPaths.length, 1);
+ok(singleSavedPaths[0].includes("高清原图"));

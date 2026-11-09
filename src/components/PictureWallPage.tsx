@@ -1,6 +1,5 @@
 import type { PictureWallEntry } from "../lib/picture-wall";
 import {
-  PICTURE_WALL_EXPORT_SIZE,
   PICTURE_WALL_SOURCE_SIZE,
   PICTURE_WALL_TARGET_COUNTS,
   type PictureWallTargetCount,
@@ -122,7 +121,7 @@ export default function PictureWallPage({
                 showProductName
               />
               <span className="field__hint">
-                生成原图 {PICTURE_WALL_SOURCE_SIZE.w}×{PICTURE_WALL_SOURCE_SIZE.h}，下载包含高清原图和 {PICTURE_WALL_EXPORT_SIZE.w}×{PICTURE_WALL_EXPORT_SIZE.h}
+                生成原图 {PICTURE_WALL_SOURCE_SIZE.w}×{PICTURE_WALL_SOURCE_SIZE.h}，下载高清原图
               </span>
               <PictureWallProductNames images={images} />
             </div>

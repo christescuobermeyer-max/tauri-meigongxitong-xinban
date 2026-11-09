@@ -42,7 +42,7 @@ equal(pageSource.includes('role="radiogroup"'), true);
 equal(pageSource.includes("maxCount={targetCount}"), true);
 equal(pageSource.includes("生成图片墙"), true);
 equal(pageSource.includes("补生成失败图片"), true);
-equal(pageSource.includes("PICTURE_WALL_EXPORT_SIZE"), true);
+equal(pageSource.includes("PICTURE_WALL_EXPORT_SIZE"), false);
 equal(pageSource.includes("downloadStatus"), true);
 equal(pageSource.includes("GenerationLineCard"), false);
 equal(pageSource.includes('className="panel-stack"'), true);
@@ -72,6 +72,7 @@ const resultsSource = readFileSync(new URL("../src/components/PictureWallResults
 const pictureWallCssSource = readFileSync(new URL("../src/styles/picture-wall.css", import.meta.url), "utf8");
 equal(resultsSource.includes("BatchDownloadButton"), true);
 equal(resultsSource.includes("批量下载图片墙"), true);
+equal(resultsSource.includes("240×330"), false);
 equal(resultsSource.includes("getPictureWallCopyText(targetCount)"), true);
 equal(resultsSource.includes("onDownload"), true);
 equal(resultsSource.includes("onRetry"), true);

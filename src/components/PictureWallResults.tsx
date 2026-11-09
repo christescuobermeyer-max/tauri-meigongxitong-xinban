@@ -70,7 +70,7 @@ export default function PictureWallResults({
           <div className="picture-wall-empty">
             <IconImage style={{ width: 22, height: 22 }} />
             <strong>上传 {targetCount} 张产品图后即可生成图片墙</strong>
-            <span>生成后可批量下载高清原图 + 240×330 版本</span>
+            <span>生成后可批量下载高清原图</span>
           </div>
         ) : (
           <div className="picture-wall-grid">
@@ -208,11 +208,11 @@ function PictureWallTile({
             className="btn btn--secondary btn--sm picture-wall-tile__download"
             type="button"
             disabled={busy || downloading}
-            title="下载本张：高清原图 + 240×330"
+            title="下载本张高清原图"
             onClick={() => onDownloadSingle(entry.sourceImageId)}
           >
             <IconDownload style={{ width: 13, height: 13 }} />
-            下载本张（高清原图 + 240×330）
+            下载本张（高清原图）
           </button>
         </div>
       ) : null}
