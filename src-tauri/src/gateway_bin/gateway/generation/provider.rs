@@ -11,6 +11,7 @@ pub(crate) async fn generate_image_for_gateway(
         return Ok(GeneratedImageOutcome {
             image,
             apimart_task_id: None,
+            _task_claim: None,
         });
     }
 
@@ -31,6 +32,8 @@ pub(crate) async fn generate_image_for_gateway(
     let started_at_ms = chrono::Utc::now().timestamp_millis();
 
     let generation_line = req.api_line.as_str().to_string();
+    let task_claim = Arc::new(std::sync::Mutex::new(None));
+    let remembered_claim = Arc::clone(&task_claim);
     let remember = move |task_id| {
         let store = Arc::clone(&store);
         let task = PendingApimartTask {
@@ -45,7 +48,13 @@ pub(crate) async fn generate_image_for_gateway(
             started_at_ms,
             archive: None,
         };
-        async move { remember_apimart_task(store, task).await }
+        async move {
+            let claim = store.try_claim(&task.task_id).ok_or("上游任务已提交，但该任务正在处理中")?;
+            remember_apimart_task(store, task).await
+                .map_err(|error| format!("上游任务已提交，保存恢复记录失败：{error}"))?;
+            *remembered_claim.lock().expect("task claim lock poisoned") = Some(claim);
+            Ok(())
+        }
     };
     let (image, task_id) = apimart::generate_apimart_image_with_task_hook(
         &client,
@@ -57,13 +66,19 @@ pub(crate) async fn generate_image_for_gateway(
         &req.product_images,
         remember,
     )
-    .await?;
+    .await.map_err(|error| {
+        if task_claim.lock().expect("task claim lock poisoned").is_some() {
+            format!("上游任务已提交，等待恢复处理：{error}")
+        } else { error }
+    })?;
     let download_msg = "下载线路5 APIMart远端图片失败";
     let image = reference_image::download_image_if_url(&client, image, download_msg).await?;
 
+    let claim = task_claim.lock().expect("task claim lock poisoned").take();
     Ok(GeneratedImageOutcome {
         image,
         apimart_task_id: Some(task_id),
+        _task_claim: claim,
     })
 }
 

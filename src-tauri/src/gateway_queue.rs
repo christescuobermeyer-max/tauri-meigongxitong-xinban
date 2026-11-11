@@ -10,6 +10,7 @@ pub struct GatewayGenerationQueue {
     inner: Mutex<QueueState>,
     notify: Notify,
     line_health: Arc<LineHealthRegistry>,
+    wait_timeout: std::time::Duration,
 }
 
 #[derive(Debug)]
@@ -19,6 +20,7 @@ struct QueueState {
     active_by_user: HashMap<String, usize>,
     next_ticket: u64,
     waiting: VecDeque<QueueTicket>,
+    max_waiting: usize,
 }
 
 #[derive(Debug)]
@@ -148,3 +150,7 @@ fn normalize_user_id(user_id: &str) -> String {
 #[cfg(test)]
 #[path = "gateway_queue/tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "gateway_queue/limits_tests.rs"]
+mod limits_tests;

@@ -35,6 +35,8 @@ pub(crate) async fn recover_pending_apimart_tasks(state: &AppState) -> Result<()
 
     for task in tasks {
         let task_id = task.task_id.clone();
+        let Some(_claim) = state.apimart_tasks.try_claim(&task_id) else { continue; };
+        let Some(task) = state.apimart_tasks.get(&task_id).await else { continue; };
         let provider = resolve_image_provider(ImageApiLine::Line5);
         let api_key = if task.archive.is_some() { String::new() }
             else { env_config::read_required_env(provider.api_key_env_keys)? };
@@ -107,7 +109,7 @@ pub(crate) async fn recover_apimart_task(
 }
 
 pub(crate) fn is_terminal_apimart_recovery_error(error: &str) -> bool {
-    error.contains("线路5 APIMart任务失败")
-        || error.contains("线路5 APIMart任务已完成但未找到图片")
-        || error.contains("404")
+    error.starts_with("线路5 APIMart任务失败：")
+        || error.starts_with("线路5 APIMart任务已完成但未找到图片：")
+        || error.starts_with("线路5 APIMart任务接口返回 404")
 }

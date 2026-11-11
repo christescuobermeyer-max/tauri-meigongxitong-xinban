@@ -37,6 +37,9 @@ export async function callBackendGateway<T>(
     return JSON.parse(text) as T;
   } catch (error: unknown) {
     if (error instanceof DOMException && error.name === "AbortError") {
+      if (path === "/api/generate-image") {
+        throw new Error("生图请求等待超时，任务可能仍在云端处理。请先查看历史记录，避免重复提交");
+      }
       throw new Error(`后端网关请求超过 ${Math.round(timeoutMs / 1000)} 秒，请稍后重试`);
     }
     throw error;

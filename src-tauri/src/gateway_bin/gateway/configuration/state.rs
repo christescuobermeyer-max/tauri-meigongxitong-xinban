@@ -19,7 +19,7 @@ pub(crate) fn build_state() -> Result<AppState, String> {
     // 可通过 GATEWAY_STATE_DIR 覆盖；未设置且默认目录不可写时退化为"仅内存"（进程重启状态丢）
     let pause_persist_path = pause_state_persist_path()?;
     let pause_state = Arc::new(PauseStateRegistry::new(pause_persist_path));
-    let apimart_tasks = Arc::new(ApimartTaskStore::new(apimart_task_store_path()?));
+    let apimart_tasks = Arc::new(ApimartTaskStore::new(apimart_task_store_path()?)?);
 
     Ok(AppState {
         client,
@@ -27,10 +27,12 @@ pub(crate) fn build_state() -> Result<AppState, String> {
         supabase_anon_key,
         supabase_service_role_key,
         line_health: Arc::clone(&line_health),
-        generation_queue: Arc::new(GatewayGenerationQueue::new(
+        generation_queue: Arc::new(GatewayGenerationQueue::with_wait_limits(
             build_generation_limiter(),
             line_health,
             read_limit_env("GATEWAY_GENERATION_USER_LIMIT", 5),
+            read_positive_limit_env("GATEWAY_GENERATION_MAX_WAITING", 100),
+            Duration::from_secs(read_positive_limit_env("GATEWAY_GENERATION_QUEUE_TIMEOUT_SECS", 120) as u64),
         )),
         // 压缩 + OSS PUT 比生图轻得多（每张 < 2s），
         // 生图全局并发 30，归档要跟得上才不会成为瓶颈，默认开到 6。

@@ -6,6 +6,16 @@ impl GatewayGenerationQueue {
         line_health: Arc<LineHealthRegistry>,
         user_limit: usize,
     ) -> Self {
+        Self::with_wait_limits(limiter, line_health, user_limit, 100, std::time::Duration::from_secs(120))
+    }
+
+    pub fn with_wait_limits(
+        limiter: GatewayLimiter,
+        line_health: Arc<LineHealthRegistry>,
+        user_limit: usize,
+        max_waiting: usize,
+        wait_timeout: std::time::Duration,
+    ) -> Self {
         Self {
             inner: Mutex::new(QueueState {
                 limiter,
@@ -13,9 +23,11 @@ impl GatewayGenerationQueue {
                 active_by_user: HashMap::new(),
                 next_ticket: 0,
                 waiting: VecDeque::new(),
+                max_waiting: max_waiting.max(1),
             }),
             notify: Notify::new(),
             line_health,
+            wait_timeout,
         }
     }
 
@@ -71,6 +83,14 @@ impl GatewayGenerationQueue {
                 return Err(request.unavailable_message());
             }
 
+            if state.waiting.len() >= state.max_waiting {
+                return Err("生图等待队列已满，请稍后提交".to_string());
+            }
+            if state.waiting.iter().filter(|ticket| ticket.user_id == user_id).count()
+                >= state.user_limit.saturating_mul(2) {
+                return Err("当前账号等待任务已满，请等待现有任务完成".to_string());
+            }
+
             let ticket_id = state.next_ticket;
             state.next_ticket = state.next_ticket.saturating_add(1);
             state.waiting.push_back(QueueTicket {
@@ -82,6 +102,7 @@ impl GatewayGenerationQueue {
             ticket_id
         };
         let mut ticket_guard = WaitingTicketGuard::new(Arc::clone(self), ticket_id);
+        let deadline = tokio::time::Instant::now() + self.wait_timeout;
 
         loop {
             let notified = self.notify.notified();
@@ -102,7 +123,8 @@ impl GatewayGenerationQueue {
                     return Err(message);
                 }
             }
-            notified.as_mut().await;
+            tokio::time::timeout_at(deadline, notified.as_mut()).await
+                .map_err(|_| "排队等待超时，本次尚未提交上游，请稍后重试".to_string())?;
         }
     }
 }

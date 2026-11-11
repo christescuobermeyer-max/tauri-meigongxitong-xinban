@@ -120,7 +120,7 @@ pub(crate) fn test_state(supabase_url: String, service_role: Option<&str>) -> Ap
         )),
         oss_archive_limiter: Arc::new(Semaphore::new(1)),
         pause_state: Arc::new(PauseStateRegistry::new(None)),
-        apimart_tasks: Arc::new(ApimartTaskStore::new(None)),
+        apimart_tasks: Arc::new(ApimartTaskStore::new(None).unwrap()),
         prompt_templates: Arc::new(prompt_templates::PromptTemplateStore::from_env()),
     }
 }

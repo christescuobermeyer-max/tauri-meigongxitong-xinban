@@ -37,6 +37,20 @@ pub(crate) async fn generate_image(
     validate_result_delivery_request(&req)?;
     let resolved_prompt = resolve_gateway_prompt(&state, &req)?;
 
+    finish_generation(async move {
+        generate_image_work(state, req, request_id, token, user_id, resolved_prompt).await
+    }).await
+}
+
+async fn generate_image_work(
+    state: AppState,
+    req: GatewayGenerateImageRequest,
+    request_id: String,
+    token: String,
+    user_id: String,
+    resolved_prompt: String,
+) -> Result<Json<GenerateImageResponse>, GatewayError> {
+
     eprintln!(
         "[gateway] generate_image start request_id={} size={} image_count={}",
         request_id,

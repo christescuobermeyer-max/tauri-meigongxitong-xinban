@@ -58,6 +58,7 @@ pub(crate) fn select_result_delivery(
 pub(crate) struct GeneratedImageOutcome {
     pub(crate) image: String,
     pub(crate) apimart_task_id: Option<String>,
+    pub(crate) _task_claim: Option<crate::apimart_task_store::ActiveApimartTask>,
 }
 
 pub(crate) fn log_gateway_generate_request(req: &api::GenerateRequest, log_label: &str) {

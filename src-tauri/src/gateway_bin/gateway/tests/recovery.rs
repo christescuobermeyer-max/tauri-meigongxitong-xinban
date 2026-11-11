@@ -1,6 +1,15 @@
 use crate::*;
 use crate::gateway_test_support::{spawn_app, test_state};
 
+#[test]
+fn only_explicit_upstream_task_failures_are_terminal() {
+    assert!(!is_terminal_apimart_recovery_error("轮询线路5 APIMart任务失败：timeout"));
+    assert!(!is_terminal_apimart_recovery_error("Supabase 写入 generation_logs 返回 404"));
+    assert!(!is_terminal_apimart_recovery_error("下载图片失败：404 Not Found"));
+    assert!(is_terminal_apimart_recovery_error("线路5 APIMart任务失败：rejected"));
+    assert!(is_terminal_apimart_recovery_error("线路5 APIMart任务接口返回 404 Not Found"));
+}
+
 #[tokio::test]
 async fn archived_task_recovery_reuses_result_without_upstream_or_oss_calls() {
     let requests = Arc::new(std::sync::Mutex::new(Vec::<serde_json::Value>::new()));

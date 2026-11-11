@@ -38,7 +38,7 @@ pub async fn download_image_if_url(
             }
         }
     }
-    Err(last_error.unwrap_or_else(|| format!("{error_label}：unknown")))
+    Err(format!("上游任务已提交，结果下载失败：{}", last_error.unwrap_or_else(|| format!("{error_label}：unknown"))))
 }
 
 async fn fetch_image_bytes_once(

@@ -1,5 +1,8 @@
 use super::*;
 
+mod lifecycle;
+pub(crate) use lifecycle::*;
+
 mod dispatch;
 pub(crate) use dispatch::*;
 

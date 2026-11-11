@@ -43,6 +43,7 @@ pub fn format_reqwest_error(error: &reqwest::Error) -> String {
 /// 会把一次无结果请求放大成多次扣费请求。明确的 4xx 额度/鉴权错误不
 /// 在这里处理，调用方仍可按原有策略切换线路。
 pub fn is_ambiguous_upstream_error(error: &str) -> bool {
+    if error.contains("上游任务已提交") || error.contains("任务超时") { return true; }
     let lower = error.to_ascii_lowercase();
     [
         "timed out",
@@ -73,6 +74,8 @@ mod tests {
         assert!(is_ambiguous_upstream_error("error decoding response body"));
         assert!(is_ambiguous_upstream_error("image_stream_timeout"));
         assert!(is_ambiguous_upstream_error("502 Bad Gateway"));
+        assert!(is_ambiguous_upstream_error("上游任务已提交，保存恢复记录失败"));
+        assert!(is_ambiguous_upstream_error("线路5 APIMart任务超时，请稍后重试"));
     }
 
     #[test]
