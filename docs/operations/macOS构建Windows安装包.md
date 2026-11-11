@@ -82,3 +82,26 @@ node tests/windows-cross-build.test.mjs
 npm test
 npm run tauri:doctor:windows
 ```
+
+## 四、2026-11-11 本机验证结果
+
+已在 Apple Silicon Mac 上完成 Windows x64 release 编译和 NSIS 打包，构建入口对应源码
+提交 `0d25fc9`。工具版本：Rust/Cargo 1.99.1、cargo-xwin 0.23.1、LLVM/LLD 23.1.5、
+NSIS 3.13、Tauri CLI 2.10.1。首次下载的 Windows SDK 和编译缓存位于上述本机缓存目录。
+
+产物为 `呈尚策划美工生图系统PRO_3.0.56_x64-setup.exe`，大小 49,491,999 字节。
+项目内副本及摘要放在已被 Git 忽略的 `release-macos-cross/3.0.56/`，不会推送安装包到源码仓库。
+
+```text
+SHA-256: 17612e886c3ee4c99613d783609646d05c4da6864b9390f5fd97f99cf14d1d9b
+```
+
+- 新增入口和配置隔离测试通过；全套前端行为测试 130/130 通过。
+- `npm run build` 通过；Windows 桌面 release 编译和 NSIS 打包通过。
+- 7-Zip 安装包完整性检查通过，包含主程序、FFmpeg、yt-dlp 和安装/卸载组件。
+- 解包后的三个程序均为 Windows x64 PE，SHA-256 与各自构建/输入文件一致。
+- 构建使用公开客户端配置；网关健康接口和 Supabase 公开更新查询均返回 HTTP 200。
+- 保留现有前端分包、Rust 未使用代码、SDK 调试符号和 NSIS 非 Windows 输出字符集警告。
+
+这是同版本验证包，未签名，尚未在 Windows 实机验证安装或运行；未上传 OSS、启用更新、
+执行数据库迁移或部署网关。线上公开更新配置当时仍为已发布的 `3.0.56`。
