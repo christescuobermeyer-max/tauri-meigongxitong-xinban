@@ -20,7 +20,9 @@
     "tauri:doctor": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./run-dev.ps1 doctor",
     "tauri:dev": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./run-dev.ps1 dev",
     "tauri:build": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./run-dev.ps1 build",
-    "tauri:build:nsis": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./run-dev.ps1 build --bundles nsis"
+    "tauri:build:nsis": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./run-dev.ps1 build --bundles nsis",
+    "tauri:build:windows": "node scripts/build-windows-from-macos.mjs",
+    "tauri:doctor:windows": "node scripts/build-windows-from-macos.mjs --doctor"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.1",

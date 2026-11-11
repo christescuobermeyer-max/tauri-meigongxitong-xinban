@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 var host = process.env.TAURI_DEV_HOST;
 var packageJson = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
 export default defineConfig({
+    envDir: process.env.CSGH_PUBLIC_BUILD_ONLY === "1" ? false : undefined,
     plugins: [react()],
     define: {
         __APP_VERSION__: JSON.stringify(packageJson.version),
