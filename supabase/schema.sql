@@ -48,6 +48,7 @@ create table if not exists public.generation_logs (
   generation_line text check (generation_line in ('line1', 'line2', 'line3', 'line4', 'line5', 'line6', 'line7', 'line8')),
   oss_url       text not null,
   oss_key       text,
+  elapsed_ms    integer,
   created_at    timestamptz not null default now()
 );
 
@@ -56,6 +57,9 @@ alter table public.generation_logs
 
 alter table public.generation_logs
   add column if not exists product_name text;
+
+alter table public.generation_logs
+  add column if not exists elapsed_ms integer;
 
 alter table public.generation_logs
   drop constraint if exists generation_logs_asset_kind_check;

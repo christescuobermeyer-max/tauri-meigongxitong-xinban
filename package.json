@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "test": "node scripts/tests/run.mjs",
+    "test:db": "node scripts/tests/database.mjs",
     "update:publish": "node --env-file=.env.local scripts/publish-app-update.mjs",
     "preview": "vite preview",
     "supabase:usage": "node scripts/supabase-usage-report.mjs",

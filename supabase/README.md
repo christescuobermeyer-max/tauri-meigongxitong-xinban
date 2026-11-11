@@ -19,6 +19,13 @@
 2. 把本目录下的 `schema.sql` 完整内容粘贴进去
 3. 点 **Run**（成功无报错即可，全部语句都是幂等的，可重复执行）
 
+完整初始化包含 `generation_logs.elapsed_ms`；已有数据库也可执行
+`migrations/20260518_add_generation_elapsed_ms.sql` 补齐该字段。
+修改 schema 或迁移后，在安装 PostgreSQL 的开发机执行 `npm run test:db`。
+如工具不在 PATH 中，用 `PG_BINDIR` 指定 PostgreSQL 的 `bin` 目录。
+测试使用临时数据库和本地 Unix socket，不连接生产环境；Auth 和 cron 仅提供测试替身，
+实际执行建表、触发器、权限和业务 SQL，不验证 Supabase 登录服务或定时任务调度。
+
 ### 3. 创建第一个管理员账号
 
 1. 左侧菜单 **Authentication → Users → Add user → Create new user**
