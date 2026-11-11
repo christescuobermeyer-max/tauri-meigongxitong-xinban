@@ -4,6 +4,11 @@ use crate::image_provider::ImageApiLine;
 const MAX_REFERENCE_IMAGES: usize = 7;
 
 pub fn validate_generate_request(req: &GenerateRequest) -> Result<(), String> {
+    for reference in &req.product_images {
+        if reference.starts_with("http://") || reference.starts_with("https://") {
+            crate::reference_image::download::validate_url(reference)?;
+        }
+    }
     if req.product_images.len() > MAX_REFERENCE_IMAGES {
         return Err(format!(
             "产品图最多支持 {MAX_REFERENCE_IMAGES} 张，请删除多余图片后重试"

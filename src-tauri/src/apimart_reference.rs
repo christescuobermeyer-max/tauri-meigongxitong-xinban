@@ -1,4 +1,3 @@
-use crate::http_client::format_reqwest_error;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use image::{codecs::jpeg::JpegEncoder, imageops::FilterType, DynamicImage, Rgb, RgbImage};
 use std::time::Duration;
@@ -69,29 +68,13 @@ async fn download_reference_bytes(
 }
 
 async fn download_reference_bytes_once(
-    client: &reqwest::Client,
+    _client: &reqwest::Client,
     url: &str,
     index: usize,
 ) -> Result<Vec<u8>, String> {
-    let response = client
-        .get(url)
-        .timeout(Duration::from_secs(120))
-        .send()
-        .await
-        .map_err(|error| {
-            format!(
-                "下载线路5第 {} 张参考图失败：{}",
-                index + 1,
-                format_reqwest_error(&error)
-            )
-        })?
-        .error_for_status()
-        .map_err(|error| format!("下载线路5第 {} 张参考图失败：{error}", index + 1))?;
-    response
-        .bytes()
-        .await
-        .map(|bytes| bytes.to_vec())
-        .map_err(|error| format!("读取线路5第 {} 张参考图失败：{error}", index + 1))
+    crate::reference_image::download::download(url, Duration::from_secs(120)).await
+        .map(|(bytes, _)| bytes)
+        .map_err(|error| format!("下载线路5第 {} 张参考图失败：{error}", index + 1))
 }
 
 fn compress_reference_to_data_url(bytes: &[u8], index: usize) -> Result<String, String> {

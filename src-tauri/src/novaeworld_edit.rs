@@ -8,7 +8,6 @@ use crate::gemini_response::truncate_for_msg;
 use crate::http_client::format_reqwest_error;
 use crate::image_api_response::extract_image_from_response_body;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use reqwest::header::CONTENT_TYPE;
 use reqwest::multipart::{Form, Part};
 use std::time::Duration;
 
@@ -123,41 +122,14 @@ async fn download_reference_image(
 }
 
 async fn download_reference_image_once(
-    client: &reqwest::Client,
+    _client: &reqwest::Client,
     url: &str,
     index: usize,
 ) -> Result<ReferenceImageFile, String> {
-    let response = client
-        .get(url)
-        .timeout(Duration::from_secs(120))
-        .send()
-        .await
-        .map_err(|error| {
-            format!(
-                "下载线路7第 {} 张参考图失败：{}",
-                index + 1,
-                format_reqwest_error(&error)
-            )
-        })?;
-    let mime = response
-        .headers()
-        .get(CONTENT_TYPE)
-        .and_then(|value| value.to_str().ok())
-        .unwrap_or("image/png")
-        .split(';')
-        .next()
-        .unwrap_or("image/png")
-        .trim()
-        .to_string();
-    let bytes = response
-        .error_for_status()
-        .map_err(|error| format!("下载线路7第 {} 张参考图失败：{error}", index + 1))?
-        .bytes()
-        .await
-        .map_err(|error| format!("读取线路7第 {} 张参考图失败：{error}", index + 1))?;
-
+    let (bytes, mime) = crate::reference_image::download::download(url, Duration::from_secs(120))
+        .await.map_err(|error| format!("下载线路7第 {} 张参考图失败：{error}", index + 1))?;
     Ok(ReferenceImageFile {
-        bytes: bytes.to_vec(),
+        bytes,
         file_name: format!("reference-{}.{}", index + 1, extension_from_mime(&mime)),
         mime,
     })

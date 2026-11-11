@@ -1,8 +1,10 @@
 use crate::gemini_response::truncate_for_msg;
-use crate::http_client::format_reqwest_error;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use reqwest::{header::CONTENT_TYPE, Url};
+use reqwest::Url;
 use std::time::Duration;
+
+#[path = "reference_image/download.rs"]
+pub mod download;
 
 /// HTTP 拉取 OSS 图片的总尝试次数。
 /// 上午统计显示 ~20% 的生图 attempt 失败在 `.bytes().await: error decoding response body`，
@@ -40,62 +42,21 @@ pub async fn download_image_if_url(
 }
 
 async fn fetch_image_bytes_once(
-    client: &reqwest::Client,
+    _client: &reqwest::Client,
     url: &str,
     error_label: &str,
 ) -> Result<Vec<u8>, String> {
-    let response = client
-        .get(url)
-        // Zikl 返回的图片通常经 Caddy/uvicorn 分发，响应较大且偶发提前 EOF。
-        // 每次下载关闭连接，避免复用已被上游关闭的 HTTP/1.1 连接。
-        .header("Connection", "close")
-        .timeout(Duration::from_secs(180))
-        .send()
-        .await
-        .map_err(|error| format!("{error_label}：{}", format_reqwest_error(&error)))?
-        .error_for_status()
-        .map_err(|error| format!("{error_label}：{error}"))?;
-    response
-        .bytes()
-        .await
-        .map(|b| b.to_vec())
+    download::download(url, Duration::from_secs(180)).await
+        .map(|(bytes, _)| bytes)
         .map_err(|error| format!("{error_label}：{error}"))
 }
 
-pub async fn log_reference_image_diagnostics(client: &reqwest::Client, images: &[String]) {
+pub async fn log_reference_image_diagnostics(_client: &reqwest::Client, images: &[String]) {
     for (index, image) in images.iter().enumerate() {
-        let image_type = reference_image_type(image);
-        if image_type == "base64" {
+        if reference_image_type(image) == "base64" {
             eprintln!("[image-2] ref[{index}] type=base64 chars={}", image.len());
-            continue;
-        }
-
-        let url_summary = summarize_reference_url(image);
-        match client
-            .get(image)
-            .header("Range", "bytes=0-0")
-            .timeout(Duration::from_secs(20))
-            .send()
-            .await
-        {
-            Ok(response) => {
-                let status = response.status();
-                let content_type = response
-                    .headers()
-                    .get(CONTENT_TYPE)
-                    .and_then(|value| value.to_str().ok())
-                    .unwrap_or("-");
-                eprintln!(
-                    "[image-2] ref[{index}] type=url status={} content_type={} {}",
-                    status, content_type, url_summary
-                );
-            }
-            Err(error) => {
-                eprintln!(
-                    "[image-2] ref[{index}] type=url fetch_error={} {}",
-                    error, url_summary
-                );
-            }
+        } else {
+            eprintln!("[image-2] ref[{index}] type=url {}", summarize_reference_url(image));
         }
     }
 }
@@ -121,6 +82,6 @@ fn summarize_reference_url(value: &str) -> String {
                 value.len()
             )
         }
-        Err(_) => format!("invalid_url_preview={}", truncate_for_msg(value, 160)),
+        Err(_) => "invalid_url".to_string(),
     }
 }
