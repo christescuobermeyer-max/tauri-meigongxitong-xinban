@@ -85,6 +85,7 @@ cmd.exe /c "call ""D:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTool
 | 文档 | 什么时候读 |
 |---|---|
 | `docs/项目总览.md` | 需要了解完整技术栈、云资源、运行架构、数据流、文件边界 |
+| `docs/operations/2026-11-11-项目验证与可靠性修复.md` | macOS 验证、数据库初始化与历史幂等、图片访问边界、长任务恢复和内存实测 |
 | `docs/plans/2026-09-30-项目修复实施文档.md` | 安全、更新校验、模块拆分的修复状态、验证结果与待部署步骤 |
 | `docs/plans/2026-09-18-menu-design.md` | 菜单文字/截图整理、品类风格生图与部署依赖 |
 | `docs/文档索引.md` | 不确定要读哪份文档，或新增/归档文档前 |
