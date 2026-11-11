@@ -1,4 +1,6 @@
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
+import { equal } from "node:assert/strict";
+import { promisify } from "node:util";
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -52,6 +54,28 @@ try {
   sql("alter table public.generation_logs drop column elapsed_ms;");
   sql(readFileSync(path.join(root, "supabase/migrations/20260518_add_generation_elapsed_ms.sql"), "utf8"));
   verify("旧库耗时字段迁移");
+  const migration = readFileSync(path.join(root, "supabase/migrations/20261111_generation_archive_idempotency.sql"), "utf8");
+  const userId = "44444444-4444-4444-8444-444444444444";
+  const insert = `insert into public.generation_logs (user_id, shop_name, asset_kind, platform, oss_url)
+    values ('${userId}', '并发测试', 'product', 'meituan', 'https://example.invalid/concurrent.jpg');`;
+  sql("drop trigger before_generation_log_claim_archive on public.generation_logs; drop table public.generation_archive_receipts;");
+  sql(`insert into auth.users (id, email) values ('${userId}', 'concurrent@example.invalid'); ${insert} ${insert}`);
+  sql(migration);
+  sql(migration);
+  sql(insert);
+  equal(sql(`select count(*) = 2 from public.generation_logs where user_id = '${userId}';`).includes(" t"), true);
+  equal(sql(`select total_count = 2 from public.generation_totals where user_id = '${userId}';`).includes(" t"), true);
+  console.log("通过 历史重复记录保持原样，增量迁移阻止再次累计");
+  const concurrentInsert = insert.replace("concurrent.jpg", "concurrent-new.jpg");
+  const argumentsForSql = ["-X", "-h", temporary, "-p", "5432", "-U", "csgh_test", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-c"];
+  await Promise.all([
+    promisify(execFile)(binary("psql"), [...argumentsForSql, `begin; ${concurrentInsert} select pg_sleep(0.2); commit;`], { env: environment }),
+    promisify(execFile)(binary("psql"), [...argumentsForSql, concurrentInsert], { env: environment }),
+  ]);
+  equal(sql(`select total_count = 3 from public.generation_totals where user_id = '${userId}';`).includes(" t"), true);
+  console.log("通过 两个数据库连接并发重试仅增加一次统计");
+  sql(`delete from auth.users where id = '${userId}';`);
+  verify("幂等迁移重复执行");
 } catch (error) {
   console.error(error.stderr?.toString() || error.message);
   process.exitCode = 1;

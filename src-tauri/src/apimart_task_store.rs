@@ -14,11 +14,20 @@ pub struct PendingApimartTask {
     pub file_name_stem: String,
     pub generation_line: String,
     pub started_at_ms: i64,
+    #[serde(default)]
+    pub archive: Option<StoredApimartArchive>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StoredApimartArchive {
+    pub url: String,
+    pub key: String,
 }
 
 pub struct ApimartTaskStore {
     path: Option<PathBuf>,
     tasks: Mutex<HashMap<String, PendingApimartTask>>,
+    archive_locks: Mutex<HashMap<String, std::sync::Weak<Mutex<()>>>>,
 }
 
 impl ApimartTaskStore {
@@ -35,6 +44,7 @@ impl ApimartTaskStore {
         Self {
             path,
             tasks: Mutex::new(tasks),
+            archive_locks: Mutex::new(HashMap::new()),
         }
     }
 
@@ -54,6 +64,27 @@ impl ApimartTaskStore {
         self.tasks.lock().await.values().cloned().collect()
     }
 
+    pub async fn archived(&self, task_id: &str) -> Option<StoredApimartArchive> {
+        self.tasks.lock().await.get(task_id).and_then(|task| task.archive.clone())
+    }
+
+    pub async fn lock_archive(&self, task_id: &str) -> tokio::sync::OwnedMutexGuard<()> {
+        let mut locks = self.archive_locks.lock().await;
+        locks.retain(|_, lock| lock.strong_count() > 0);
+        let lock = locks.get(task_id).and_then(std::sync::Weak::upgrade)
+            .unwrap_or_else(|| std::sync::Arc::new(Mutex::new(())));
+        locks.insert(task_id.to_string(), std::sync::Arc::downgrade(&lock));
+        drop(locks);
+        lock.lock_owned().await
+    }
+
+    pub async fn save_archive(&self, task_id: &str, archive: StoredApimartArchive) -> Result<(), String> {
+        let mut guard = self.tasks.lock().await;
+        let task = guard.get_mut(task_id).ok_or_else(|| "待恢复任务不存在".to_string())?;
+        task.archive = Some(archive);
+        self.persist(&guard).await
+    }
+
     async fn persist(&self, tasks: &HashMap<String, PendingApimartTask>) -> Result<(), String> {
         let Some(path) = self.path.as_ref() else {
             return Ok(());
@@ -67,3 +98,7 @@ impl ApimartTaskStore {
             .map_err(|error| format!("写入 APIMart pending task 文件失败：{error}"))
     }
 }
+
+#[cfg(test)]
+#[path = "apimart_task_store/tests.rs"]
+mod tests;

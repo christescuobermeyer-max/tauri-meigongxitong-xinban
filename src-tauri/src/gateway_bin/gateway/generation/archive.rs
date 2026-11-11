@@ -1,5 +1,29 @@
 use super::*;
 
+pub(crate) async fn archive_generated_image_for_task(
+    state: &AppState,
+    req: ArchiveGeneratedImageRequest,
+    raw_base64: &str,
+    task_id: Option<&str>,
+) -> Result<ArchiveGeneratedImageResult, String> {
+    let _task_lock = match task_id {
+        Some(task_id) => Some(state.apimart_tasks.lock_archive(task_id).await),
+        None => None,
+    };
+    if let Some(task_id) = task_id {
+        if let Some(archive) = state.apimart_tasks.archived(task_id).await {
+            return Ok(ArchiveGeneratedImageResult { url: archive.url, key: archive.key });
+        }
+    }
+    let archive = archive_generated_image(state, req, raw_base64).await?;
+    if let Some(task_id) = task_id {
+        state.apimart_tasks.save_archive(task_id, crate::apimart_task_store::StoredApimartArchive {
+            url: archive.url.clone(), key: archive.key.clone(),
+        }).await?;
+    }
+    Ok(archive)
+}
+
 pub(crate) async fn archive_generated_image(
     state: &AppState,
     req: ArchiveGeneratedImageRequest,

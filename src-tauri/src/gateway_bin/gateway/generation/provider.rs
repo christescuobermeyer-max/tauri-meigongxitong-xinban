@@ -43,6 +43,7 @@ pub(crate) async fn generate_image_for_gateway(
             file_name_stem,
             generation_line,
             started_at_ms,
+            archive: None,
         };
         async move { remember_apimart_task(store, task).await }
     };

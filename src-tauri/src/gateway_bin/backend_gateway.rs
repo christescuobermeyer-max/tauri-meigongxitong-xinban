@@ -183,3 +183,7 @@ mod gateway_test_video;
 #[cfg(test)]
 #[path = "gateway/tests/security.rs"]
 mod gateway_test_security;
+
+#[cfg(test)]
+#[path = "gateway/tests/recovery.rs"]
+mod gateway_test_recovery;

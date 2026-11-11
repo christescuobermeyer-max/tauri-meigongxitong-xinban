@@ -36,7 +36,8 @@ pub(crate) async fn recover_pending_apimart_tasks(state: &AppState) -> Result<()
     for task in tasks {
         let task_id = task.task_id.clone();
         let provider = resolve_image_provider(ImageApiLine::Line5);
-        let api_key = env_config::read_required_env(provider.api_key_env_keys)?;
+        let api_key = if task.archive.is_some() { String::new() }
+            else { env_config::read_required_env(provider.api_key_env_keys)? };
         match recover_apimart_task(state, &client, &api_key, task).await {
             Ok(()) => {
                 if let Err(error) = state.apimart_tasks.remove(&task_id).await {
@@ -66,17 +67,21 @@ pub(crate) async fn recover_apimart_task(
     api_key: &str,
     task: PendingApimartTask,
 ) -> Result<(), String> {
-    let image = apimart_task::poll_apimart_task(client, api_key, &task.task_id).await?;
-    let download_msg = "恢复下载线路5 APIMart远端图片失败";
-    let image = reference_image::download_image_if_url(client, image, download_msg).await?;
-    let archive_req = ArchiveGeneratedImageRequest {
-        asset_kind: task.asset_kind.clone(),
-        file_name_stem: task.file_name_stem.clone(),
-        shop_name: Some(task.shop_name.clone()),
-        product_name: task.product_name.clone(),
-        platform: Some(task.platform.clone()),
+    let archive = if let Some(archive) = task.archive.as_ref() {
+        ArchiveGeneratedImageResult { url: archive.url.clone(), key: archive.key.clone() }
+    } else {
+        let image = apimart_task::poll_apimart_task(client, api_key, &task.task_id).await?;
+        let download_msg = "恢复下载线路5 APIMart远端图片失败";
+        let image = reference_image::download_image_if_url(client, image, download_msg).await?;
+        let archive_req = ArchiveGeneratedImageRequest {
+            asset_kind: task.asset_kind.clone(),
+            file_name_stem: task.file_name_stem.clone(),
+            shop_name: Some(task.shop_name.clone()),
+            product_name: task.product_name.clone(),
+            platform: Some(task.platform.clone()),
+        };
+        archive_generated_image_for_task(state, archive_req, &image, Some(&task.task_id)).await?
     };
-    let archive = archive_generated_image(state, archive_req, &image).await?;
     let elapsed_ms = chrono::Utc::now()
         .timestamp_millis()
         .saturating_sub(task.started_at_ms)

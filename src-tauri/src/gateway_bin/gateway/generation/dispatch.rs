@@ -114,7 +114,7 @@ pub(crate) async fn generate_image(
                 drop(permit);
                 let archive_result = if let Some(archive_req) = req.archive.as_ref() {
                     Some(
-                        archive_generated_image(&state, archive_req.clone(), &generated.image)
+                        archive_generated_image_for_task(&state, archive_req.clone(), &generated.image, generated.apimart_task_id.as_deref())
                             .await,
                     )
                 } else {
