@@ -92,6 +92,7 @@ cmd.exe /c "call ""D:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTool
 | `docs/云服务器信息.md` | 查询服务器 IP、域名、SSH 用户、服务器目录、服务名 |
 | `docs/自动更新.md` | 可稍后更新、安装包摘要验证、构建与发布流程 |
 | `docs/operations/macOS构建Windows安装包.md` | 在 Mac 交叉编译 Windows x64 NSIS 安装包、配置工具链和执行验收 |
+| `docs/plans/2026-11-11-菜品图转GIF动图开发方案.md` | 菜品静态图转 GIF 的线路限制、动图工作区、归档和实施验收方案 |
 | `docs/operations/云端部署与分发手册.md` | 了解生产云部署、成本、员工客户端分发 |
 | `docs/operations/云端Prompt模板维护.md` | 修改云服务器 prompt 模板、不重打客户端包时 |
 | `docs/operations/抖音解析维护.md` | 更新抖音 Cookie、处理解析 403、部署 yt-dlp 兼容插件时 |
