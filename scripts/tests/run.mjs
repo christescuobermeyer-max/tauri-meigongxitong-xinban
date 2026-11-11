@@ -9,6 +9,7 @@ const filters = process.argv.slice(2);
 async function discover(dir) {
   const entries = await readdir(dir, { withFileTypes: true });
   const groups = await Promise.all(entries.map(async (entry) => {
+    if (entry.name.startsWith(".")) return [];
     const file = path.join(dir, entry.name);
     if (entry.isDirectory()) return discover(file);
     return /\.test\.(ts|mjs)$/.test(entry.name) ? [file] : [];
