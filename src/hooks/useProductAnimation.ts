@@ -86,13 +86,17 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
     finally { working.current = false;if (mounted.current && activeUser.current === userId) setCloudSubmitting(false); }
   }
 
-  async function openModelJob(id: string) {
-    if (working.current) return;
+  // Returns the local copy so callers can save it right away; reuses an existing local copy.
+  async function openModelJob(id: string): Promise<AnimationResult | null> {
+    const existing = results.find((entry) => entry.id === id);
+    if (existing) { setCurrent(existing);return existing; }
+    if (working.current) return null;
     working.current = true;setCloudSubmitting(true);setError("");
     try {
       const result = await importModelJob(userId, id);
       if (mounted.current && activeUser.current === userId) { setCurrent(result);setResults((previous) => [result, ...previous.filter((entry) => entry.id !== result.id)].slice(0, 50)); }
-    } catch (reason) { if (mounted.current && activeUser.current === userId) setError(reason instanceof Error ? reason.message : String(reason)); }
+      return result;
+    } catch (reason) { if (mounted.current && activeUser.current === userId) setError(reason instanceof Error ? reason.message : String(reason));return null; }
     finally { working.current = false;if (mounted.current && activeUser.current === userId) setCloudSubmitting(false); }
   }
 

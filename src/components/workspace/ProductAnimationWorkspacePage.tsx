@@ -65,6 +65,11 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
     finally { setSaving(false); }
   }
 
+  async function downloadModelJob(id: string) {
+    const result = await workspace.openModelJob(id);
+    if (result) await download(result);
+  }
+
   function onDrop(event: DragEvent<HTMLLabelElement>) {
     event.preventDefault();setDragging(false);
     const file = event.dataTransfer.files?.[0];
@@ -174,13 +179,14 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
         <button className="btn btn--secondary btn--sm" type="button" aria-label="刷新模型任务" onClick={() => void workspace.refreshCloudJobs()}><IconRefresh width={14} height={14} aria-hidden="true" />刷新</button>
       </div>
       {workspace.cloudJobs.length ? <div className="pa-grid">{workspace.cloudJobs.map((job) => <article key={job.id} className="pa-card">
-        <div className="pa-card__media">{job.result ? <img loading="lazy" src={job.result.posterUrl} alt="模型动图封面" /> : <span className="pa-card__placeholder" aria-hidden="true">{job.status === "failed" ? <IconAlert width={22} height={22} /> : <span className="pa-spinner pa-spinner--lg" />}</span>}</div>
+        {job.result ? <button type="button" className="pa-card__media pa-card__open" disabled={busy} onClick={() => void workspace.openModelJob(job.id)} aria-label="在预览区查看"><img loading="lazy" decoding="async" src={job.result.url} alt="模型动图" /></button>
+          : <div className="pa-card__media"><span className="pa-card__placeholder" aria-hidden="true">{job.status === "failed" ? <IconAlert width={22} height={22} /> : <span className="pa-spinner pa-spinner--lg" />}</span></div>}
         <div className="pa-card__body">
           <span className={`pa-badge pa-badge--${jobTone(job)}`}>{modelJobLabel(job)}</span>
           <small>{new Date(job.createdAt).toLocaleString()} · {job.spec.width}×{job.spec.height}</small>
           {job.result && <small>模型原件 {job.result.sourceMedia.width}×{job.result.sourceMedia.height}，循环 {job.result.sourceMedia.cycles} 次 → {(job.result.media.durationMs / 1000).toFixed(2)} 秒{job.result.sourceMedia.upscaled && "，已放大铺满画布"}</small>}
           {job.error && <p className="pa-card__error">{job.error}</p>}
-          {job.status === "succeeded" && <button className="btn btn--secondary btn--sm" type="button" disabled={busy} onClick={() => void workspace.openModelJob(job.id)}>查看并保存到本机</button>}
+          {job.status === "succeeded" && job.result && <button className="btn btn--primary btn--sm" type="button" disabled={busy || saving} onClick={() => void downloadModelJob(job.id)}><IconDownload width={14} height={14} aria-hidden="true" />下载 {job.result.media.format.toUpperCase()}</button>}
         </div>
       </article>)}</div> : <p className="pa-section__empty">暂无模型动图任务</p>}
     </section>
@@ -188,11 +194,11 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
     <section className="pa-section">
       <div className="pa-section__head"><div><h3><IconHistory width={16} height={16} aria-hidden="true" />本机动图记录</h3><p>当前账号 · 保存在本机 · 最近 50 条，可再次下载</p></div></div>
       {workspace.results.length ? <div className="pa-grid">{workspace.results.map((result) => <article key={result.id} className={`pa-card${current?.id === result.id ? " is-current" : ""}`}>
-        <button type="button" className="pa-card__media pa-card__open" disabled={busy} onClick={() => workspace.setCurrent(result)} aria-label="在预览区查看"><img loading="lazy" src={animationFileUrl(result.posterPath)} alt="动图封面" /></button>
+        <button type="button" className="pa-card__media pa-card__open" disabled={busy} onClick={() => workspace.setCurrent(result)} aria-label="在预览区查看"><img loading="lazy" decoding="async" src={animationFileUrl(result.path)} alt="本机动图" /></button>
         <div className="pa-card__body">
           <strong>{ANIMATION_STYLES.find((entry) => entry.id === result.style)?.title || "动图"}</strong>
           <small>{result.media.width}×{result.media.height} · {result.media.format.toUpperCase()} · {(result.media.bytes / 1_000_000).toFixed(2)}MB</small>
-          <button className="btn btn--secondary btn--sm" type="button" disabled={saving} onClick={() => void download(result)}><IconDownload width={14} height={14} aria-hidden="true" />下载 {result.media.format.toUpperCase()}</button>
+          <button className="btn btn--primary btn--sm" type="button" disabled={saving} onClick={() => void download(result)}><IconDownload width={14} height={14} aria-hidden="true" />下载 {result.media.format.toUpperCase()}</button>
         </div>
       </article>)}</div> : <p className="pa-section__empty">生成的动图会出现在这里</p>}
     </section>
