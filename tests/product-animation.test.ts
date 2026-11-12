@@ -3,6 +3,10 @@ import { ANIMATION_STYLES, MAX_ANIMATION_BYTES, chooseAnimationSize, containImag
 
 equal(ANIMATION_STYLES.length, 6);
 equal(ANIMATION_STYLES[0].id, "steam");
+equal(ANIMATION_STYLES[0].title, "热气腾腾");
+equal(ANIMATION_STYLES[0].word, "");
+equal(ANIMATION_STYLES[0].subtitle, "");
+equal(ANIMATION_STYLES[0].description, "自然热气与菜品细微动态，无贴纸");
 equal(MAX_ANIMATION_BYTES, 5_000_000);
 deepEqual(chooseAnimationSize(1024, 768, "4:3"), { width: 1024, height: 768, adjusted: false });
 deepEqual(chooseAnimationSize(1024, 771, "4:3"), { width: 1024, height: 768, adjusted: true });

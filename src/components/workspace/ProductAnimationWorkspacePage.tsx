@@ -50,6 +50,7 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
             <label>循环时长<select value={duration} onChange={(event) => { workspace.setDuration(Number(event.target.value));workspace.setCurrent(null); }}>{[2, 3, 4, 5].map((seconds) => <option key={seconds} value={seconds * 1000}>{seconds}秒</option>)}</select></label>
           </div>
         </fieldset>
+        {style === "steam" && <p className="product-animation__hint" role="status">第一种风格以已确认的牛肉板面自然动效为参考：菜品冒热气、汤面细微变化，不加贴纸。当前制作仍为本地热气叠加，尚未达到参考图的自然动效。</p>}
         {source && size && <p className="product-animation__hint">原图 {source.image.naturalWidth}×{source.image.naturalHeight} → 输出 {size.width}×{size.height}。{size.adjusted ? "按所选比例完整适配，不拉伸、不裁切，空白处补深色背景。" : "保持原图尺寸。"}</p>}
         <div className="product-animation__actions"><button type="button" className="btn btn--primary" disabled={!source || busy || workspace.loadingSource} onClick={() => void workspace.generate()}>{busy ? "正在制作…" : "生成合规动图"}</button>{busy && <button type="button" className="btn" onClick={workspace.cancel}>取消</button>}</div>
         {busy && <div role="status"><progress max={100} value={workspace.progress} /><p>{workspace.progress < 80 ? `正在绘制动画 ${workspace.progress}%` : "正在压缩并检查比例、时长和体积…"}</p></div>}

@@ -2,7 +2,7 @@ export type AnimationRatio = "4:3" | "16:9";
 export type AnimationFormat = "gif" | "webp";
 export const MAX_ANIMATION_BYTES = 5_000_000;
 export const ANIMATION_STYLES = [
-  { id: "steam", title: "纯热气", word: "", subtitle: "", description: "只有菜品冒热气，保留原图", color: "#fff0c3", ink: "#a62817" },
+  { id: "steam", title: "热气腾腾", word: "", subtitle: "", description: "自然热气与菜品细微动态，无贴纸", color: "#fff0c3", ink: "#a62817" },
   { id: "aroma", title: "真香", word: "真香", subtitle: "香气扑面而来", description: "真香贴纸跳动，热气升腾", color: "#fff0c3", ink: "#a62817" },
   { id: "sparkle", title: "美味", word: "美味", subtitle: "这一口，绝了", description: "金色星芒闪烁，文字摇摆", color: "#ffe454", ink: "#8d2b0a" },
   { id: "flame", title: "好吃", word: "好吃", subtitle: "越吃越过瘾", description: "火焰跃动，文字弹跳", color: "#f34226", ink: "#fff6d4" },
