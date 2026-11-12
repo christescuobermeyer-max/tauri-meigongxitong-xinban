@@ -53,7 +53,8 @@ const styleTitle = (id: AnimationStyle) => ANIMATION_STYLES.find((entry) => entr
 
 export default function ProductAnimationWorkspacePage({ workspace }: { workspace: ProductAnimationWorkspace }) {
   const canvas = useRef<HTMLCanvasElement>(null);
-  const [playing, setPlaying] = useState(() => !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  // Always autoplay: the preview is the product itself, so only an explicit pause should stop it.
+  const [playing, setPlaying] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [fontsReady, setFontsReady] = useState(false);

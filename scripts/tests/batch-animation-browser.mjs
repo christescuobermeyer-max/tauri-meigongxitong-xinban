@@ -29,12 +29,17 @@ export const ensureTauriInvoke=()=>async(cmd,args)=>{
  throw Error('Unexpected command '+cmd);};`}));
 await page.route('**/fixture.gif',route=>route.fulfill({contentType:'image/png',body:png}));
 await page.route('**/poster.jpg',route=>route.fulfill({contentType:'image/png',body:png}));
+// Simulate Windows with animations turned off; the preview must still autoplay.
+await page.emulateMedia({reducedMotion:'reduce'});
 await page.goto('http://127.0.0.1:1420/');
 
 // Six files: only five are accepted.
 await page.getByLabel('选择菜品图片').setInputFiles(Array.from({length:6},(_,i)=>({name:`菜品${i+1}.png`,mimeType:'image/png',buffer:png})));
 await page.waitForFunction(()=>window.workspace?.items.length===5,null,{polling:300,timeout:60000});
 await page.getByRole('alert').filter({hasText:'最多同时制作 5 张'}).waitFor();
+const stage=page.getByLabel('动图效果预览');await stage.waitFor();await page.waitForTimeout(300);
+const frameA=await stage.screenshot();await page.waitForTimeout(500);
+assert.ok(!frameA.equals(await stage.screenshot()),'Preview must autoplay without clicking play');
 
 // Shared style for all, then override items 2 and 3 only.
 await page.getByRole('radio',{name:/爆香来袭/}).click();
@@ -66,5 +71,5 @@ assert.equal(await page.getByRole('button',{name:'一键清空'}).count(),0);
 if(process.env.BATCH_SCREENSHOT)await page.screenshot({path:process.env.BATCH_SCREENSHOT,fullPage:true});
 assert.deepEqual(errors,[]);
 assert.equal(await page.getByRole('radio',{name:/热气腾腾/}).count(),0,'AI style removed');
-console.log('批量上传上限、统一/单张风格、移除、逐张生成、全部下载、一键清空全部通过');
+console.log('预览自动播放、批量上传上限、统一/单张风格、移除、逐张生成、全部下载、一键清空全部通过');
 await browser.close();
