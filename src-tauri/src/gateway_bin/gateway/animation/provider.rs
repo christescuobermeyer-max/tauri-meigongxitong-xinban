@@ -42,6 +42,25 @@ pub(super) fn completed_url(body: &serde_json::Value) -> Result<String, String> 
     reference_image::download::validate_url(url)?;
     Ok(url.into())
 }
+/// Turns the provider's failure payload into a short, user-facing reason.
+pub(super) fn failure_message(body: &serde_json::Value) -> String {
+    let code = body.pointer("/error/code").and_then(|v| v.as_str()).unwrap_or("");
+    let message = body.pointer("/error/message").and_then(|v| v.as_str()).unwrap_or("");
+    let lower = format!("{code} {message}").to_lowercase();
+    let reason = if lower.contains("connection") || lower.contains("timeout") || lower.contains("unavailable") {
+        "线路7上游服务连接失败，属于供应商临时故障".to_string()
+    } else if lower.contains("safety") || lower.contains("moderation") || lower.contains("content_policy") {
+        "图片或描述未通过模型内容审核".to_string()
+    } else if lower.contains("quota") || lower.contains("balance") || lower.contains("insufficient") {
+        "线路7额度不足，请联系管理员".to_string()
+    } else if message.is_empty() {
+        "模型生成失败".to_string()
+    } else {
+        let clean: String = message.chars().filter(|c| !c.is_control()).take(80).collect();
+        format!("模型生成失败（{clean}）")
+    };
+    format!("{reason}；可稍后重新生成，再次生成将发起新请求")
+}
 async fn json_response(response: reqwest::Response) -> Result<serde_json::Value, String> {
     if !response.status().is_success() {
         return Err(format!("动图上游返回HTTP {}", response.status().as_u16()));

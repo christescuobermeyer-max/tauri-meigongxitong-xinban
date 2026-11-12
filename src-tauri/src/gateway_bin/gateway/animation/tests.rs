@@ -107,3 +107,14 @@ async fn task_listing_scopes_database_query_to_authenticated_user() {
     gateway_handle.abort();
     database_handle.abort();
 }
+
+#[test]
+fn explains_provider_failures_in_chinese() {
+    let failed = |code: &str, message: &str| {
+        provider::failure_message(&json!({"status":"failed","error":{"code":code,"message":message}}))
+    };
+    assert!(failed("upstream_connection_error", "Upstream connection failed.").starts_with("线路7上游服务连接失败"));
+    assert!(failed("content_policy_violation", "blocked").starts_with("图片或描述未通过"));
+    assert!(failed("", "").starts_with("模型生成失败；"));
+    assert!(failed("x", "weird").contains("（weird）"));
+}

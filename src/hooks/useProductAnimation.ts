@@ -35,8 +35,9 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
   const cloudRefreshSequence = useRef(0);
   const sourceRef = useRef<HTMLImageElement | null>(null);
   const sourceSize = source ? chooseAnimationSize(source.image.naturalWidth, source.image.naturalHeight, ratio) : null;
-  const size = sourceSize && style === "steam" && (sourceSize.width % 16 || sourceSize.height % 16)
-    ? { width: 1024, height: ratio === "4:3" ? 768 : 576, adjusted: true } : sourceSize;
+  // Model output is ~440px wide, so a smaller compliant canvas keeps GIFs under 5MB without losing detail.
+  const size = sourceSize && style === "steam"
+    ? { width: 768, height: ratio === "4:3" ? 576 : 432, adjusted: true } : sourceSize;
 
   const refreshCloudJobs = useCallback(async () => {
     const sequence = ++cloudRefreshSequence.current;

@@ -34,14 +34,14 @@ await page.route('**/poster.jpg',async route=>route.fulfill({contentType:'image/
 await page.goto('http://127.0.0.1:1420/');
 await page.getByLabel('选择菜品图片').setInputFiles(path.resolve(sourcePath));
 await page.waitForFunction(()=>window.workspace?.source&&window.workspace.modelEnabled);
-const canvas=page.locator('canvas');const before=await canvas.screenshot();await page.waitForTimeout(150);assert.deepEqual(await canvas.screenshot(),before,'Model source preview must be static');
+const canvas=page.getByLabel('动图效果预览');const before=await canvas.screenshot();await page.waitForTimeout(150);assert.deepEqual(await canvas.screenshot(),before,'Model source preview must be static');
 await page.getByRole('button',{name:'生成模型动图',exact:true}).click();
 await page.getByRole('button',{name:'重试同一请求',exact:true}).waitFor();
-await page.getByLabel('循环时长').selectOption('4000');await page.getByRole('button',{name:'重试同一请求',exact:true}).click();
+await page.getByRole('radiogroup',{name:'循环时长'}).getByRole('radio',{name:'4秒'}).click();await page.getByRole('button',{name:'重试同一请求',exact:true}).click();
 await page.getByRole('alert').filter({hasText:'同一张原图'}).waitFor();assert.equal(requests.length,1);
-await page.getByLabel('循环时长').selectOption('3000');await page.getByRole('button',{name:'重试同一请求',exact:true}).click();
+await page.getByRole('radiogroup',{name:'循环时长'}).getByRole('radio',{name:'3秒'}).click();await page.getByRole('button',{name:'重试同一请求',exact:true}).click();
 await page.getByText('等待模型生成',{exact:true}).waitFor();assert.equal(requests.length,2);assert.equal(requests[0].id,requests[1].id);assert.equal(requests[0].sourcePng,requests[1].sourcePng);
-const src=Buffer.from(requests[1].sourcePng,'base64');assert.equal(src.readUInt32BE(16),1024);assert.equal(src.readUInt32BE(20),768);
+const src=Buffer.from(requests[1].sourcePng,'base64');assert.equal(src.readUInt32BE(16),768);assert.equal(src.readUInt32BE(20),576);
 await page.reload();await page.getByText('等待模型生成',{exact:true}).waitFor();assert.equal(requests.length,2,'Reload must not submit another generation');
 jobs[0]={...jobs[0],status:'succeeded',result:{url:'http://127.0.0.1:1420/fixture.gif',posterUrl:'http://127.0.0.1:1420/poster.jpg',sha256:createHash('sha256').update(gif).digest('hex'),media:{width:1024,height:768,durationMs:3240,frames:18,bytes:gif.length,format:'gif'},sourceMedia:{width:439,height:389,durationMs:1620,frames:9,cycles:2,upscaled:true}}};
 await page.getByRole('button',{name:'刷新模型任务'}).click();await page.getByRole('button',{name:'查看并保存到本机'}).click();

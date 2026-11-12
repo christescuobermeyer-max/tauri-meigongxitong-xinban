@@ -65,6 +65,16 @@ fn repair_webp_rounding(bytes: &mut [u8], target: u32) -> Result<(), String> {
     Ok(())
 }
 
+/// Scale to cover the canvas, then crop; keep 1/4 of the overflow above so top signage survives.
+fn cover_crop(width: u32, height: u32, spec: &AnimationSpec) -> (u32, u32, u32, u32) {
+    let scale = (spec.width as f64 / width as f64).max(spec.height as f64 / height as f64);
+    let scaled_width = ((width as f64 * scale).ceil() as u32).max(spec.width);
+    let scaled_height = ((height as f64 * scale).ceil() as u32).max(spec.height);
+    let x = (scaled_width - spec.width) / 2;
+    let y = (scaled_height - spec.height) / 4;
+    (scaled_width, scaled_height, x, y)
+}
+
 fn inspect_source(original: &[u8], spec: &AnimationSpec) -> Result<ModelSourceMedia, String> {
     spec.validate()?;
     if original.is_empty() || original.len() > 32 * 1024 * 1024 {
@@ -111,7 +121,7 @@ fn inspect_source(original: &[u8], spec: &AnimationSpec) -> Result<ModelSourceMe
         .filter(|cycles| cycles * duration >= 2000)
         .min_by_key(|cycles| (cycles * duration).abs_diff(spec.duration_ms))
         .ok_or("完整重复循环后仍无法满足2–5秒和帧数限制")?;
-    let scale = (spec.width as f64 / width as f64).min(spec.height as f64 / height as f64);
+    let scale = (spec.width as f64 / width as f64).max(spec.height as f64 / height as f64);
     Ok(ModelSourceMedia {
         width,
         height,
@@ -145,20 +155,16 @@ pub fn export_model_gif(
         .next()
         .ok_or("模型GIF无帧")?
         .map_err(|_| "模型GIF首帧损坏")?;
-    let fitted = image::DynamicImage::ImageRgba8(first.into_buffer())
-        .resize(
-            spec.width,
-            spec.height,
+    let (scaled_width, scaled_height, crop_x, crop_y) =
+        cover_crop(source_media.width, source_media.height, spec);
+    let canvas = image::DynamicImage::ImageRgba8(first.into_buffer())
+        .resize_exact(
+            scaled_width,
+            scaled_height,
             image::imageops::FilterType::Lanczos3,
         )
+        .crop_imm(crop_x, crop_y, spec.width, spec.height)
         .to_rgb8();
-    let mut canvas = image::RgbImage::from_pixel(spec.width, spec.height, image::Rgb([33, 23, 19]));
-    image::imageops::overlay(
-        &mut canvas,
-        &fitted,
-        i64::from((spec.width - fitted.width()) / 2),
-        i64::from((spec.height - fitted.height()) / 2),
-    );
     let mut poster = Cursor::new(Vec::new());
     canvas
         .write_to(&mut poster, image::ImageFormat::Jpeg)
@@ -189,8 +195,10 @@ pub fn export_model_gif(
         .split_whitespace()
         .nth(2)
         .is_some_and(|version| version.starts_with("4.") || version.starts_with("3."));
-    let fit=format!("scale={}:{}:force_original_aspect_ratio=decrease:flags=lanczos,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=0x211713,setsar=1",spec.width,spec.height,spec.width,spec.height);
-    for quality in 0..3 {
+    let (scaled_width, scaled_height, crop_x, crop_y) =
+        cover_crop(source_media.width, source_media.height, spec);
+    let fit=format!("scale={scaled_width}:{scaled_height}:flags=lanczos,crop={}:{}:{crop_x}:{crop_y},setsar=1",spec.width,spec.height);
+    for quality in 0..4 {
         let mut command = Command::new(ffmpeg);
         command.current_dir(directory).args([
             "-hide_banner",
@@ -205,8 +213,15 @@ pub fn export_model_gif(
             "source.gif",
         ]);
         if spec.format == "gif" {
-            let colors = [256, 128, 64][quality];
-            command.args(["-filter_complex",&format!("[0:v]{fit},split[a][b];[a]palettegen=max_colors={colors}[p];[b][p]paletteuse=dither=bayer:bayer_scale=3"),"-loop","0"]);
+            // Later tiers denoise over time so static areas repeat exactly and diff-encode cheaply.
+            let filter = match quality {
+                0 => format!("[0:v]{fit},split[a][b];[a]palettegen=max_colors=256[p];[b][p]paletteuse=dither=bayer:bayer_scale=3"),
+                _ => {
+                    let colors = [256, 256, 128, 96][quality];
+                    format!("[0:v]{fit},hqdn3d=0:0:6:6,split[a][b];[a]palettegen=max_colors={colors}:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle")
+                }
+            };
+            command.args(["-filter_complex",&filter,"-loop","0"]);
         } else {
             command.args([
                 "-vf",
@@ -214,7 +229,7 @@ pub fn export_model_gif(
                 "-c:v",
                 "libwebp_anim",
                 "-quality",
-                &[82, 65, 45][quality].to_string(),
+                &[82, 65, 45, 35][quality].to_string(),
                 "-loop",
                 "0",
             ]);
@@ -276,7 +291,7 @@ pub fn export_model_gif(
             });
         }
     }
-    Err("模型动图压缩后仍不符合5M或动画要求，请换用WebP或重新生成".into())
+    Err("模型动图压缩后仍超过5M，请选择更短的循环时长或改用WebP".into())
 }
 
 #[cfg(test)]
@@ -322,6 +337,18 @@ mod tests {
         assert!(inspect_source(&fixture(32, 32, 2000), &spec()).is_err());
     }
     #[test]
+    fn covers_canvas_and_keeps_top_of_narrow_model_output() {
+        let spec = AnimationSpec { width: 1024, height: 768, ..spec() };
+        let (w, h, x, y) = cover_crop(439, 390, &spec);
+        assert_eq!(w, 1024);
+        assert!(h >= 768 && x == 0);
+        assert_eq!(y, (h - 768) / 4);
+        let (w, h, x, y) = cover_crop(1024, 512, &spec);
+        assert_eq!((h, y), (768, 0));
+        assert_eq!(x, (w - 1024) / 2);
+        assert_eq!(cover_crop(1024, 768, &spec), (1024, 768, 0, 0));
+    }
+    #[test]
     fn repeats_whole_cycles_without_changing_speed() {
         let media = inspect_source(&fixture(439, 389, 540), &spec()).unwrap();
         assert_eq!(media.duration_ms, 1620);
@@ -358,8 +385,6 @@ mod tests {
         let mut results = Vec::new();
         for format in ["gif", "webp"] {
             let spec = AnimationSpec {
-                width: 1024,
-                height: 768,
                 format: format.into(),
                 ..spec()
             };

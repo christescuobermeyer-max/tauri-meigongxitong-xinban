@@ -121,7 +121,7 @@ async fn poll_until_finished(
                     state,
                     job,
                     worker,
-                    json!({"status":"failed","error":"模型生成失败；再次生成将发起新请求"}),
+                    json!({"status":"failed","error":provider::failure_message(&value)}),
                 )
                 .await?;
                 return Ok(());
