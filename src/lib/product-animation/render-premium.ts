@@ -2,8 +2,8 @@
 // 尺寸按画布宽度等比（U = W/1024），位置相对原图区域，适配任意菜品图；底图尽量静止以控制 GIF 体积。
 import { ANIMATION_FONTS as F } from "./fonts";
 
-export type PremiumStyle = "smoke" | "gilded" | "wok" | "crush" | "signature";
-export const PREMIUM_STYLES = new Set<string>(["smoke", "gilded", "wok", "crush", "signature"]);
+export type PremiumStyle = "gilded" | "wok" | "crush" | "signature";
+export const PREMIUM_STYLES = new Set<string>(["gilded", "wok", "crush", "signature"]);
 
 type Ctx = CanvasRenderingContext2D;
 type Layer = { canvas: HTMLCanvasElement; w: number; h: number };
@@ -12,7 +12,6 @@ type Line = { text: string; font: string; lineHeight: number; dx?: number; draw:
 const TAU = Math.PI * 2;
 const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const smooth = (a: number, b: number, v: number) => { const x = clamp((v - a) / (b - a)); return x * x * (3 - 2 * x); };
-const backOut = (x: number) => { const c = 1.9; return 1 + (c + 1) * (x - 1) ** 3 + c * (x - 1) ** 2; };
 function random(seed: number) {
   return () => { seed |= 0; seed = seed + 0x6d2b79f5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 }
@@ -69,11 +68,10 @@ export function createPremiumRenderer(image: HTMLImageElement, W: number, H: num
 
   const rnd = random(20261112);
   const puff = puffSprite(128);
-  const strong = style === "smoke";
-  const steamLevel = strong ? 1 : 0.4;
+  const steamLevel = 0.4;
   const puffs = Array.from({ length: Math.round(40 * steamLevel) }, () => ({
-    x: ix + iw * (strong ? 0.24 + rnd() * 0.52 : 0.32 + rnd() * 0.36), y: iy + ih * (0.5 + rnd() * 0.14), seed: rnd(),
-    size: strong ? 80 + rnd() * 80 : 60 + rnd() * 60, sway: 14 + rnd() * 22, rise: ih * (0.28 + rnd() * 0.16), wind: (rnd() - 0.5) * 50, phase: rnd() * TAU,
+    x: ix + iw * (0.32 + rnd() * 0.36), y: iy + ih * (0.5 + rnd() * 0.14), seed: rnd(),
+    size: 60 + rnd() * 60, sway: 14 + rnd() * 22, rise: ih * (0.28 + rnd() * 0.16), wind: (rnd() - 0.5) * 50, phase: rnd() * TAU,
   }));
   const ember = glowDot(64, "rgba(255,255,230,1)", "rgba(255,170,40,0.75)");
   const glint = glowDot(64, "rgba(255,255,240,1)", "rgba(255,210,110,0.5)");
@@ -85,16 +83,7 @@ export function createPremiumRenderer(image: HTMLImageElement, W: number, H: num
 
   let layer: Layer | null = null;
   let badge: { disc: HTMLCanvasElement; ring: HTMLCanvasElement; size: number; R: number } | null = null;
-  if (style === "smoke") {
-    layer = textLayer([
-      { text: "真香", font: `${172 * U}px "${F.brush}"`, lineHeight: 172 * U, draw: (g, x, y) => {
-        g.shadowColor = "rgba(0,0,0,0.55)"; g.shadowBlur = 14 * U; g.shadowOffsetY = 4 * U;
-        const grad = g.createLinearGradient(0, y, 0, y + 172 * U); grad.addColorStop(0, "#fffaf0"); grad.addColorStop(1, "#ffe2b0");
-        g.fillStyle = grad; g.fillText("真香", x, y); } },
-      { text: "一口入魂 · 香气扑鼻", dx: 10 * U, font: `${30 * U}px "${F.brush}"`, lineHeight: 40 * U, draw: (g, x, y) => {
-        g.shadowColor = "rgba(0,0,0,0.6)"; g.shadowBlur = 8 * U; g.fillStyle = "#ffe9c7"; g.fillText("一口入魂 · 香气扑鼻", x, y + 6 * U); } },
-    ], 24 * U);
-  } else if (style === "gilded") {
+  if (style === "gilded") {
     layer = textLayer([
       { text: "美味", font: `${150 * U}px "${F.display}"`, lineHeight: 158 * U, draw: (g, x, y) => {
         g.shadowColor = "rgba(40,15,0,0.65)"; g.shadowBlur = 16 * U; g.shadowOffsetY = 5 * U;
@@ -209,7 +198,6 @@ export function createPremiumRenderer(image: HTMLImageElement, W: number, H: num
       const y0 = iy + ih - layer.h - margin + 24 * U;
       scrim(g, x0 + layer.w / 2, y0 + layer.h * 0.55, layer.w * 0.62, layer.h * 0.62, 0.5);
       let scale = 1, dy = 0;
-      if (style === "smoke") dy = Math.sin(phase) * 6 * U;
       if (style === "gilded") dy = Math.sin(phase) * 4 * U;
       if (style === "wok") { const beat = Math.max(0, Math.sin(phase * 2)) ** 6; scale = 1 + 0.07 * beat; dy = -beat * 6 * U; }
       if (style === "crush") { const k = t % 0.5 / 0.5; scale = 1 + 0.09 * Math.max(Math.exp(-(((k - 0.08) / 0.05) ** 2)), 0.7 * Math.exp(-(((k - 0.26) / 0.05) ** 2))); }
@@ -223,14 +211,6 @@ export function createPremiumRenderer(image: HTMLImageElement, W: number, H: num
           q.fillStyle = grad; q.fillRect(-40 * U, -layer.h, 80 * U, layer.h * 3);
           g.save(); g.globalCompositeOperation = "screen"; g.drawImage(shimmer, x0, y0 + dy); g.restore();
         }
-      }
-      if (style === "smoke") {
-        const k = clamp((t - 0.04) / 0.14); const stamp = k < 1 ? 1.35 - 0.35 * backOut(k) : 1;
-        const sz = 62 * U;
-        g.save(); g.translate(x0 + layer.w - 38 * U, y0 + 70 * U + dy); g.rotate(-0.08); g.scale(stamp, stamp); g.globalAlpha = 0.95;
-        g.fillStyle = "#c8261c"; g.beginPath(); g.roundRect(-sz / 2, -sz / 2, sz, sz, 8 * U); g.fill();
-        g.strokeStyle = "rgba(255,235,220,0.9)"; g.lineWidth = 2 * U; g.beginPath(); g.roundRect(-sz / 2 + 5 * U, -sz / 2 + 5 * U, sz - 10 * U, sz - 10 * U, 5 * U); g.stroke();
-        g.fillStyle = "#fff1e6"; g.font = `${40 * U}px "${F.brush}"`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("香", 0, 2 * U); g.restore();
       }
     }
     if (badge) {

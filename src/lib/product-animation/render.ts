@@ -1,8 +1,10 @@
 import { ANIMATION_STYLES, containImage, type AnimationStyle } from "./policy";
 import { PREMIUM_STYLES, createPremiumRenderer, type PremiumStyle } from "./render-premium";
+import { BOLD_STYLES, createBoldRenderer, type BoldStyle } from "./render-bold";
 
 export function createAnimationRenderer(image: HTMLImageElement, width: number, height: number, style: AnimationStyle) {
   if (PREMIUM_STYLES.has(style)) return createPremiumRenderer(image, width, height, style as PremiumStyle);
+  if (BOLD_STYLES.has(style)) return createBoldRenderer(image, width, height, style as BoldStyle);
   const background = document.createElement("canvas");
   background.width = width;
   background.height = height;
@@ -62,8 +64,6 @@ export function createAnimationRenderer(image: HTMLImageElement, width: number, 
     if (canvas.width !== width || canvas.height !== height) { canvas.width = width;canvas.height = height; }
     const context = canvas.getContext("2d")!;
     context.setTransform(1, 0, 0, 1, 0, 0);context.clearRect(0, 0, width, height);context.drawImage(background, 0, 0);
-    // Model style previews the actual source until its cloud result is available.
-    if (style === "steam") return;
     context.save();context.scale(width / 1024, height / 771);
     const phase = progress * Math.PI * 2;
     steam(context, progress);
@@ -71,30 +71,14 @@ export function createAnimationRenderer(image: HTMLImageElement, width: number, 
     let vertical = 660;
     let rotation = 0;
     let zoom = 1;
-    if (style === "aroma") {
-      const bounce = .5 - .5 * Math.cos(phase);
-      horizontal = 260 + 20 * Math.sin(phase);vertical = 690 - 100 * bounce;
-      rotation = 10 * Math.sin(phase);zoom = .92 + .22 * bounce;
-    } else if (style === "sparkle") {
+    if (style === "sparkle") {
       horizontal += 50 * Math.sin(phase);vertical += 20 * Math.cos(phase);
       rotation = 12 * Math.sin(phase);zoom = 1 + .14 * Math.cos(phase * 2);
       [[103, 459], [938, 388], [913, 584], [142, 595], [334, 672], [699, 665]].forEach(([pointX, pointY], index) => {
         const light = .5 + .5 * Math.sin(phase * 2 + index);
         star(context, pointX + 24 * Math.cos(phase + index), pointY + 25 * Math.sin(phase + index), 14 + 32 * light);
       });
-    } else if (style === "flame") {
-      const bounce = .5 - .5 * Math.cos(phase);
-      horizontal = 758 + 25 * Math.sin(phase);vertical = 690 - 120 * bounce;
-      rotation = 9 * Math.sin(phase);zoom = .94 + .22 * bounce;
-      [[100, 640], [929, 603], [536, 700]].forEach(([pointX, pointY], index) => {
-        const stretch = .7 + .7 * (.5 + .5 * Math.sin(phase * 2 + index));
-        context.save();context.translate(pointX, pointY - 18 * Math.sin(phase * 2 + index));
-        context.beginPath();context.moveTo(0, 35);context.bezierCurveTo(-38, 18, -25, -22, -7, -6);
-        context.lineTo(5 * Math.sin(phase), -49 * stretch);context.bezierCurveTo(21, -20, 43, 20, 0, 35);
-        context.fillStyle = "#ff6427";context.fill();context.strokeStyle = "#fff1cf";context.lineWidth = 3;context.stroke();
-        context.beginPath();context.moveTo(0, 28);context.lineTo(-12, 6);context.lineTo(0, -18 * stretch);context.lineTo(13, 10);context.closePath();context.fillStyle = "#ffe666";context.fill();context.restore();
-      });
-    } else if (style === "heart") {
+    } else {
       zoom = .85 + .48 * Math.max(Math.max(0, Math.sin(phase)) ** 8, Math.max(0, Math.sin(phase - .8)) ** 12 * .82);
       horizontal = 270 + 24 * Math.sin(phase);vertical = 647 - 20 * Math.sin(phase);rotation = 9 * Math.sin(phase);
       for (let index = 0; index < 8; index++) {
@@ -102,13 +86,6 @@ export function createAnimationRenderer(image: HTMLImageElement, width: number, 
         context.save();context.globalAlpha = Math.sin(Math.PI * step) ** .5;
         heart(context, (index % 2 ? 924 : 94) + 31 * Math.sin(step * Math.PI * 2 + index), 740 - step * 365, 22 + 19 * Math.sin(Math.PI * step));context.restore();
       }
-    } else {
-      horizontal = 508 + 28 * Math.sin(phase);vertical = 661 + 12 * Math.cos(phase);rotation = 12 * Math.sin(phase);zoom = 1 + .1 * Math.cos(phase);
-      for (let index = 0; index < 3; index++) star(context, 405 + index * 106, 540 - (index === 1 ? 17 : 0) - 12 * Math.sin(phase * 2 + index), 22 + 10 * Math.sin(phase + index));
-      const tip = 555 + 32 * Math.sin(phase);
-      context.beginPath();context.moveTo(829, 699);context.lineTo(895, 661);context.lineTo(899, tip);
-      context.strokeStyle = "#fff7df";context.lineWidth = 24;context.stroke();context.strokeStyle = "#ffcf48";context.lineWidth = 15;context.stroke();
-      context.beginPath();context.moveTo(899, tip - 16);context.lineTo(871, tip + 25);context.lineTo(928, tip + 25);context.closePath();context.fillStyle = "#ffcf48";context.fill();context.strokeStyle = "#fff7df";context.lineWidth = 4;context.stroke();
     }
     context.translate(horizontal, vertical);context.rotate(rotation * Math.PI / 180);context.scale(zoom, zoom);
     context.fillStyle = "#561c16";context.beginPath();context.roundRect(-140, -57, 280, 120, 35);context.fill();

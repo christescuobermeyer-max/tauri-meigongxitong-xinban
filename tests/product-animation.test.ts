@@ -1,13 +1,9 @@
 import { deepEqual, equal, throws } from "node:assert/strict";
 import { ANIMATION_STYLES, MAX_ANIMATION_BYTES, chooseAnimationSize, containImage, validateAnimation } from "../src/lib/product-animation/policy";
 
-equal(ANIMATION_STYLES.length, 11);
-deepEqual(ANIMATION_STYLES.map((entry) => entry.group), ["ai", "premium", "premium", "premium", "premium", "premium", "classic", "classic", "classic", "classic", "classic"]);
-equal(ANIMATION_STYLES[0].id, "steam");
-equal(ANIMATION_STYLES[0].title, "热气腾腾");
-equal(ANIMATION_STYLES[0].word, "");
-equal(ANIMATION_STYLES[0].subtitle, "");
-equal(ANIMATION_STYLES[0].description, "自然热气与菜品细微动态，无贴纸");
+deepEqual(ANIMATION_STYLES.map((entry) => entry.id), ["gilded", "wok", "crush", "signature", "sparkle", "heart", "burst", "swing", "blaze", "beat", "stamp", "flip"]);
+deepEqual(ANIMATION_STYLES.map((entry) => entry.group), ["premium", "premium", "premium", "premium", "classic", "classic", "bold", "bold", "bold", "bold", "bold", "bold"]);
+equal(ANIMATION_STYLES.every((entry) => entry.word.length > 0), true);
 equal(MAX_ANIMATION_BYTES, 5_000_000);
 deepEqual(chooseAnimationSize(1024, 768, "4:3"), { width: 1024, height: 768, adjusted: false });
 deepEqual(chooseAnimationSize(1024, 771, "4:3"), { width: 1024, height: 768, adjusted: true });

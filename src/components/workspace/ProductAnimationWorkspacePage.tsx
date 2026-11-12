@@ -4,8 +4,7 @@ import { ANIMATION_STYLES, ANIMATION_STYLE_GROUPS, type AnimationFormat, type An
 import { createAnimationRenderer } from "../../lib/product-animation/render";
 import { loadAnimationFonts } from "../../lib/product-animation/fonts";
 import { animationFileUrl, saveAnimation, type AnimationResult } from "../../lib/product-animation/desktop";
-import { modelJobActive, modelJobLabel, type ModelJob } from "../../lib/product-animation/cloud";
-import { IconAlert, IconCheck, IconClose, IconDownload, IconHistory, IconHourglass, IconImage, IconPause, IconPlay, IconRefresh, IconSparkles, IconUpload } from "../Icons";
+import { IconAlert, IconCheck, IconClose, IconDownload, IconHistory, IconHourglass, IconImage, IconPause, IconPlay, IconSparkles, IconUpload } from "../Icons";
 import "../../styles/product-animation.css";
 
 function Segmented<T extends string | number>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; text: string }[]; onChange: (value: T) => void }) {
@@ -38,7 +37,7 @@ function StylePreview({ image, style, playing, fontsReady }: { image: HTMLImageE
     const render = createAnimationRenderer(image, 320, 240, style);
     const start = performance.now();
     let frame = 0;
-    const draw = (now: number) => { render(target, playing ? ((now - start) % 3000) / 3000 : 0.3);if (playing && style !== "steam") frame = requestAnimationFrame(draw); };
+    const draw = (now: number) => { render(target, playing ? ((now - start) % 3000) / 3000 : 0.3);if (playing) frame = requestAnimationFrame(draw); };
     draw(start);
     return () => cancelAnimationFrame(frame);
   }, [image, style, playing, fontsReady]);
@@ -51,7 +50,6 @@ function Step({ index, title, children }: { index: number; title: string; childr
 
 const STATUS_TEXT: Record<AnimationItemStatus, string> = { idle: "待生成", running: "生成中", done: "已完成", failed: "失败" };
 const styleTitle = (id: AnimationStyle) => ANIMATION_STYLES.find((entry) => entry.id === id)?.title ?? id;
-const jobTone = (job: ModelJob) => job.status === "succeeded" ? "success" : job.status === "failed" ? "danger" : job.status === "reconciling" ? "warn" : "info";
 
 export default function ProductAnimationWorkspacePage({ workspace }: { workspace: ProductAnimationWorkspace }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -61,13 +59,11 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
   const [fontsReady, setFontsReady] = useState(false);
   useEffect(() => { let alive = true;void loadAnimationFonts().then(() => { if (alive) setFontsReady(true); });return () => { alive = false; }; }, []);
   const { source, size, style, duration, current, busy } = workspace;
-  const isModel = style === "steam";
   const uploadLocked = busy || workspace.loadingSource;
   const items = workspace.items;
   const multi = items.length > 1;
   const pendingCount = items.filter((item) => item.status !== "done").length;
   const doneCount = items.length - pendingCount;
-  const modelBlocked = !multi && isModel && (!workspace.modelEnabled || workspace.cloudJobs.some(modelJobActive));
   const [savedAll, setSavedAll] = useState("");
 
   useEffect(() => {
@@ -78,7 +74,7 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
     let frame = 0;
     const draw = (now: number) => {
       render(target, playing && !busy ? ((now - start) % duration) / duration : 0);
-      if (style !== "steam" && playing && !busy) frame = requestAnimationFrame(draw);
+      if (playing && !busy) frame = requestAnimationFrame(draw);
     };
     draw(start);
     return () => { cancelAnimationFrame(frame);target.width = 1;target.height = 1; };
@@ -91,11 +87,6 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
     finally { setSaving(false); }
   }
 
-  async function downloadModelJob(id: string) {
-    const result = await workspace.openModelJob(id);
-    if (result) await download(result);
-  }
-
   function onDrop(event: DragEvent<HTMLLabelElement>) {
     event.preventDefault();setDragging(false);
     const files = Array.from(event.dataTransfer.files ?? []).filter((file) => /^image\/(png|jpeg|webp)$/.test(file.type));
@@ -104,7 +95,7 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
 
   const reset = () => workspace.setCurrent(null);
   const position = multi ? `第 ${items.findIndex((item) => item.key === workspace.selectedKey) + 1} 张 · ` : "";
-  const stageLabel = position + (current ? "生成结果" : source ? (isModel ? "原图 · 生成后显示模型动效" : "实时效果预览") : "等待上传");
+  const stageLabel = position + (current ? "生成结果" : source ? "实时效果预览" : "等待上传");
 
   return <div className="pa">
     <header className="pa-hero">
@@ -150,8 +141,7 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
               {groupStart && <div className="pa-styles__group">{ANIMATION_STYLE_GROUPS[entry.group]}</div>}
               <button type="button" role="radio" aria-checked={active} disabled={busy} className={`pa-style${active ? " is-active" : ""}`} onClick={() => { workspace.setStyle(entry.id);reset(); }}>
                 <span className="pa-style__tile" style={{ color: entry.color }}>
-                  {source ? <StylePreview image={source.image} style={entry.id} playing={playing && !busy} fontsReady={fontsReady} /> : <b>{entry.word || entry.title}</b>}
-                  {entry.id === "steam" && <><span className="pa-style__steam" aria-hidden="true"><i /><i /><i /></span><em className="pa-style__tag">AI 生成</em></>}
+                  {source ? <StylePreview image={source.image} style={entry.id} playing={playing && !busy} fontsReady={fontsReady} /> : <b>{entry.word}</b>}
                 </span>
                 <span className="pa-style__body"><strong>{entry.title}</strong><small>{entry.description}</small></span>
                 {active && <span className="pa-style__check" aria-hidden="true"><IconCheck width={12} height={12} /></span>}
@@ -168,25 +158,18 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
           </fieldset>
         </Step>
 
-        {isModel && <div className="pa-callout" role="status">
-          <IconSparkles width={16} height={16} aria-hidden="true" />
-          <div><strong>AI 模型生成自然热气与菜品细微动态</strong>
-            <p>约 3–4 分钟完成，提交后可离开页面，回来会继续查询。画面铺满画布（输出 768 宽），必要时裁掉底部少量画面；动效按原速完整循环，时长可能与所选略有差异。每次生成都会调用模型。</p></div>
-        </div>}
-        {isModel && workspace.modelStatus && <p className="pa-note">{workspace.modelStatus}</p>}
-        {workspace.pendingId && <p className="pa-note pa-note--warn">上次提交尚未确认（任务标识 {workspace.pendingId}）。请先刷新状态；重试将沿用同一请求标识，不会重复扣费。</p>}
-        {source && size?.adjusted && !isModel && <p className="pa-note">原图按所选比例完整适配，不拉伸、不裁切。</p>}
+        {source && size?.adjusted && <p className="pa-note">原图按所选比例完整适配，不拉伸、不裁切。</p>}
 
         <div className="pa-cta">
-          <button type="button" className="btn btn--primary btn--lg btn--block" disabled={!items.length || uploadLocked || modelBlocked} onClick={() => { setSavedAll("");void workspace.generate(); }}>
+          <button type="button" className="btn btn--primary btn--lg btn--block" disabled={!items.length || uploadLocked} onClick={() => { setSavedAll("");void workspace.generate(); }}>
             {busy ? <IconHourglass width={16} height={16} aria-hidden="true" /> : <IconSparkles width={16} height={16} aria-hidden="true" />}
-            {busy ? "正在处理…" : multi ? (pendingCount ? `开始批量生成（${pendingCount} 张）` : "重新生成全部") : isModel ? (workspace.pendingId ? "重试同一请求" : "生成模型动图") : "生成合规动图"}
+            {busy ? "正在处理…" : multi ? (pendingCount ? `开始批量生成（${pendingCount} 张）` : "重新生成全部") : "生成合规动图"}
           </button>
-          {busy && !workspace.cloudSubmitting && <button type="button" className="btn btn--secondary" onClick={workspace.cancel}>{multi ? "停止" : "取消"}</button>}
+          {busy && <button type="button" className="btn btn--secondary" onClick={workspace.cancel}>{multi ? "停止" : "取消"}</button>}
         </div>
         {busy && <div className="pa-progress" role="status">
           {workspace.progress > 0 && <><div className="pa-progress__bar"><span style={{ width: `${workspace.progress}%` }} /></div><progress className="pa-visually-hidden" max={100} value={workspace.progress} /></>}
-          <p>{workspace.progress === 0 && <span className="pa-spinner" aria-hidden="true" />}{workspace.queueStatus || (workspace.cloudSubmitting ? "正在提交或读取模型动图…" : "正在处理…")}</p>
+          <p>{workspace.progress === 0 && <span className="pa-spinner" aria-hidden="true" />}{workspace.queueStatus || "正在处理…"}</p>
         </div>}
         {workspace.error && <p role="alert" className="pa-error"><IconAlert width={16} height={16} aria-hidden="true" /><span>{workspace.error}</span></p>}
       </section>
@@ -195,7 +178,7 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
         <div className="pa-preview__bar">
           <span className={`pa-chip${current ? " pa-chip--success" : ""}`}>{current ? <IconCheck width={12} height={12} aria-hidden="true" /> : <IconImage width={12} height={12} aria-hidden="true" />}{stageLabel}</span>
           {(source || current) && <div className="pa-preview__tools">
-            {(current || !isModel) && <button className="pa-icon-btn" type="button" aria-label={playing ? "暂停预览" : "播放预览"} title={playing ? "暂停预览" : "播放预览"} onClick={() => setPlaying((value) => !value)}>{playing ? <IconPause width={16} height={16} /> : <IconPlay width={16} height={16} />}</button>}
+            {<button className="pa-icon-btn" type="button" aria-label={playing ? "暂停预览" : "播放预览"} title={playing ? "暂停预览" : "播放预览"} onClick={() => setPlaying((value) => !value)}>{playing ? <IconPause width={16} height={16} /> : <IconPlay width={16} height={16} />}</button>}
             {current && <button type="button" className="btn btn--primary" disabled={saving} onClick={() => void download(current)}><IconDownload width={15} height={15} aria-hidden="true" />下载 {current.media.format.toUpperCase()}</button>}
             {multi && doneCount > 0 && <button type="button" className="btn btn--secondary" disabled={saving || busy} onClick={async () => { setSaving(true);const count = await workspace.downloadAll();setSaving(false);setSavedAll(count ? `已保存 ${count} 张到所选文件夹` : ""); }}><IconDownload width={15} height={15} aria-hidden="true" />全部下载（{doneCount}）</button>}
           </div>}
@@ -216,24 +199,6 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
         </div>}
       </section>
     </div>
-
-    <section className="pa-section">
-      <div className="pa-section__head">
-        <div><h3><IconSparkles width={16} height={16} aria-hidden="true" />模型动图 · 云端记录</h3><p>热气腾腾风格的生成任务，换电脑登录也能查看</p></div>
-        <button className="btn btn--secondary btn--sm" type="button" aria-label="刷新模型任务" onClick={() => void workspace.refreshCloudJobs()}><IconRefresh width={14} height={14} aria-hidden="true" />刷新</button>
-      </div>
-      {workspace.cloudJobs.length ? <div className="pa-grid">{workspace.cloudJobs.map((job) => <article key={job.id} className="pa-card">
-        {job.result ? <button type="button" className="pa-card__media pa-card__open" disabled={busy} onClick={() => void workspace.openModelJob(job.id)} aria-label="在预览区查看"><img loading="lazy" decoding="async" src={job.result.url} alt="模型动图" /></button>
-          : <div className="pa-card__media"><span className="pa-card__placeholder" aria-hidden="true">{job.status === "failed" ? <IconAlert width={22} height={22} /> : <span className="pa-spinner pa-spinner--lg" />}</span></div>}
-        <div className="pa-card__body">
-          <span className={`pa-badge pa-badge--${jobTone(job)}`}>{modelJobLabel(job)}</span>
-          <small>{new Date(job.createdAt).toLocaleString()} · {job.spec.width}×{job.spec.height}</small>
-          {job.result && <small>模型原件 {job.result.sourceMedia.width}×{job.result.sourceMedia.height}，循环 {job.result.sourceMedia.cycles} 次 → {(job.result.media.durationMs / 1000).toFixed(2)} 秒{job.result.sourceMedia.upscaled && "，已放大铺满画布"}</small>}
-          {job.error && <p className="pa-card__error">{job.error}</p>}
-          {job.status === "succeeded" && job.result && <button className="btn btn--primary btn--sm" type="button" disabled={busy || saving} onClick={() => void downloadModelJob(job.id)}><IconDownload width={14} height={14} aria-hidden="true" />下载 {job.result.media.format.toUpperCase()}</button>}
-        </div>
-      </article>)}</div> : <p className="pa-section__empty">暂无模型动图任务</p>}
-    </section>
 
     <section className="pa-section">
       <div className="pa-section__head"><div><h3><IconHistory width={16} height={16} aria-hidden="true" />本机动图记录</h3><p>当前账号 · 保存在本机 · 最近 50 条，可再次下载</p></div></div>

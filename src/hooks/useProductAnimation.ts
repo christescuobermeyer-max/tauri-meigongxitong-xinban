@@ -1,23 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ensureTauriInvoke } from "../lib/desktop/invoke";
 import { downloadOssImageAsBase64 } from "../lib/oss-image-download";
-import { chooseAnimationSize, validateAnimation, type AnimationFormat, type AnimationRatio, type AnimationStyle } from "../lib/product-animation/policy";
+import { ANIMATION_STYLES, chooseAnimationSize, validateAnimation, type AnimationFormat, type AnimationRatio, type AnimationStyle } from "../lib/product-animation/policy";
 import { createAnimationRenderer } from "../lib/product-animation/render";
 import { loadAnimationFonts } from "../lib/product-animation/fonts";
 import { ANIMATION_SOURCE_EVENT, type AnimationSourceRequest } from "../lib/product-animation/source";
 import { hasAnimationDesktop, listAnimations, saveAllAnimations, type AnimationResult } from "../lib/product-animation/desktop";
-import { fetchModelJobs, importModelJob, modelJobActive, modelRequest, sourcePng, type ModelJob, type ModelSpec } from "../lib/product-animation/cloud";
 
 export const MAX_ANIMATION_ITEMS = 5;
 export type AnimationItemStatus = "idle" | "running" | "done" | "failed";
 export interface AnimationItem { key: string; image: HTMLImageElement; name: string; style: AnimationStyle | null; status: AnimationItemStatus; result?: AnimationResult; error?: string }
 
-/** Thrown when continuing could double-charge or the user stopped the batch. */
+/** Thrown when the user stops the batch. */
 class StopQueue extends Error {}
 
-function canvasSize(image: HTMLImageElement, style: AnimationStyle, ratio: AnimationRatio) {
-  // Model output is ~440px wide, so a smaller compliant canvas keeps GIFs under 5MB without losing detail.
-  if (style === "steam") return { width: 768, height: ratio === "4:3" ? 576 : 432, adjusted: true };
+function canvasSize(image: HTMLImageElement, ratio: AnimationRatio) {
   return chooseAnimationSize(image.naturalWidth, image.naturalHeight, ratio);
 }
 
@@ -26,7 +23,7 @@ const message = (reason: unknown) => reason instanceof Error ? reason.message : 
 export default function useProductAnimation(userId: string, onOpen: () => void) {
   const [items, setItems] = useState<AnimationItem[]>([]);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [sharedStyle, setSharedStyle] = useState<AnimationStyle>("steam");
+  const [sharedStyle, setSharedStyle] = useState<AnimationStyle>(ANIMATION_STYLES[0].id);
   const [styleScope, setStyleScope] = useState<"all" | "one">("all");
   const [ratio, setRatioState] = useState<AnimationRatio>("4:3");
   const [format, setFormatState] = useState<AnimationFormat>("gif");
@@ -38,12 +35,6 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
   const [error, setError] = useState("");
   const [results, setResults] = useState<AnimationResult[]>([]);
   const [current, setCurrent] = useState<AnimationResult | null>(null);
-  const [cloudJobs, setCloudJobs] = useState<ModelJob[]>([]);
-  const [modelEnabled, setModelEnabled] = useState(false);
-  const [modelStatus, setModelStatus] = useState("正在检查模型动图服务…");
-  const [cloudSubmitting, setCloudSubmitting] = useState(false);
-  const pendingKey = `csgh-animation-pending:${userId}`;
-  const [pendingId, setPendingId] = useState(() => localStorage.getItem(pendingKey));
   const working = useRef(false);
   const cancelled = useRef(false);
   const session = useRef<string | null>(null);
@@ -51,14 +42,13 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
   const mounted = useRef(true);
   const activeUser = useRef(userId);
   activeUser.current = userId;
-  const cloudRefreshSequence = useRef(0);
   const itemCount = useRef(0);
   itemCount.current = items.length;
 
   const selected = items.find((item) => item.key === selectedKey) ?? items[0] ?? null;
   const source = selected ? { image: selected.image, name: selected.name } : null;
   const style = selected?.style ?? sharedStyle;
-  const size = selected ? canvasSize(selected.image, style, ratio) : null;
+  const size = selected ? canvasSize(selected.image, ratio) : null;
   const live = () => mounted.current && activeUser.current === userId;
   const updateItem = (key: string, patch: Partial<AnimationItem>) => setItems((previous) => previous.map((item) => item.key === key ? { ...item, ...patch } : item));
   // Changing an output setting means finished items no longer match; mark them for regeneration.
@@ -78,74 +68,8 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
   const setFormat = (value: AnimationFormat) => { setFormatState(value);resetDone(); };
   const setDuration = (value: number) => { setDurationState(value);resetDone(); };
 
-  const refreshCloudJobs = useCallback(async () => {
-    const sequence = ++cloudRefreshSequence.current;
-    try {
-      const jobs = await fetchModelJobs();
-      if (!mounted.current || activeUser.current !== userId || sequence !== cloudRefreshSequence.current) return;
-      setCloudJobs(jobs);
-      const pending = localStorage.getItem(`csgh-animation-pending:${userId}`);
-      if (pending && jobs.some((job) => job.id === pending)) {
-        localStorage.removeItem(`csgh-animation-pending:${userId}`);setPendingId(null);
-      }
-      setModelStatus("");
-    } catch (reason) { if (mounted.current && activeUser.current === userId && sequence === cloudRefreshSequence.current) setModelStatus(message(reason)); }
-  }, [userId]);
-
-  useEffect(() => {
-    let alive = true;
-    setPendingId(localStorage.getItem(pendingKey));setCloudJobs([]);setModelEnabled(false);
-    void modelRequest<{ enabled: boolean }>("capabilities").then((value) => {
-      if (!alive) return;
-      setModelEnabled(value.enabled);
-      if (!value.enabled) setModelStatus("模型动图暂未开放；已有云端任务仍可查询。");
-    }).catch((reason) => { if (alive) setModelStatus(message(reason)); });
-    void refreshCloudJobs();
-    const timer = window.setInterval(() => void refreshCloudJobs(), 15000);
-    return () => { alive = false;window.clearInterval(timer); };
-  }, [pendingKey, refreshCloudJobs]);
-
-  async function runModel(item: AnimationItem, label: string): Promise<AnimationResult> {
-    if (!modelEnabled) throw new Error("模型动图暂未开放，请先检查云端服务。");
-    const size = canvasSize(item.image, "steam", ratio);
-    const spec: ModelSpec = { width: size.width, height: size.height, durationMs: duration, format, style: "steam" };
-    let id: string;
-    setCloudSubmitting(true);setQueueStatus(`${label}正在提交模型任务…`);
-    try {
-      const jobs = await fetchModelJobs().catch(() => cloudJobs);
-      if (jobs.some(modelJobActive)) throw new Error("已有模型任务正在生成，请等它完成后再继续。");
-      const png = sourcePng(item.image, spec);
-      const fingerprint = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(png + JSON.stringify(spec))))).map((value) => value.toString(16).padStart(2, "0")).join("");
-      if (pendingId && localStorage.getItem(`${pendingKey}:hash`) !== fingerprint) throw new Error("上次请求尚未确认。重试时请使用同一张原图和参数，或先刷新任务状态。");
-      id = pendingId || crypto.randomUUID();
-      localStorage.setItem(`${pendingKey}:hash`, fingerprint);localStorage.setItem(pendingKey, id);setPendingId(id);
-      const job = await modelRequest<ModelJob>("jobs", { id, sourcePng: png, spec });
-      localStorage.removeItem(pendingKey);localStorage.removeItem(`${pendingKey}:hash`);
-      if (live()) { setPendingId(null);setCloudJobs((previous) => [job, ...previous.filter((entry) => entry.id !== job.id)]); }
-    } catch (reason) {
-      // Submission state is unknown: stop so the same request id can be retried without a second charge.
-      throw new StopQueue(message(reason));
-    } finally { if (live()) setCloudSubmitting(false); }
-
-    setQueueStatus(`${label}模型正在生成，约 3–4 分钟…`);
-    const deadline = Date.now() + 15 * 60_000;
-    while (true) {
-      for (let waited = 0; waited < 8; waited++) {
-        if (cancelled.current || !mounted.current) throw new StopQueue("已停止批量生成；云端任务会继续，完成后可在下方云端记录下载。");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
-      const jobs = await fetchModelJobs().catch(() => null);
-      if (!jobs) continue;
-      if (live()) setCloudJobs(jobs);
-      const job = jobs.find((entry) => entry.id === id);
-      if (job?.status === "succeeded") { setQueueStatus(`${label}正在取回模型动图…`);return importModelJob(userId, id); }
-      if (job?.status === "failed") throw new Error(job.error || "模型生成失败");
-      if (Date.now() > deadline) throw new StopQueue("模型仍在生成，完成后可在下方云端记录下载。");
-    }
-  }
-
   async function runLocal(item: AnimationItem, itemStyle: AnimationStyle, label: string): Promise<AnimationResult> {
-    const size = canvasSize(item.image, itemStyle, ratio);
+    const size = canvasSize(item.image, ratio);
     const canvas = document.createElement("canvas");
     try {
       const spec = { width: size.width, height: size.height, durationMs: duration, format, style: itemStyle };
@@ -190,7 +114,7 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
         const label = queue.length > 1 ? `第 ${index + 1}/${queue.length} 张：` : "";
         setSelectedKey(item.key);setCurrent(null);setProgress(0);updateItem(item.key, { status: "running", error: undefined });
         try {
-          const result = itemStyle === "steam" ? await runModel(item, label) : await runLocal(item, itemStyle, label);
+          const result = await runLocal(item, itemStyle, label);
           if (!live()) return;
           updateItem(item.key, { status: "done", result });
           setResults((previous) => [result, ...previous.filter((entry) => entry.id !== result.id)].slice(0, 50));
@@ -221,23 +145,9 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
     catch (reason) { setError(message(reason));return 0; }
   }
 
-  // Returns the local copy so callers can save it right away; reuses an existing local copy.
-  async function openModelJob(id: string): Promise<AnimationResult | null> {
-    const existing = results.find((entry) => entry.id === id);
-    if (existing) { setCurrent(existing);return existing; }
-    if (working.current) return null;
-    working.current = true;setCloudSubmitting(true);setError("");
-    try {
-      const result = await importModelJob(userId, id);
-      if (live()) { setCurrent(result);setResults((previous) => [result, ...previous.filter((entry) => entry.id !== result.id)].slice(0, 50)); }
-      return result;
-    } catch (reason) { if (live()) setError(message(reason));return null; }
-    finally { working.current = false;if (live()) setCloudSubmitting(false); }
-  }
-
   useEffect(() => {
     mounted.current = true;
-    setResults([]);setCurrent(null);setItems([]);setSelectedKey(null);setBusy(false);setCloudSubmitting(false);
+    setResults([]);setCurrent(null);setItems([]);setSelectedKey(null);setBusy(false);
     if (hasAnimationDesktop()) listAnimations(userId).then((entries) => { if (mounted.current && activeUser.current === userId) setResults(entries); }).catch((reason) => { if (mounted.current && activeUser.current === userId) setError(String(reason)); });
     return () => {
       mounted.current = false;cancelled.current = true;sourceSequence.current++;
@@ -304,8 +214,7 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
     return () => window.removeEventListener(ANIMATION_SOURCE_EVENT, handler);
   }, [loadSource, onOpen]);
 
-  return { userId, source, style, setStyle, sharedStyle, styleScope, setStyleScope, ratio, setRatio, format, setFormat, duration, setDuration, busy: busy || cloudSubmitting, loadingSource, progress, queueStatus, error, setError,
-    cloudJobs, cloudActive: cloudJobs.some(modelJobActive), modelEnabled, modelStatus, pendingId, cloudSubmitting, refreshCloudJobs, openModelJob,
+  return { userId, source, style, setStyle, sharedStyle, styleScope, setStyleScope, ratio, setRatio, format, setFormat, duration, setDuration, busy, loadingSource, progress, queueStatus, error, setError,
     results, current, setCurrent, size, loadSource, generate, cancel, items, selectedKey: selected?.key ?? null, selectItem, removeItem, downloadAll };
 }
 export type ProductAnimationWorkspace = ReturnType<typeof useProductAnimation>;

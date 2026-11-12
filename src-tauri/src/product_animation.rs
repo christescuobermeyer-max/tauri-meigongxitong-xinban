@@ -72,8 +72,10 @@ impl AnimationSpec {
         }
         if !matches!(
             self.style.as_str(),
-            "steam" | "smoke" | "gilded" | "wok" | "crush" | "signature" | "aroma" | "sparkle"
-                | "flame" | "heart" | "recommend"
+            // Retired styles stay valid so previously saved animations can still be exported.
+            "gilded" | "wok" | "crush" | "signature" | "sparkle" | "heart" | "burst" | "swing"
+                | "blaze" | "beat" | "stamp" | "flip" | "steam" | "smoke" | "aroma" | "flame"
+                | "recommend"
         ) {
             return Err("未知动图风格".into());
         }
