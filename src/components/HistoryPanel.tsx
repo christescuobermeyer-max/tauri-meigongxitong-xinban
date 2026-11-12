@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { openProductAnimation } from "../lib/product-animation/source";
 import { downloadHistoryEntry } from "../lib/history-download";
 import { copyImageUrlToClipboard } from "../lib/clipboard-image";
 import type { HistoryEntry } from "../lib/history";
@@ -162,6 +163,7 @@ export default function HistoryPanel({
                         {getGenerationLineLabel(entry.kind, entry.generationLine)}
                       </div>
                       <div className="history-card__shop">{entry.shopName}</div>
+                      {entry.kind === "product" && <button className="btn btn--ghost btn--sm" type="button" onClick={() => openProductAnimation({ url: entry.remoteUrl, name: entry.title })}>制作动图</button>}
                       <button
                         className="btn btn--ghost btn--sm history-card__download"
                         type="button"

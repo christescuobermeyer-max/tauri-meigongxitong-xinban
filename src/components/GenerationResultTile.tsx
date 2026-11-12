@@ -16,6 +16,7 @@ interface Props {
   actionsDisabled?: boolean;
   onRetry: () => void;
   onDownload: () => void;
+  onAnimate?: () => void;
   downloadOptions?: Array<{
     label: string;
     meta: string;
@@ -35,6 +36,7 @@ export default function GenerationResultTile({
   actionsDisabled = false,
   onRetry,
   onDownload,
+  onAnimate,
   downloadOptions = [],
   previewZoom = false,
 }: Props) {
@@ -104,6 +106,7 @@ export default function GenerationResultTile({
         </div>
         <div className="result__actions">
           <GenerationStatusBadge status={item.status} elapsedMs={item.elapsedMs} attempt={item.attempt} />
+          {onAnimate && <button className="btn btn--ghost btn--sm" type="button" disabled={!canDownload || actionsDisabled} onClick={onAnimate}>制作动图</button>}
           <button
             className="btn btn--ghost btn--sm"
             onClick={onRetry}

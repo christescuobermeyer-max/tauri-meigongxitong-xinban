@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import useProductAnimation from "./useProductAnimation";
 import { useToast } from "../components/Toast";
 import type { WorkspaceTab } from "../lib/workspace-catalog";
 import type { GenerationLine } from "../types";
@@ -13,6 +14,8 @@ const FRONTEND_GENERATION_USER_LIMIT = 10;
 export default function useGenerationWorkspace({ userId }: { userId: string }) {
   const toast = useToast();
   const [tab, setTab] = useState<WorkspaceTab>("avatarStorefront");
+  const openAnimation = useCallback(() => setTab("productGif"), []);
+  const productAnimation = useProductAnimation(userId, openAnimation);
   const generationLine: GenerationLine = "line5";
   const setGenerationLine = (_line: GenerationLine) => undefined;
   const [elapsed, setElapsed] = useState(0);
@@ -24,7 +27,7 @@ export default function useGenerationWorkspace({ userId }: { userId: string }) {
     Object.values(slotGroups).reduce((count, group) => count + group.filter((slot) => slot.busy).length, 0);
   const generationTaskLimit = FRONTEND_GENERATION_USER_LIMIT;
   const generationCapacityFull = activeGenerationTaskCount >= generationTaskLimit;
-  const busy = activeGenerationTaskCount > 0;
+  const busy = activeGenerationTaskCount > 0 || productAnimation.busy;
 
   useEffect(() => {
     if (!busy) {
@@ -39,7 +42,7 @@ export default function useGenerationWorkspace({ userId }: { userId: string }) {
     return () => clearInterval(timer);
   }, [busy]);
 
-  return { tab, setTab, generationLine, setGenerationLine, ...history, ...slots,
+  return { tab, setTab, generationLine, setGenerationLine, ...history, ...slots, productAnimation,
     busy, activeGenerationTaskCount, generationTaskLimit, generationCapacityFull, elapsed };
 }
 

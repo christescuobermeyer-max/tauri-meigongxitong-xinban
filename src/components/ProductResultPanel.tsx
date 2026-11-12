@@ -1,4 +1,5 @@
 import type { GenerationItem, PlatformSpec } from "../types";
+import { animateGenerationItem } from "../lib/product-animation/source";
 import GenerationResultTile from "./GenerationResultTile";
 import { IconDownload } from "./Icons";
 import MerchantCopyCard from "./MerchantCopyCard";
@@ -58,6 +59,7 @@ export default function ProductResultPanel({
           title="产品主图"
           sub={source ? `原图 ${source.w}×${source.h}` : "请先选择投放平台"}
           item={product}
+          onAnimate={() => animateGenerationItem(product, shopName || "菜品")}
           exportSize={target ? `${target.w}×${target.h}` : "请选择平台"}
           idleMessage="上传产品图后，点击「开始制作设计图」"
           onRetry={onRetry}

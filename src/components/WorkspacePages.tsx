@@ -1,4 +1,5 @@
 import AdminPage from "./AdminPage";
+import ProductAnimationWorkspacePage from "./workspace/ProductAnimationWorkspacePage";
 import MenuDesignPage from "./MenuDesignPage";
 import HistoryPanel from "./HistoryPanel";
 import ImagePlazaPage from "./ImagePlazaPage";
@@ -31,6 +32,9 @@ function CapacityNotice({ workspace }: Props) {
 }
 
 export default function WorkspacePages({ workspace }: Props) {
+  if (workspace.tab === "productGif") {
+    return <ProductAnimationWorkspacePage workspace={workspace.productAnimation} />;
+  }
   if (workspace.tab === "menuDesign") {
     return <div className="page menu-design-page">
       <CapacityNotice workspace={workspace} />

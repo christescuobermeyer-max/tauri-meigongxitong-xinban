@@ -32,6 +32,7 @@ mod oss;
 mod pockgo_chat;
 mod pockgo_transport;
 mod prompt_templates;
+mod product_animation;
 mod reference_image;
 mod vectorengine_edit;
 #[cfg(feature = "tauri-commands")]
@@ -64,6 +65,12 @@ pub fn run() {
             image_proc::select_image_folder,
             image_proc::process_images,
             image_proc::open_image_output_folder,
+            product_animation::commands::begin_product_animation,
+            product_animation::commands::append_product_animation_frame,
+            product_animation::commands::finish_product_animation,
+            product_animation::commands::cancel_product_animation,
+            product_animation::commands::list_product_animations,
+            product_animation::commands::save_product_animation,
             api::generate_image,
             image_proc::resize_and_save_image,
             image_proc::save_base64_image,

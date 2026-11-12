@@ -1,4 +1,5 @@
 import type { PlatformSpec } from "../types";
+import { animateGenerationItem } from "../lib/product-animation/source";
 import { PRODUCT_BATCH_MAX_IMAGES, type ProductBatchEntry } from "../lib/product-batch";
 import BatchDownloadButton from "./BatchDownloadButton";
 import GenerationResultTile from "./GenerationResultTile";
@@ -72,6 +73,7 @@ export default function ProductBatchResultPanel({
               title={entry.productName}
               sub={entry.sourceName}
               item={entry.item}
+              onAnimate={() => animateGenerationItem(entry.item, entry.productName)}
               exportSize={exportSize}
               idleMessage="开始制作后会在这里展示"
               compact
