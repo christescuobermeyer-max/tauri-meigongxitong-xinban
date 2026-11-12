@@ -28,19 +28,19 @@ function SourceThumb({ image }: { image: HTMLImageElement }) {
   return <canvas ref={ref} className="pa-drop__thumb" aria-hidden="true" />;
 }
 
-// Live thumbnail of a style applied to the uploaded dish, so users can compare before choosing.
-function StylePreview({ image, style, playing, fontsReady }: { image: HTMLImageElement; style: AnimationStyle; playing: boolean; fontsReady: boolean }) {
+// Small thumbnail of a style on the uploaded dish: a still frame, animating only while hovered.
+function StyleThumb({ image, style, animate, fontsReady }: { image: HTMLImageElement; style: AnimationStyle; animate: boolean; fontsReady: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const target = ref.current;
     if (!target) return;
-    const render = createAnimationRenderer(image, 320, 240, style);
-    const start = performance.now();
+    const render = createAnimationRenderer(image, 192, 144, style);
+    const start = performance.now() - 1050;
     let frame = 0;
-    const draw = (now: number) => { render(target, playing ? ((now - start) % 3000) / 3000 : 0.3);if (playing) frame = requestAnimationFrame(draw); };
-    draw(start);
+    const draw = (now: number) => { render(target, animate ? ((now - start) % 3000) / 3000 : 0.35);if (animate) frame = requestAnimationFrame(draw); };
+    draw(performance.now());
     return () => cancelAnimationFrame(frame);
-  }, [image, style, playing, fontsReady]);
+  }, [image, style, animate, fontsReady]);
   return <canvas ref={ref} className="pa-style__preview" aria-hidden="true" />;
 }
 
@@ -49,7 +49,7 @@ function Step({ index, title, children }: { index: number; title: string; childr
 }
 
 const STATUS_TEXT: Record<AnimationItemStatus, string> = { idle: "待生成", running: "生成中", done: "已完成", failed: "失败" };
-const styleTitle = (id: AnimationStyle) => ANIMATION_STYLES.find((entry) => entry.id === id)?.title ?? id;
+const styleTitle = (id: AnimationStyle) => ANIMATION_STYLES.find((entry) => entry.id === id)?.title ?? "动图";
 
 export default function ProductAnimationWorkspacePage({ workspace }: { workspace: ProductAnimationWorkspace }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -57,6 +57,7 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
   const [saving, setSaving] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [fontsReady, setFontsReady] = useState(false);
+  const [hovered, setHovered] = useState<AnimationStyle | null>(null);
   useEffect(() => { let alive = true;void loadAnimationFonts().then(() => { if (alive) setFontsReady(true); });return () => { alive = false; }; }, []);
   const { source, size, style, duration, current, busy } = workspace;
   const uploadLocked = busy || workspace.loadingSource;
@@ -141,19 +142,20 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
         </Step>
 
         <Step index={2} title="选择动图风格">
-          {!source && <p className="pa-note pa-note--tight">上传菜品图后，每种风格会直接用你的图片播放效果预览。</p>}
+          <p className="pa-note pa-note--tight">{source ? "点选风格，右侧立即播放效果；鼠标悬停可预览小图动画。" : "上传菜品图后，风格缩略图会换成你的图片。"}</p>
           {multi && <div className="pa-scope"><Segmented<"all" | "one"> label="应用到" value={workspace.styleScope} options={[{ value: "all", text: "全部图片" }, { value: "one", text: "仅当前图片" }]} onChange={workspace.setStyleScope} /></div>}
           <div className="pa-styles" role="radiogroup" aria-label="动图风格">{ANIMATION_STYLES.map((entry, index) => {
             const active = style === entry.id;
             const groupStart = index === 0 || ANIMATION_STYLES[index - 1].group !== entry.group;
             return <Fragment key={entry.id}>
               {groupStart && <div className="pa-styles__group">{ANIMATION_STYLE_GROUPS[entry.group]}</div>}
-              <button type="button" role="radio" aria-checked={active} disabled={busy} className={`pa-style${active ? " is-active" : ""}`} onClick={() => { workspace.setStyle(entry.id);reset(); }}>
+              <button type="button" role="radio" aria-checked={active} disabled={busy} title={entry.description} className={`pa-style${active ? " is-active" : ""}`}
+                onMouseEnter={() => setHovered(entry.id)} onMouseLeave={() => setHovered((value) => value === entry.id ? null : value)} onClick={() => { workspace.setStyle(entry.id);reset(); }}>
                 <span className="pa-style__tile" style={{ color: entry.color }}>
-                  {source ? <StylePreview image={source.image} style={entry.id} playing={playing && !busy} fontsReady={fontsReady} /> : <b>{entry.word}</b>}
+                  {source ? <StyleThumb image={source.image} style={entry.id} animate={hovered === entry.id && playing && !busy} fontsReady={fontsReady} /> : <b>{entry.word}</b>}
                 </span>
-                <span className="pa-style__body"><strong>{entry.title}</strong><small>{entry.description}</small></span>
-                {active && <span className="pa-style__check" aria-hidden="true"><IconCheck width={12} height={12} /></span>}
+                <span className="pa-style__name">{entry.title}</span>
+                {active && <span className="pa-style__check" aria-hidden="true"><IconCheck width={10} height={10} /></span>}
               </button>
             </Fragment>;
           })}</div>
@@ -185,6 +187,7 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
 
       <section className="pa-preview">
         <div className="pa-preview__bar">
+          <div className="pa-preview__title"><strong>{current ? styleTitle(current.style) : styleTitle(style)}</strong><span>{ANIMATION_STYLES.find((entry) => entry.id === (current?.style ?? style))?.description}</span></div>
           <span className={`pa-chip${current ? " pa-chip--success" : ""}`}>{current ? <IconCheck width={12} height={12} aria-hidden="true" /> : <IconImage width={12} height={12} aria-hidden="true" />}{stageLabel}</span>
           {(source || current) && <div className="pa-preview__tools">
             {<button className="pa-icon-btn" type="button" aria-label={playing ? "暂停预览" : "播放预览"} title={playing ? "暂停预览" : "播放预览"} onClick={() => setPlaying((value) => !value)}>{playing ? <IconPause width={16} height={16} /> : <IconPlay width={16} height={16} />}</button>}

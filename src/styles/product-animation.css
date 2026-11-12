@@ -2,9 +2,9 @@
 .pa { --pa-stage: #1d1511; --pa-tile: linear-gradient(150deg, #3a2519 0%, #241711 70%); max-width: 1400px; margin: 0 auto; padding: 24px; color: var(--fg); }
 
 /* 顶部 */
-.pa-hero { display: flex; align-items: center; gap: 16px; padding: 18px 22px; margin-bottom: 20px; border: 1px solid var(--border); border-radius: 16px;
+.pa-hero { display: flex; align-items: center; gap: 14px; padding: 12px 18px; margin-bottom: 16px; border: 1px solid var(--border); border-radius: 14px;
   background: radial-gradient(120% 140% at 0% 0%, var(--accent-soft) 0%, transparent 55%), var(--bg-elevated); box-shadow: var(--shadow-sm); }
-.pa-hero__badge { flex: none; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 14px; color: #fff; background: var(--accent-grad); box-shadow: var(--accent-glow); }
+.pa-hero__badge { flex: none; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; color: #fff; background: var(--accent-grad); box-shadow: var(--accent-glow); }
 .pa-hero__text { flex: 1; min-width: 0; }
 .pa-hero__text h2 { margin: 0 0 4px; font-size: 20px; font-weight: 700; letter-spacing: 0.02em; }
 .pa-hero__text p { margin: 0; color: var(--fg-muted); font-size: 13px; }
@@ -13,9 +13,9 @@
 .pa-hero__specs svg { color: var(--success); }
 
 /* 布局 */
-.pa-layout { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 20px; align-items: start; }
+.pa-layout { display: grid; grid-template-columns: 440px minmax(0, 1fr); gap: 18px; align-items: start; }
 .pa-panel, .pa-preview, .pa-section { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow-sm); }
-.pa-panel { padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+.pa-panel { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
 
 /* 步骤 */
 .pa-step__head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
@@ -40,7 +40,7 @@
 .pa-drop__change { flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 5px 9px; border-radius: 999px; font-size: 12px; color: var(--accent); background: var(--accent-soft); }
 
 /* 批量图片 */
-.pa-items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+.pa-items { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-bottom: 10px; }
 .pa-item { position: relative; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .pa-item__open { position: relative; display: block; padding: 0; overflow: hidden; aspect-ratio: 4 / 3; cursor: pointer; border: 1.5px solid var(--border); border-radius: 10px; background: var(--pa-stage); transition: border-color var(--duration), box-shadow var(--duration); }
 .pa-item__open canvas { width: 100%; height: 100%; display: block; }
@@ -68,7 +68,7 @@
 .pa-clear__confirm:hover:not(:disabled) { filter: brightness(1.08); }
 
 /* 风格卡片 */
-.pa-styles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.pa-styles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .pa-style { position: relative; display: flex; flex-direction: column; padding: 0; overflow: hidden; text-align: left; cursor: pointer; color: var(--fg);
   border: 1px solid var(--border); border-radius: 12px; background: var(--bg-elevated);
   transition: transform var(--duration) var(--easing), border-color var(--duration), box-shadow var(--duration); }
@@ -78,14 +78,12 @@
 .pa-style.is-active { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-md); }
 .pa-style__tile { position: relative; display: grid; place-items: center; aspect-ratio: 4 / 3; overflow: hidden; background: var(--pa-tile); }
 .pa-style__preview { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.pa-styles__group { grid-column: 1 / -1; margin: 6px 0 -2px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--fg-subtle); }
+.pa-styles__group { grid-column: 1 / -1; margin: 4px 0 -2px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--fg-subtle); }
 .pa-styles__group:first-child { margin-top: 0; }
 .pa-note.pa-note--tight { margin: -4px 0 10px; }
-.pa-style__tile b { position: relative; font-size: 24px; font-weight: 800; letter-spacing: 0.06em; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35), 0 0 18px currentColor; }
-.pa-style__body { display: flex; flex-direction: column; gap: 3px; padding: 8px 11px 10px; }
-.pa-style__body strong { font-size: 13px; font-weight: 600; }
-.pa-style__body small { color: var(--fg-subtle); font-size: 11px; line-height: 1.5; }
-.pa-style__check { position: absolute; top: 7px; right: 7px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: #fff; background: var(--accent); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); }
+.pa-style__tile b { position: relative; font-size: 15px; font-weight: 800; letter-spacing: 0.04em; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35), 0 0 12px currentColor; }
+.pa-style__name { padding: 5px 4px 6px; font-size: 12px; font-weight: 600; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pa-style__check { position: absolute; top: 4px; right: 4px; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; color: #fff; background: var(--accent); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
 
 /* 输出设置 */
 .pa-fields { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; border: 0; min-width: 0; }
@@ -116,8 +114,11 @@
 .pa-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* 预览 */
-.pa-preview { position: sticky; top: 16px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
-.pa-preview__bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 36px; }
+.pa-preview { position: sticky; top: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.pa-preview__bar { display: flex; align-items: center; gap: 10px; min-height: 36px; }
+.pa-preview__title { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 10px; }
+.pa-preview__title strong { flex: none; font-size: 16px; }
+.pa-preview__title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--fg-subtle); }
 .pa-preview__tools { display: flex; align-items: center; gap: 8px; }
 .pa-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 12px; color: var(--fg-muted); background: var(--bg-subtle); }
 .pa-chip--success { color: var(--success); background: color-mix(in srgb, var(--success) 12%, transparent); }
@@ -126,7 +127,7 @@
 .pa-icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .pa-stage { display: grid; place-items: center; min-height: 360px; overflow: hidden; border-radius: 12px;
   background: radial-gradient(80% 80% at 50% 40%, #2c1f18 0%, var(--pa-stage) 100%); }
-.pa-stage canvas, .pa-stage img { display: block; width: 100%; height: auto; max-height: 68vh; object-fit: contain; }
+.pa-stage canvas, .pa-stage img { display: block; width: 100%; height: auto; max-height: calc(100vh - 230px); object-fit: contain; }
 .pa-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 60px 24px; text-align: center; color: #cdbba6; }
 .pa-empty__icon { display: grid; place-items: center; width: 64px; height: 64px; margin-bottom: 6px; border-radius: 18px; color: #f0c48a; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); }
 .pa-empty strong { font-size: 15px; color: #f3e6d4; }
@@ -163,7 +164,7 @@
 @media (prefers-reduced-motion: reduce) {
   .pa-style, .pa-card, .pa-card__media img { transition: none; }
 }
-@media (max-width: 1100px) { .pa-layout { grid-template-columns: 330px minmax(0, 1fr); } .pa { padding: 16px; } }
+@media (max-width: 1100px) { .pa-layout { grid-template-columns: 380px minmax(0, 1fr); } .pa { padding: 16px; } .pa-styles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 880px) {
   .pa-layout { grid-template-columns: 1fr; }
   .pa-preview { position: static; }
