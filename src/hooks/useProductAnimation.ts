@@ -5,7 +5,7 @@ import { ANIMATION_STYLES, chooseAnimationSize, validateAnimation, type Animatio
 import { createAnimationRenderer } from "../lib/product-animation/render";
 import { loadAnimationFonts } from "../lib/product-animation/fonts";
 import { ANIMATION_SOURCE_EVENT, type AnimationSourceRequest } from "../lib/product-animation/source";
-import { hasAnimationDesktop, listAnimations, saveAllAnimations, type AnimationResult } from "../lib/product-animation/desktop";
+import { clearAnimations, hasAnimationDesktop, listAnimations, saveAllAnimations, type AnimationResult } from "../lib/product-animation/desktop";
 
 export const MAX_ANIMATION_ITEMS = 5;
 export type AnimationItemStatus = "idle" | "running" | "done" | "failed";
@@ -138,6 +138,18 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
     if (session.current) void ensureTauriInvoke()("cancel_product_animation", { id: session.current }).catch(() => undefined);
   }
 
+  /** Deletes every locally stored animation; returns null when it could not run. */
+  async function clearAll() {
+    if (working.current) return null;
+    try {
+      const cleanup = await clearAnimations(userId);
+      if (!live()) return null;
+      setResults([]);setCurrent(null);
+      setItems((previous) => previous.map((item) => item.status === "done" ? { ...item, status: "idle", result: undefined } : item));
+      return cleanup;
+    } catch (reason) { if (live()) setError(message(reason));return null; }
+  }
+
   async function downloadAll() {
     const done = items.flatMap((item) => item.status === "done" && item.result ? [item.result] : []);
     if (!done.length) return 0;
@@ -215,6 +227,6 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
   }, [loadSource, onOpen]);
 
   return { userId, source, style, setStyle, sharedStyle, styleScope, setStyleScope, ratio, setRatio, format, setFormat, duration, setDuration, busy, loadingSource, progress, queueStatus, error, setError,
-    results, current, setCurrent, size, loadSource, generate, cancel, items, selectedKey: selected?.key ?? null, selectItem, removeItem, downloadAll };
+    results, current, setCurrent, size, loadSource, generate, cancel, items, selectedKey: selected?.key ?? null, selectItem, removeItem, downloadAll, clearAll };
 }
 export type ProductAnimationWorkspace = ReturnType<typeof useProductAnimation>;

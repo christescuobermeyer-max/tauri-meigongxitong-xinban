@@ -421,6 +421,72 @@ pub async fn list_product_animations(
     Ok(results)
 }
 
+#[derive(Debug, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AnimationCleanup {
+    pub removed: u32,
+    pub bytes: u64,
+}
+
+fn directory_size(path: &Path) -> u64 {
+    fs::read_dir(path)
+        .map(|entries| {
+            entries
+                .flatten()
+                .map(|entry| match entry.file_type() {
+                    Ok(kind) if kind.is_dir() => directory_size(&entry.path()),
+                    Ok(_) => entry.metadata().map(|meta| meta.len()).unwrap_or(0),
+                    Err(_) => 0,
+                })
+                .sum()
+        })
+        .unwrap_or(0)
+}
+
+/// Removes only UUID-named subdirectories, which this module creates; anything else is left alone.
+fn remove_animation_directories(root: &Path) -> Result<AnimationCleanup, String> {
+    let mut cleanup = AnimationCleanup::default();
+    let Ok(entries) = fs::read_dir(root) else {
+        return Ok(cleanup);
+    };
+    for entry in entries.flatten() {
+        let is_dir = entry.file_type().map(|kind| kind.is_dir()).unwrap_or(false);
+        if !is_dir || uuid::Uuid::parse_str(&entry.file_name().to_string_lossy()).is_err() {
+            continue;
+        }
+        let bytes = directory_size(&entry.path());
+        fs::remove_dir_all(entry.path()).map_err(|error| format!("清理动图失败：{error}"))?;
+        cleanup.removed += 1;
+        cleanup.bytes += bytes;
+    }
+    Ok(cleanup)
+}
+
+/// Deletes every animation stored for this account plus leftover frame caches.
+#[tauri::command]
+pub async fn clear_product_animations(app: AppHandle, user_id: String) -> Result<AnimationCleanup, String> {
+    let directory = user_directory(&app, &user_id)?;
+    let frames = app
+        .path()
+        .app_cache_dir()
+        .map_err(|error| error.to_string())?
+        .join("product-animation-frames");
+    tauri::async_runtime::spawn_blocking(move || {
+        // Hold the session lock so no new render can start while files are removed.
+        let registry = sessions().lock().map_err(|_| "任务锁不可用")?;
+        if !registry.is_empty() {
+            return Err("有动图正在生成，请等待完成或取消后再清空".into());
+        }
+        let mut cleanup = remove_animation_directories(&directory)?;
+        let cache = remove_animation_directories(&frames)?;
+        cleanup.bytes += cache.bytes;
+        drop(registry);
+        Ok(cleanup)
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
 #[tauri::command]
 pub async fn save_product_animation(
     app: AppHandle,
@@ -514,6 +580,26 @@ mod tests {
             serde_json::to_vec_pretty(&results).unwrap(),
         )
         .unwrap();
+    }
+
+    #[test]
+    fn clearing_removes_only_animation_directories() {
+        let root = std::env::temp_dir().join(format!("csgh-animation-clear-{}", uuid::Uuid::new_v4()));
+        let first = root.join(uuid::Uuid::new_v4().to_string());
+        let second = root.join(uuid::Uuid::new_v4().to_string());
+        fs::create_dir_all(first.join("nested")).unwrap();
+        fs::create_dir_all(&second).unwrap();
+        fs::write(first.join("result.gif"), vec![0u8; 1000]).unwrap();
+        fs::write(first.join("nested/poster.jpg"), vec![0u8; 24]).unwrap();
+        fs::write(second.join("result.webp"), vec![0u8; 500]).unwrap();
+        fs::create_dir_all(root.join("keep-me")).unwrap();
+        fs::write(root.join("notes.txt"), b"keep").unwrap();
+        let cleanup = remove_animation_directories(&root).unwrap();
+        assert_eq!(cleanup, AnimationCleanup { removed: 2, bytes: 1524 });
+        assert!(!first.exists() && !second.exists());
+        assert!(root.join("keep-me").exists() && root.join("notes.txt").exists());
+        assert_eq!(remove_animation_directories(&root.join("missing")).unwrap(), AnimationCleanup::default());
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

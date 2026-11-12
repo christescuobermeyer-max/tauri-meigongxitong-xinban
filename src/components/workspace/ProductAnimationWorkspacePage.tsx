@@ -4,7 +4,7 @@ import { ANIMATION_STYLES, ANIMATION_STYLE_GROUPS, type AnimationFormat, type An
 import { createAnimationRenderer } from "../../lib/product-animation/render";
 import { loadAnimationFonts } from "../../lib/product-animation/fonts";
 import { animationFileUrl, saveAnimation, type AnimationResult } from "../../lib/product-animation/desktop";
-import { IconAlert, IconCheck, IconClose, IconDownload, IconHistory, IconHourglass, IconImage, IconPause, IconPlay, IconSparkles, IconUpload } from "../Icons";
+import { IconAlert, IconCheck, IconClose, IconDownload, IconHistory, IconHourglass, IconImage, IconPause, IconPlay, IconSparkles, IconTrash, IconUpload } from "../Icons";
 import "../../styles/product-animation.css";
 
 function Segmented<T extends string | number>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; text: string }[]; onChange: (value: T) => void }) {
@@ -65,6 +65,15 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
   const pendingCount = items.filter((item) => item.status !== "done").length;
   const doneCount = items.length - pendingCount;
   const [savedAll, setSavedAll] = useState("");
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [cleared, setCleared] = useState("");
+  useEffect(() => { if (!confirmClear) return;const timer = window.setTimeout(() => setConfirmClear(false), 4000);return () => window.clearTimeout(timer); }, [confirmClear]);
+  async function clearAll() {
+    if (!confirmClear) { setConfirmClear(true);setCleared("");return; }
+    setConfirmClear(false);
+    const cleanup = await workspace.clearAll();
+    if (cleanup) setCleared(`已清理 ${cleanup.removed} 个动图，释放 ${(cleanup.bytes / 1024 / 1024).toFixed(1)} MB`);
+  }
 
   useEffect(() => {
     if (!canvas.current || !source || !size || current) return;
@@ -201,7 +210,13 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
     </div>
 
     <section className="pa-section">
-      <div className="pa-section__head"><div><h3><IconHistory width={16} height={16} aria-hidden="true" />本机动图记录</h3><p>当前账号 · 保存在本机 · 最近 50 条，可再次下载</p></div></div>
+      <div className="pa-section__head"><div><h3><IconHistory width={16} height={16} aria-hidden="true" />本机动图记录</h3><p>当前账号 · 保存在本机 · 最近 50 条，可再次下载；清空只删除软件内保存的动图，已下载到其他位置的文件不受影响</p></div>
+        {workspace.results.length > 0 && <div className="pa-clear">
+          {confirmClear && <button type="button" className="btn btn--ghost btn--sm" onClick={() => setConfirmClear(false)}>取消</button>}
+          <button type="button" className={`btn btn--sm ${confirmClear ? "pa-clear__confirm" : "btn--secondary"}`} disabled={busy} onClick={() => void clearAll()}><IconTrash width={14} height={14} aria-hidden="true" />{confirmClear ? "确认清空全部动图？" : "一键清空"}</button>
+        </div>}
+      </div>
+      {cleared && <p className="pa-saved pa-saved--block" role="status"><IconCheck width={14} height={14} aria-hidden="true" />{cleared}</p>}
       {workspace.results.length ? <div className="pa-grid">{workspace.results.map((result) => <article key={result.id} className={`pa-card${current?.id === result.id ? " is-current" : ""}`}>
         <button type="button" className="pa-card__media pa-card__open" disabled={busy} onClick={() => workspace.setCurrent(result)} aria-label="在预览区查看"><img loading="lazy" decoding="async" src={animationFileUrl(result.path)} alt="本机动图" /></button>
         <div className="pa-card__body">

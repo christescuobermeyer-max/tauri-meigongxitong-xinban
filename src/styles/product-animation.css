@@ -62,6 +62,10 @@
 .pa-note.pa-note--meta { margin: 8px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pa-scope { margin-bottom: 12px; }
 .pa-saved { display: flex; align-items: center; gap: 6px; margin: 0; padding: 8px 12px; border-radius: 10px; font-size: 12px; font-weight: 600; color: var(--success); background: color-mix(in srgb, var(--success) 10%, transparent); }
+.pa-saved--block { margin-bottom: 12px; }
+.pa-clear { display: flex; gap: 6px; flex: none; }
+.pa-clear__confirm { color: #fff; background: var(--danger); border-color: var(--danger); }
+.pa-clear__confirm:hover:not(:disabled) { filter: brightness(1.08); }
 
 /* 风格卡片 */
 .pa-styles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }

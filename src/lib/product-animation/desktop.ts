@@ -42,3 +42,8 @@ export async function saveAllAnimations(userId: string, results: AnimationResult
   }
   return results.length;
 }
+
+/** 删除当前账号保存在本机的全部动图（不影响已另存到其他位置的文件）。 */
+export async function clearAnimations(userId: string) {
+  return ensureTauriInvoke()<{ removed: number; bytes: number }>("clear_product_animations", { userId });
+}

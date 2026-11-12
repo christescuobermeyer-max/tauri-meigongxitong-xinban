@@ -1,4 +1,4 @@
-// 批量动图：最多5张、统一/单张风格、移除、逐张生成、全部下载。
+// 批量动图：最多5张、统一/单张风格、移除、逐张生成、全部下载、一键清空。
 // 用法: PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node scripts/tests/batch-animation-browser.mjs 原图.png
 import {pathToFileURL, fileURLToPath} from 'node:url';
 import path from 'node:path';
@@ -17,7 +17,7 @@ import Page from '/src/components/workspace/ProductAnimationWorkspacePage.tsx';i
 function Harness(){const workspace=useWorkspace('55555555-5555-4555-8555-555555555555',()=>{});window.workspace=workspace;return React.createElement(Page,{workspace});}
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(Harness));`}));
 await page.route(/src\/lib\/supabase\.ts(?:\?.*)?$/,route=>route.fulfill({contentType:'text/javascript',body:`export const supabase={auth:{getSession:async()=>({data:{session:{access_token:'test-token'}}})}};`}));
-await page.route(/src\/lib\/product-animation\/desktop\.ts(?:\?.*)?$/,route=>route.fulfill({contentType:'text/javascript',body:`export const hasAnimationDesktop=()=>true;export const listAnimations=async()=>[];export const animationFileUrl=path=>path;export const saveAnimation=async()=>{};export const saveAllAnimations=async(userId,results)=>{window.savedAll=results.map(r=>r.style);return results.length;};`}));
+await page.route(/src\/lib\/product-animation\/desktop\.ts(?:\?.*)?$/,route=>route.fulfill({contentType:'text/javascript',body:`export const hasAnimationDesktop=()=>true;export const listAnimations=async()=>[];export const animationFileUrl=path=>path;export const saveAnimation=async()=>{};export const saveAllAnimations=async(userId,results)=>{window.savedAll=results.map(r=>r.style);return results.length;};export const clearAnimations=async()=>{window.clearCalls=(window.clearCalls||0)+1;return {removed:4,bytes:12*1024*1024};};`}));
 // Local pipeline mock: records every command and the maximum number of concurrent encodes.
 await page.route(/src\/lib\/desktop\/invoke\.ts(?:\?.*)?$/,route=>route.fulfill({contentType:'text/javascript',body:`
 const sessions=new Map();window.order=[];window.maxActive=0;let active=0;
@@ -54,8 +54,17 @@ assert.equal(await page.evaluate(()=>window.maxActive),1,'Only one local encode 
 await page.getByRole('button',{name:'全部下载（4）'}).click();
 await page.getByText('已保存 4 张到所选文件夹').waitFor();
 assert.deepEqual(await page.evaluate(()=>window.savedAll),['burst','flip','gilded','burst']);
+// Clearing needs a second confirming click, then empties records and resets finished items.
+await page.getByRole('button',{name:'一键清空'}).click();
+assert.equal(await page.evaluate(()=>window.clearCalls||0),0,'First click only asks for confirmation');
+await page.getByRole('button',{name:'确认清空全部动图？'}).click();
+await page.getByText('已清理 4 个动图，释放 12.0 MB').waitFor();
+assert.equal(await page.evaluate(()=>window.clearCalls),1);
+assert.equal(await page.evaluate(()=>window.workspace.results.length),0);
+assert.deepEqual(await page.evaluate(()=>window.workspace.items.map(i=>i.status)),['idle','idle','idle','idle']);
+assert.equal(await page.getByRole('button',{name:'一键清空'}).count(),0);
 if(process.env.BATCH_SCREENSHOT)await page.screenshot({path:process.env.BATCH_SCREENSHOT,fullPage:true});
 assert.deepEqual(errors,[]);
 assert.equal(await page.getByRole('radio',{name:/热气腾腾/}).count(),0,'AI style removed');
-console.log('批量上传上限、统一/单张风格、移除、逐张生成、全部下载全部通过');
+console.log('批量上传上限、统一/单张风格、移除、逐张生成、全部下载、一键清空全部通过');
 await browser.close();
