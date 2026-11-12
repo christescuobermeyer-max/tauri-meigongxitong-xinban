@@ -3,6 +3,7 @@ import { ensureTauriInvoke } from "../lib/desktop/invoke";
 import { downloadOssImageAsBase64 } from "../lib/oss-image-download";
 import { chooseAnimationSize, validateAnimation, type AnimationFormat, type AnimationRatio, type AnimationStyle } from "../lib/product-animation/policy";
 import { createAnimationRenderer } from "../lib/product-animation/render";
+import { loadAnimationFonts } from "../lib/product-animation/fonts";
 import { ANIMATION_SOURCE_EVENT, type AnimationSourceRequest } from "../lib/product-animation/source";
 import { hasAnimationDesktop, listAnimations, type AnimationResult } from "../lib/product-animation/desktop";
 import { fetchModelJobs, importModelJob, modelJobActive, modelRequest, sourcePng, type ModelJob, type ModelSpec } from "../lib/product-animation/cloud";
@@ -162,6 +163,7 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
       const spec = { width: size.width, height: size.height, durationMs: duration, format, style };
       const id = await ensureTauriInvoke()<string>("begin_product_animation", { userId, spec });
       session.current = id;
+      await loadAnimationFonts();
       const render = createAnimationRenderer(source.image, size.width, size.height, style);
       const frameCount = duration / 50;
       for (let index = 0; index < frameCount; index++) {

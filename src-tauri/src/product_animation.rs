@@ -72,7 +72,8 @@ impl AnimationSpec {
         }
         if !matches!(
             self.style.as_str(),
-            "steam" | "aroma" | "sparkle" | "flame" | "heart" | "recommend"
+            "steam" | "smoke" | "gilded" | "wok" | "crush" | "signature" | "aroma" | "sparkle"
+                | "flame" | "heart" | "recommend"
         ) {
             return Err("未知动图风格".into());
         }

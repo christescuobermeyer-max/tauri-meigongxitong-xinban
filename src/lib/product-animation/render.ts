@@ -1,6 +1,8 @@
 import { ANIMATION_STYLES, containImage, type AnimationStyle } from "./policy";
+import { PREMIUM_STYLES, createPremiumRenderer, type PremiumStyle } from "./render-premium";
 
 export function createAnimationRenderer(image: HTMLImageElement, width: number, height: number, style: AnimationStyle) {
+  if (PREMIUM_STYLES.has(style)) return createPremiumRenderer(image, width, height, style as PremiumStyle);
   const background = document.createElement("canvas");
   background.width = width;
   background.height = height;

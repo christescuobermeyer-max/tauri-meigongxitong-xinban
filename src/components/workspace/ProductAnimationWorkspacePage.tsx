@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
 import type { ProductAnimationWorkspace } from "../../hooks/useProductAnimation";
-import { ANIMATION_STYLES, type AnimationFormat, type AnimationRatio } from "../../lib/product-animation/policy";
+import { ANIMATION_STYLES, ANIMATION_STYLE_GROUPS, type AnimationFormat, type AnimationRatio, type AnimationStyle } from "../../lib/product-animation/policy";
 import { createAnimationRenderer } from "../../lib/product-animation/render";
+import { loadAnimationFonts } from "../../lib/product-animation/fonts";
 import { animationFileUrl, saveAnimation, type AnimationResult } from "../../lib/product-animation/desktop";
 import { modelJobActive, modelJobLabel, type ModelJob } from "../../lib/product-animation/cloud";
 import { IconAlert, IconCheck, IconDownload, IconHistory, IconHourglass, IconImage, IconPause, IconPlay, IconRefresh, IconSparkles, IconUpload } from "../Icons";
@@ -28,6 +29,22 @@ function SourceThumb({ image }: { image: HTMLImageElement }) {
   return <canvas ref={ref} className="pa-drop__thumb" aria-hidden="true" />;
 }
 
+// Live thumbnail of a style applied to the uploaded dish, so users can compare before choosing.
+function StylePreview({ image, style, playing, fontsReady }: { image: HTMLImageElement; style: AnimationStyle; playing: boolean; fontsReady: boolean }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const target = ref.current;
+    if (!target) return;
+    const render = createAnimationRenderer(image, 320, 240, style);
+    const start = performance.now();
+    let frame = 0;
+    const draw = (now: number) => { render(target, playing ? ((now - start) % 3000) / 3000 : 0.3);if (playing && style !== "steam") frame = requestAnimationFrame(draw); };
+    draw(start);
+    return () => cancelAnimationFrame(frame);
+  }, [image, style, playing, fontsReady]);
+  return <canvas ref={ref} className="pa-style__preview" aria-hidden="true" />;
+}
+
 function Step({ index, title, children }: { index: number; title: string; children: ReactNode }) {
   return <div className="pa-step"><div className="pa-step__head"><span className="pa-step__no">{index}</span><h3>{title}</h3></div>{children}</div>;
 }
@@ -39,6 +56,8 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
   const [playing, setPlaying] = useState(() => !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const [saving, setSaving] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [fontsReady, setFontsReady] = useState(false);
+  useEffect(() => { let alive = true;void loadAnimationFonts().then(() => { if (alive) setFontsReady(true); });return () => { alive = false; }; }, []);
   const { source, size, style, duration, current, busy } = workspace;
   const isModel = style === "steam";
   const uploadLocked = busy || workspace.loadingSource;
@@ -56,7 +75,7 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
     };
     draw(start);
     return () => { cancelAnimationFrame(frame);target.width = 1;target.height = 1; };
-  }, [source, size?.width, size?.height, style, duration, playing, current, busy]);
+  }, [source, size?.width, size?.height, style, duration, playing, current, busy, fontsReady]);
 
   async function download(result: AnimationResult) {
     setSaving(true);
@@ -108,13 +127,21 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
         </Step>
 
         <Step index={2} title="选择动图风格">
-          <div className="pa-styles" role="radiogroup" aria-label="动图风格">{ANIMATION_STYLES.map((entry) => {
+          {!source && <p className="pa-note pa-note--tight">上传菜品图后，每种风格会直接用你的图片播放效果预览。</p>}
+          <div className="pa-styles" role="radiogroup" aria-label="动图风格">{ANIMATION_STYLES.map((entry, index) => {
             const active = style === entry.id;
-            return <button key={entry.id} type="button" role="radio" aria-checked={active} disabled={busy} className={`pa-style${active ? " is-active" : ""}`} onClick={() => { workspace.setStyle(entry.id);reset(); }}>
-              <span className="pa-style__tile" style={{ color: entry.color }}>{entry.id === "steam" && <><span className="pa-style__steam" aria-hidden="true"><i /><i /><i /></span><em className="pa-style__tag">AI 生成</em></>}<b>{entry.title}</b></span>
-              <span className="pa-style__body"><small>{entry.description}</small></span>
-              {active && <span className="pa-style__check" aria-hidden="true"><IconCheck width={12} height={12} /></span>}
-            </button>;
+            const groupStart = index === 0 || ANIMATION_STYLES[index - 1].group !== entry.group;
+            return <Fragment key={entry.id}>
+              {groupStart && <div className="pa-styles__group">{ANIMATION_STYLE_GROUPS[entry.group]}</div>}
+              <button type="button" role="radio" aria-checked={active} disabled={busy} className={`pa-style${active ? " is-active" : ""}`} onClick={() => { workspace.setStyle(entry.id);reset(); }}>
+                <span className="pa-style__tile" style={{ color: entry.color }}>
+                  {source ? <StylePreview image={source.image} style={entry.id} playing={playing && !busy} fontsReady={fontsReady} /> : <b>{entry.word || entry.title}</b>}
+                  {entry.id === "steam" && <><span className="pa-style__steam" aria-hidden="true"><i /><i /><i /></span><em className="pa-style__tag">AI 生成</em></>}
+                </span>
+                <span className="pa-style__body"><strong>{entry.title}</strong><small>{entry.description}</small></span>
+                {active && <span className="pa-style__check" aria-hidden="true"><IconCheck width={12} height={12} /></span>}
+              </button>
+            </Fragment>;
           })}</div>
         </Step>
 

@@ -1,7 +1,8 @@
 import { deepEqual, equal, throws } from "node:assert/strict";
 import { ANIMATION_STYLES, MAX_ANIMATION_BYTES, chooseAnimationSize, containImage, validateAnimation } from "../src/lib/product-animation/policy";
 
-equal(ANIMATION_STYLES.length, 6);
+equal(ANIMATION_STYLES.length, 11);
+deepEqual(ANIMATION_STYLES.map((entry) => entry.group), ["ai", "premium", "premium", "premium", "premium", "premium", "classic", "classic", "classic", "classic", "classic"]);
 equal(ANIMATION_STYLES[0].id, "steam");
 equal(ANIMATION_STYLES[0].title, "热气腾腾");
 equal(ANIMATION_STYLES[0].word, "");
