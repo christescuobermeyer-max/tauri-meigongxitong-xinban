@@ -39,6 +39,30 @@
 .pa-drop__meta strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .pa-drop__change { flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 5px 9px; border-radius: 999px; font-size: 12px; color: var(--accent); background: var(--accent-soft); }
 
+/* 批量图片 */
+.pa-items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+.pa-item { position: relative; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pa-item__open { position: relative; display: block; padding: 0; overflow: hidden; aspect-ratio: 4 / 3; cursor: pointer; border: 1.5px solid var(--border); border-radius: 10px; background: var(--pa-stage); transition: border-color var(--duration), box-shadow var(--duration); }
+.pa-item__open canvas { width: 100%; height: 100%; display: block; }
+.pa-item__open:hover { border-color: var(--border-strong); }
+.pa-item__open:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pa-item.is-selected .pa-item__open { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.pa-item__no { position: absolute; top: 4px; left: 4px; display: grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #fff; background: rgba(0, 0, 0, 0.55); }
+.pa-item__state { position: absolute; left: 4px; right: 4px; bottom: 4px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 2px 4px; border-radius: 6px; font-size: 10px; font-weight: 600; color: #fff; background: rgba(0, 0, 0, 0.55); }
+.pa-item.is-running .pa-item__state { background: color-mix(in srgb, var(--info) 85%, black); }
+.pa-item.is-done .pa-item__state { background: color-mix(in srgb, var(--success) 85%, black); }
+.pa-item.is-failed .pa-item__state { background: color-mix(in srgb, var(--danger) 85%, black); }
+.pa-item__state .pa-spinner { width: 10px; height: 10px; border-width: 1.5px; border-color: rgba(255, 255, 255, 0.35); border-top-color: #fff; }
+.pa-item__style { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--fg-subtle); text-align: center; }
+.pa-item__remove { position: absolute; top: 4px; right: 4px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; color: #fff; background: rgba(0, 0, 0, 0.55); opacity: 0.85; }
+.pa-item__remove:hover { opacity: 1; background: var(--danger); }
+.pa-drop--compact { flex-direction: row; justify-content: center; gap: 8px; padding: 10px 12px; }
+.pa-drop--compact .pa-drop__icon { width: 28px; height: 28px; margin: 0; border-radius: 8px; }
+.pa-drop--compact strong { font-size: 13px; }
+.pa-note.pa-note--meta { margin: 8px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pa-scope { margin-bottom: 12px; }
+.pa-saved { display: flex; align-items: center; gap: 6px; margin: 0; padding: 8px 12px; border-radius: 10px; font-size: 12px; font-weight: 600; color: var(--success); background: color-mix(in srgb, var(--success) 10%, transparent); }
+
 /* 风格卡片 */
 .pa-styles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .pa-style { position: relative; display: flex; flex-direction: column; padding: 0; overflow: hidden; text-align: left; cursor: pointer; color: var(--fg);
@@ -52,7 +76,7 @@
 .pa-style__preview { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .pa-styles__group { grid-column: 1 / -1; margin: 6px 0 -2px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--fg-subtle); }
 .pa-styles__group:first-child { margin-top: 0; }
-.pa-note--tight { margin: -4px 0 10px; }
+.pa-note.pa-note--tight { margin: -4px 0 10px; }
 .pa-style__tile b { position: relative; font-size: 24px; font-weight: 800; letter-spacing: 0.06em; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35), 0 0 18px currentColor; }
 .pa-style__steam { z-index: 1; position: absolute; inset: 0; display: flex; justify-content: center; gap: 18px; padding-top: 34px; opacity: 0.6; }
 .pa-style__steam i { width: 6px; height: 26px; border-radius: 6px; background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.85)); filter: blur(2px); animation: pa-steam 2.4s ease-in-out infinite; }
@@ -93,6 +117,7 @@
 .pa-progress__bar span { display: block; height: 100%; border-radius: inherit; background: var(--accent-grad); transition: width var(--duration-slow) var(--easing); }
 .pa-error { display: flex; gap: 8px; margin: 0; padding: 10px 12px; border-radius: 10px; font-size: 13px; line-height: 1.6; color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); overflow-wrap: anywhere; }
 .pa-error svg { flex: none; margin-top: 3px; }
+.pa-error span { white-space: pre-line; }
 .pa-spinner { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--accent-soft); border-top-color: var(--accent); animation: pa-spin 0.8s linear infinite; }
 .pa-spinner--lg { width: 24px; height: 24px; border-width: 3px; }
 @keyframes pa-spin { to { transform: rotate(360deg); } }
