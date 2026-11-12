@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::io::Cursor;
 
 pub const MAX_BYTES: usize = 5_000_000;
+#[path = "product_animation/model.rs"]
+pub mod model;
 
 pub fn normalize_webp_duration(bytes: &mut [u8], duration_ms: u32) -> Result<(), String> {
     if bytes.len() < 12 || &bytes[..4] != b"RIFF" || &bytes[8..12] != b"WEBP" {
@@ -93,9 +95,13 @@ pub struct AnimationMedia {
 }
 
 pub fn inspect_animation(bytes: &[u8], spec: &AnimationSpec) -> Result<AnimationMedia, String> {
+    inspect_animation_with_limit(bytes, spec, MAX_BYTES)
+}
+
+pub(crate) fn inspect_animation_with_limit(bytes: &[u8], spec: &AnimationSpec, max_bytes: usize) -> Result<AnimationMedia, String> {
     spec.validate()?;
-    if bytes.is_empty() || bytes.len() > MAX_BYTES {
-        return Err("动图超过5M，不能交付".into());
+    if bytes.is_empty() || bytes.len() > max_bytes {
+        return Err("动图超过大小限制，不能交付".into());
     }
     let cursor = Cursor::new(bytes);
     let (dimensions, frames) = if spec.format == "gif" {

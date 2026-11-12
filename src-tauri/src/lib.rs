@@ -71,6 +71,7 @@ pub fn run() {
             product_animation::commands::cancel_product_animation,
             product_animation::commands::list_product_animations,
             product_animation::commands::save_product_animation,
+            product_animation::commands::import_model_animation,
             api::generate_image,
             image_proc::resize_and_save_image,
             image_proc::save_base64_image,

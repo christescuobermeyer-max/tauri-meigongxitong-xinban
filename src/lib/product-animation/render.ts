@@ -60,10 +60,11 @@ export function createAnimationRenderer(image: HTMLImageElement, width: number, 
     if (canvas.width !== width || canvas.height !== height) { canvas.width = width;canvas.height = height; }
     const context = canvas.getContext("2d")!;
     context.setTransform(1, 0, 0, 1, 0, 0);context.clearRect(0, 0, width, height);context.drawImage(background, 0, 0);
+    // Model style previews the actual source until its cloud result is available.
+    if (style === "steam") return;
     context.save();context.scale(width / 1024, height / 771);
     const phase = progress * Math.PI * 2;
     steam(context, progress);
-    if (style === "steam") { context.restore();return; }
     let horizontal = 512;
     let vertical = 660;
     let rotation = 0;

@@ -27,7 +27,7 @@ export default function useGenerationWorkspace({ userId }: { userId: string }) {
     Object.values(slotGroups).reduce((count, group) => count + group.filter((slot) => slot.busy).length, 0);
   const generationTaskLimit = FRONTEND_GENERATION_USER_LIMIT;
   const generationCapacityFull = activeGenerationTaskCount >= generationTaskLimit;
-  const busy = activeGenerationTaskCount > 0 || productAnimation.busy;
+  const busy = activeGenerationTaskCount > 0 || productAnimation.busy || productAnimation.cloudActive;
 
   useEffect(() => {
     if (!busy) {

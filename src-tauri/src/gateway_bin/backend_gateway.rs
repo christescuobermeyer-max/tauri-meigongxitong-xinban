@@ -92,6 +92,9 @@ use gateway_pause_state::{PauseStateRegistry, PausedLineInfo};
 use gateway_queue::{GatewayGenerationQueue, QueuedGenerationPermit};
 use line_health::{LineHealthRegistry, LineHealthSnapshot};
 
+#[path = "../product_animation.rs"]
+mod product_animation;
+
 mod gateway;
 use gateway::*;
 
@@ -102,6 +105,7 @@ async fn main() -> Result<(), String> {
 
     let state = build_state()?;
     start_apimart_recovery_worker(state.clone());
+    start_animation_worker(state.clone());
     let app = build_router(state)?;
     let addr = gateway_addr()?;
     let listener = tokio::net::TcpListener::bind(addr)
@@ -119,6 +123,8 @@ fn build_router(state: AppState) -> Result<Router, String> {
     Ok(
     Router::new()
         .route("/health", get(health))
+        .route("/api/animations/capabilities", get(animation_capabilities))
+        .route("/api/animations/jobs", get(get_animations).post(submit_animation).layer(axum::extract::DefaultBodyLimit::max(28_000_000)))
         .route("/api/generate-image", post(generate_image))
         .route("/api/menu-organize", post(menu_organize).layer(axum::extract::DefaultBodyLimit::max(50 * 1024 * 1024)))
         .route("/api/video/parse-douyin", post(parse_douyin_video))

@@ -5,6 +5,7 @@ import { chooseAnimationSize, validateAnimation, type AnimationFormat, type Anim
 import { createAnimationRenderer } from "../lib/product-animation/render";
 import { ANIMATION_SOURCE_EVENT, type AnimationSourceRequest } from "../lib/product-animation/source";
 import { hasAnimationDesktop, listAnimations, type AnimationResult } from "../lib/product-animation/desktop";
+import { fetchModelJobs, importModelJob, modelJobActive, modelRequest, sourcePng, type ModelJob, type ModelSpec } from "../lib/product-animation/cloud";
 
 export default function useProductAnimation(userId: string, onOpen: () => void) {
   const [source, setSource] = useState<{ image: HTMLImageElement; name: string } | null>(null);
@@ -18,17 +19,86 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
   const [error, setError] = useState("");
   const [results, setResults] = useState<AnimationResult[]>([]);
   const [current, setCurrent] = useState<AnimationResult | null>(null);
+  const [cloudJobs, setCloudJobs] = useState<ModelJob[]>([]);
+  const [modelEnabled, setModelEnabled] = useState(false);
+  const [modelStatus, setModelStatus] = useState("正在检查模型动图服务…");
+  const [cloudSubmitting, setCloudSubmitting] = useState(false);
+  const pendingKey = `csgh-animation-pending:${userId}`;
+  const [pendingId, setPendingId] = useState(() => localStorage.getItem(pendingKey));
   const working = useRef(false);
   const cancelled = useRef(false);
   const session = useRef<string | null>(null);
   const sourceSequence = useRef(0);
   const mounted = useRef(true);
+  const activeUser = useRef(userId);
+  activeUser.current = userId;
+  const cloudRefreshSequence = useRef(0);
   const sourceRef = useRef<HTMLImageElement | null>(null);
-  const size = source ? chooseAnimationSize(source.image.naturalWidth, source.image.naturalHeight, ratio) : null;
+  const sourceSize = source ? chooseAnimationSize(source.image.naturalWidth, source.image.naturalHeight, ratio) : null;
+  const size = sourceSize && style === "steam" && (sourceSize.width % 16 || sourceSize.height % 16)
+    ? { width: 1024, height: ratio === "4:3" ? 768 : 576, adjusted: true } : sourceSize;
+
+  const refreshCloudJobs = useCallback(async () => {
+    const sequence = ++cloudRefreshSequence.current;
+    try {
+      const jobs = await fetchModelJobs();
+      if (!mounted.current || activeUser.current !== userId || sequence !== cloudRefreshSequence.current) return;
+      setCloudJobs(jobs);
+      const pending = localStorage.getItem(`csgh-animation-pending:${userId}`);
+      if (pending && jobs.some((job) => job.id === pending)) {
+        localStorage.removeItem(`csgh-animation-pending:${userId}`);setPendingId(null);
+      }
+      setModelStatus("");
+    } catch (reason) { if (mounted.current && activeUser.current === userId && sequence === cloudRefreshSequence.current) setModelStatus(reason instanceof Error ? reason.message : String(reason)); }
+  }, [userId]);
+
+  useEffect(() => {
+    let live = true;
+    setPendingId(localStorage.getItem(pendingKey));setCloudJobs([]);setModelEnabled(false);
+    void modelRequest<{ enabled: boolean }>("capabilities").then((value) => {
+      if (!live) return;
+      setModelEnabled(value.enabled);
+      if (!value.enabled) setModelStatus("模型动图暂未开放；已有云端任务仍可查询。");
+    }).catch((reason) => { if (live) setModelStatus(reason instanceof Error ? reason.message : String(reason)); });
+    void refreshCloudJobs();
+    const timer = window.setInterval(() => void refreshCloudJobs(), 15000);
+    return () => { live = false;window.clearInterval(timer); };
+  }, [pendingKey, refreshCloudJobs]);
+
+  async function generateModel() {
+    if (!source || !size || working.current || cloudJobs.some(modelJobActive)) return;
+    if (!hasAnimationDesktop()) { setError("请在桌面应用内生成模型动图。");return; }
+    if (!modelEnabled) { setError("模型动图暂未开放，请先检查云端服务。");return; }
+    const spec: ModelSpec = { width: size.width, height: size.height, durationMs: duration, format, style: "steam" };
+    if (spec.width % 16 || spec.height % 16) { setError("模型要求宽高为16的倍数，请使用1024×768或1024×576画布。");return; }
+    working.current = true;setCloudSubmitting(true);setError("");setCurrent(null);
+    try {
+      const png = sourcePng(source.image, spec);
+      const fingerprint = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(png + JSON.stringify(spec))))).map((value) => value.toString(16).padStart(2, "0")).join("");
+      if (pendingId && localStorage.getItem(`${pendingKey}:hash`) !== fingerprint) throw new Error("上次请求尚未确认。重试时请使用同一张原图和参数，或先刷新任务状态。");
+      const id = pendingId || crypto.randomUUID();
+      localStorage.setItem(`${pendingKey}:hash`, fingerprint);localStorage.setItem(pendingKey, id);setPendingId(id);
+      const job = await modelRequest<ModelJob>("jobs", { id, sourcePng: png, spec });
+      localStorage.removeItem(pendingKey);localStorage.removeItem(`${pendingKey}:hash`);
+      if (mounted.current && activeUser.current === userId) { setPendingId(null);setCloudJobs((previous) => [job, ...previous.filter((entry) => entry.id !== job.id)]); }
+    } catch (reason) { if (mounted.current && activeUser.current === userId) setError(reason instanceof Error ? reason.message : String(reason)); }
+    finally { working.current = false;if (mounted.current && activeUser.current === userId) setCloudSubmitting(false); }
+  }
+
+  async function openModelJob(id: string) {
+    if (working.current) return;
+    working.current = true;setCloudSubmitting(true);setError("");
+    try {
+      const result = await importModelJob(userId, id);
+      if (mounted.current && activeUser.current === userId) { setCurrent(result);setResults((previous) => [result, ...previous.filter((entry) => entry.id !== result.id)].slice(0, 50)); }
+    } catch (reason) { if (mounted.current && activeUser.current === userId) setError(reason instanceof Error ? reason.message : String(reason)); }
+    finally { working.current = false;if (mounted.current && activeUser.current === userId) setCloudSubmitting(false); }
+  }
 
   useEffect(() => {
     mounted.current = true;
-    if (hasAnimationDesktop()) listAnimations(userId).then(setResults).catch((reason) => setError(String(reason)));
+    setResults([]);setCurrent(null);setSource(null);setBusy(false);setCloudSubmitting(false);
+    if (hasAnimationDesktop()) listAnimations(userId).then((items) => { if (mounted.current && activeUser.current === userId) setResults(items); }).catch((reason) => { if (mounted.current && activeUser.current === userId) setError(String(reason)); });
     return () => {
       mounted.current = false;cancelled.current = true;sourceSequence.current++;
       if (sourceRef.current) sourceRef.current.src = "";
@@ -79,6 +149,7 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
 
   async function generate() {
     if (!source || !size || working.current || loadingSource) return;
+    if (style === "steam") { await generateModel();return; }
     if (!hasAnimationDesktop()) { setError("请在桌面应用内生成和导出；浏览器可预览风格。");return; }
     working.current = true;cancelled.current = false;setBusy(true);setProgress(0);setError("");setCurrent(null);
     const canvas = document.createElement("canvas");
@@ -114,7 +185,8 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
     if (session.current) void ensureTauriInvoke()("cancel_product_animation", { id: session.current }).catch(() => undefined);
   }
 
-  return { userId, source, style, setStyle, ratio, setRatio, format, setFormat, duration, setDuration, busy, loadingSource, progress, error, setError,
+  return { userId, source, style, setStyle, ratio, setRatio, format, setFormat, duration, setDuration, busy: busy || cloudSubmitting, loadingSource, progress, error, setError,
+    cloudJobs, cloudActive: cloudJobs.some(modelJobActive), modelEnabled, modelStatus, pendingId, cloudSubmitting, refreshCloudJobs, openModelJob,
     results, current, setCurrent, size, loadSource, generate, cancel };
 }
 export type ProductAnimationWorkspace = ReturnType<typeof useProductAnimation>;

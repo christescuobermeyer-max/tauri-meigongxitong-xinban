@@ -49,6 +49,33 @@ fn user_directory(app: &AppHandle, user_id: &str) -> Result<PathBuf, String> {
 }
 
 #[tauri::command]
+pub async fn import_model_animation(app: AppHandle, user_id: String, id: String, data: String, spec: AnimationSpec, sha256: String) -> Result<AnimationResult, String> {
+    let id = uuid::Uuid::parse_str(&id).map_err(|_| "无效动图任务")?.to_string();
+    let directory = user_directory(&app, &user_id)?.join(&id);
+    if data.len() > 6_700_000 { return Err("动图超过5M".into()); }
+    tauri::async_runtime::spawn_blocking(move || {
+        use sha2::{Digest, Sha256};
+        let bytes = STANDARD.decode(data).map_err(|_| "动图数据无效")?;
+        if format!("{:x}", Sha256::digest(&bytes)) != sha256 { return Err("动图下载摘要校验失败".into()); }
+        let media = inspect_animation(&bytes, &spec)?;
+        if spec.style != "steam" { return Err("模型动图风格无效".into()); }
+        fs::create_dir_all(&directory).map_err(|_| "无法创建动图保存目录")?;
+        let path = directory.join(format!("result.{}", spec.format));
+        let poster = directory.join("poster.jpg");
+        let first = if spec.format == "gif" {
+            image::codecs::gif::GifDecoder::new(Cursor::new(&bytes)).map_err(|_| "GIF损坏")?.into_frames().next()
+        } else {
+            image::codecs::webp::WebPDecoder::new(Cursor::new(&bytes)).map_err(|_| "WebP损坏")?.into_frames().next()
+        }.ok_or("动图缺少首帧")?.map_err(|_| "动图首帧损坏")?;
+        image::DynamicImage::ImageRgba8(first.into_buffer()).to_rgb8().save(&poster).map_err(|_| "无法保存动图封面")?;
+        fs::write(&path, &bytes).map_err(|_| "无法保存动图")?;
+        let result = AnimationResult { id, style: "steam".into(), path: path.to_string_lossy().into(), poster_path: poster.to_string_lossy().into(), created_at: chrono::Utc::now().to_rfc3339(), media };
+        fs::write(directory.join("result.json"), serde_json::to_vec(&result).map_err(|_| "动图记录编码失败")?).map_err(|_| "无法保存动图记录")?;
+        Ok(result)
+    }).await.map_err(|_| "保存模型动图失败")?
+}
+
+#[tauri::command]
 pub async fn begin_product_animation(
     app: AppHandle,
     user_id: String,

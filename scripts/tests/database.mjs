@@ -51,6 +51,11 @@ try {
   verify("完整初始化");
   sql(schema);
   verify("重复初始化");
+  const animationMigration = readFileSync(path.join(root, "supabase/migrations/20261112_product_animation_jobs.sql"), "utf8");
+  sql("drop function public.claim_product_animation(uuid,boolean); drop function public.enqueue_product_animation(uuid,uuid,text,text,jsonb); drop table public.product_animation_jobs;");
+  sql(animationMigration);
+  sql(animationMigration);
+  verify("模型动图增量迁移重复执行");
   sql("alter table public.generation_logs drop column elapsed_ms;");
   sql(readFileSync(path.join(root, "supabase/migrations/20260518_add_generation_elapsed_ms.sql"), "utf8"));
   verify("旧库耗时字段迁移");

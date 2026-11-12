@@ -1,5 +1,8 @@
 use super::*;
 
+mod animation;
+pub(crate) use animation::*;
+
 mod video;
 pub(crate) use video::*;
 

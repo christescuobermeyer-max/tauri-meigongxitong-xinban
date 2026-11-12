@@ -212,6 +212,23 @@ fn build_oss_client() -> Result<OSS, String> {
     Ok(OSS::new(access_key_id, access_key_secret, endpoint, bucket))
 }
 
+// Server-created keys only; no arbitrary object write endpoint is exposed.
+pub(crate) async fn put_animation_object(user: &str, job: &str, name: &str, bytes: &[u8], mime: &str) -> Result<String, String> {
+    let user = uuid::Uuid::parse_str(user).map_err(|_| "无效账号")?;
+    let job = uuid::Uuid::parse_str(job).map_err(|_| "无效任务")?;
+    if name.is_empty() || name.len() > 100 || !name.bytes().all(|c| c.is_ascii_alphanumeric() || b"-._".contains(&c)) {
+        return Err("无效动图对象名".into());
+    }
+    let key = format!("product-animations/{user}/{job}/{name}");
+    put_object_with_retry(&build_oss_client()?, &key, bytes, mime).await.map_err(|_| "动图云端存储暂不可用")?;
+    Ok(key)
+}
+
+pub(crate) fn animation_download_url(key: &str) -> Result<String, String> {
+    if !key.starts_with("product-animations/") || key.contains("..") { return Err("无效动图对象".into()); }
+    Ok(build_oss_client()?.sign_download_url(key, &RequestBuilder::new().with_expire(3600)))
+}
+
 fn normalize_endpoint(region_or_endpoint: &str) -> String {
     if region_or_endpoint.contains("aliyuncs.com") {
         region_or_endpoint
