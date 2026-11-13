@@ -10,7 +10,7 @@ type WorkspaceDefinition = {
 export const WORKSPACE_CATALOG = {
   avatarStorefront: { title: "三件套设计", label: "三件套设计", description: "头像 / 店招 / 海报", icon: "designSuite" },
   productImage: { title: "制作1张设计图", label: "制作1张设计图", description: "单张高质感产品主图", icon: "image" },
-  productGif: { title: "动图制作", label: "动图制作", description: "六种菜品动效与平台合规导出", icon: "sparkles" },
+  productGif: { title: "动图制作", label: "动图制作", description: "菜品图加动效，或视频截取片段转动图", icon: "sparkles" },
   productBatch: { title: "制作全店图", label: "制作全店图", description: "最多 20 张批量全店图", icon: "batchImages" },
   packageImage: { title: "制作套餐图", label: "制作套餐图", description: "最多 6 张产品合成套餐图", icon: "batchImages" },
   pictureWall: { title: "图片墙生成", label: "图片墙生成", description: "1-3 张美团图片墙", icon: "image" },

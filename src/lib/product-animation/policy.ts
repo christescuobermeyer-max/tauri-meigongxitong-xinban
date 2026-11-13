@@ -18,6 +18,10 @@ export const ANIMATION_STYLES = [
   { id: "flip", group: "bold", title: "翻牌连击", word: "真香", subtitle: "", description: "真香/好吃/必点三连翻牌，星星迸发", color: "#ffcf48", ink: "#6a2a05" },
 ] as const;
 export type AnimationStyle = typeof ANIMATION_STYLES[number]["id"];
+/** Style id stored on animations cut from a video clip. */
+export const VIDEO_ANIMATION_STYLE = "video";
+export type AnimationResultStyle = AnimationStyle | typeof VIDEO_ANIMATION_STYLE;
+export const animationStyleTitle = (id: string) => id === VIDEO_ANIMATION_STYLE ? "视频动图" : ANIMATION_STYLES.find((entry) => entry.id === id)?.title ?? "动图";
 
 function validDimensions(width: number, height: number) {
   return Number.isInteger(width) && Number.isInteger(height) && width > 0 && height > 0;
@@ -32,6 +36,11 @@ export function chooseAnimationSize(width: number, height: number, ratio: Animat
     return { width, height, adjusted: false };
   }
   return { width: 1024, height: ratio === "4:3" ? 768 : 576, adjusted: true };
+}
+
+/** Video clips use the smallest platform size: real footage is costly to fit under 5MB. */
+export function chooseVideoAnimationSize(ratio: AnimationRatio) {
+  return { width: 768, height: ratio === "4:3" ? 576 : 432 };
 }
 
 export function containImage(sourceWidth: number, sourceHeight: number, width: number, height: number) {

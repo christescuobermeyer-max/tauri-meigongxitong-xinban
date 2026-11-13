@@ -1,21 +1,19 @@
-import { Fragment, useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
-import { MAX_ANIMATION_ITEMS, type AnimationItemStatus, type ProductAnimationWorkspace } from "../../hooks/useProductAnimation";
-import { ANIMATION_STYLES, ANIMATION_STYLE_GROUPS, type AnimationFormat, type AnimationRatio, type AnimationStyle } from "../../lib/product-animation/policy";
+import { Fragment, useEffect, useRef, useState, type DragEvent } from "react";
+import { MAX_ANIMATION_ITEMS, type AnimationItemStatus, type AnimationMode, type ProductAnimationWorkspace } from "../../hooks/useProductAnimation";
+import { ANIMATION_STYLES, ANIMATION_STYLE_GROUPS, animationStyleTitle, type AnimationFormat, type AnimationRatio, type AnimationStyle } from "../../lib/product-animation/policy";
 import { createAnimationRenderer } from "../../lib/product-animation/render";
 import { loadAnimationFonts } from "../../lib/product-animation/fonts";
 import { animationFileUrl, saveAnimation, type AnimationResult } from "../../lib/product-animation/desktop";
-import { IconAlert, IconCheck, IconClose, IconDownload, IconHistory, IconHourglass, IconImage, IconPause, IconPlay, IconSparkles, IconTrash, IconUpload } from "../Icons";
+import { IconAlert, IconCheck, IconClose, IconDownload, IconHistory, IconHourglass, IconImage, IconPause, IconPlay, IconSparkles, IconTrash, IconUpload, IconVideo } from "../Icons";
 import MerchantCopyCard from "../MerchantCopyCard";
+import { ANIMATION_COPY_TEXT, ResultMetrics, Segmented, Step } from "./product-animation-parts";
+import VideoAnimationPanel from "./VideoAnimationPanel";
 import "../../styles/product-animation.css";
 
-const ANIMATION_COPY_TEXT =
-  "老板好，店铺动图已经做好了～顾客刷外卖时，会动的菜品比静态图更容易让人停下来多看一眼，看得越久越有食欲，进店和下单的机会就更大。建议换到店铺招牌菜和主图位置，效果最明显！";
-
-function Segmented<T extends string | number>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; text: string }[]; onChange: (value: T) => void }) {
-  return <div className="pa-field"><span className="pa-field__label">{label}</span>
-    <div className="pa-segmented" role="radiogroup" aria-label={label}>{options.map((option) => <button key={String(option.value)} type="button" role="radio" aria-checked={value === option.value} className={value === option.value ? "is-active" : ""} onClick={() => onChange(option.value)}>{option.text}</button>)}</div>
-  </div>;
-}
+const MODES: { id: AnimationMode; title: string; hint: string; icon: typeof IconSparkles }[] = [
+  { id: "image", title: "图片做动效", hint: "给菜品图加贴纸动效", icon: IconSparkles },
+  { id: "video", title: "视频转动图", hint: "截取视频片段导出", icon: IconVideo },
+];
 
 // The source <img> URL may already be revoked, so draw the decoded image instead of reusing its src.
 function SourceThumb({ image }: { image: HTMLImageElement }) {
@@ -48,12 +46,8 @@ function StyleThumb({ image, style, animate, fontsReady }: { image: HTMLImageEle
   return <canvas ref={ref} className="pa-style__preview" aria-hidden="true" />;
 }
 
-function Step({ index, title, children }: { index: number; title: string; children: ReactNode }) {
-  return <div className="pa-step"><div className="pa-step__head"><span className="pa-step__no">{index}</span><h3>{title}</h3></div>{children}</div>;
-}
-
 const STATUS_TEXT: Record<AnimationItemStatus, string> = { idle: "待生成", running: "生成中", done: "已完成", failed: "失败" };
-const styleTitle = (id: AnimationStyle) => ANIMATION_STYLES.find((entry) => entry.id === id)?.title ?? "动图";
+const styleTitle = animationStyleTitle;
 
 export default function ProductAnimationWorkspacePage({ workspace }: { workspace: ProductAnimationWorkspace }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -64,7 +58,10 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
   const [fontsReady, setFontsReady] = useState(false);
   const [hovered, setHovered] = useState<AnimationStyle | null>(null);
   useEffect(() => { let alive = true;void loadAnimationFonts().then(() => { if (alive) setFontsReady(true); });return () => { alive = false; }; }, []);
-  const { source, size, style, duration, current, busy } = workspace;
+  const { source, size, style, duration, current } = workspace;
+  const busy = workspace.busy;
+  // Either flow running locks the shared records, tabs and clearing.
+  const anyBusy = busy || workspace.video.busy;
   const uploadLocked = busy || workspace.loadingSource;
   const items = workspace.items;
   const multi = items.length > 1;
@@ -115,13 +112,20 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
   return <div className="pa">
     <header className="pa-hero">
       <div className="pa-hero__badge" aria-hidden="true"><IconSparkles width={26} height={26} /></div>
-      <div className="pa-hero__text"><h2>动图制作</h2><p>上传菜品图，一键生成外卖平台可直接上传的菜品动图</p></div>
+      <div className="pa-hero__text"><h2>动图制作</h2><p>菜品图加动效，或从视频截取片段，导出外卖平台可直接上传的动图</p></div>
       <ul className="pa-hero__specs" aria-label="平台规格">
         {["GIF / WebP", "4:3 · 16:9", "2–5 秒", "≤ 5MB"].map((text) => <li key={text}><IconCheck width={13} height={13} aria-hidden="true" />{text}</li>)}
       </ul>
     </header>
 
-    <div className="pa-layout">
+    <div className="pa-modes" role="tablist" aria-label="制作方式">{MODES.map(({ id, title, hint, icon: Icon }) => (
+      <button key={id} type="button" role="tab" aria-selected={workspace.mode === id} disabled={anyBusy && workspace.mode !== id} className={`pa-mode${workspace.mode === id ? " is-active" : ""}`} onClick={() => workspace.setMode(id)}>
+        <span className="pa-mode__icon" aria-hidden="true"><Icon width={18} height={18} /></span>
+        <span className="pa-mode__text"><strong>{title}</strong><small>{hint}</small></span>
+      </button>))}
+    </div>
+
+    {workspace.mode === "video" ? <VideoAnimationPanel workspace={workspace.video} current={current} saving={saving} onDownload={(result) => void download(result)} onReset={reset} /> : <div className="pa-layout">
       <section className="pa-panel">
         <Step index={1} title={items.length ? `选择菜品图（${items.length}/${MAX_ANIMATION_ITEMS}）` : "选择菜品图"}>
           {items.length > 0 && <div className="pa-items">{items.map((item, index) => {
@@ -205,31 +209,23 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
           <span className="pa-empty__icon" aria-hidden="true"><IconImage width={30} height={30} /></span>
           <strong>还没有菜品图</strong><p>在左侧上传一张菜品图，这里会实时预览动图效果</p>
         </div>}</div>
-        {current && <div className="pa-metrics">
-          <span className="pa-metrics__ok"><IconCheck width={14} height={14} aria-hidden="true" />已通过平台规格校验</span>
-          <dl>
-            <div><dt>尺寸</dt><dd>{current.media.width}×{current.media.height}</dd></div>
-            <div><dt>时长</dt><dd>{(current.media.durationMs / 1000).toFixed(2)} 秒</dd></div>
-            <div><dt>帧数</dt><dd>{current.media.frames} 帧</dd></div>
-            <div><dt>大小</dt><dd>{(current.media.bytes / 1_000_000).toFixed(2)} MB</dd></div>
-          </dl>
-        </div>}
+        {current && <ResultMetrics result={current} />}
         <MerchantCopyCard text={ANIMATION_COPY_TEXT} successMessage="动图沟通文案已复制到剪贴板" />
       </section>
-    </div>
+    </div>}
 
     <section className="pa-section">
       <div className="pa-section__head"><div><h3><IconHistory width={16} height={16} aria-hidden="true" />本机动图记录</h3><p>当前账号 · 保存在本机 · 最近 50 条，可再次下载；清空只删除软件内保存的动图，已下载到其他位置的文件不受影响</p></div>
         {workspace.results.length > 0 && <div className="pa-clear">
           {confirmClear && <button type="button" className="btn btn--ghost btn--sm" onClick={() => setConfirmClear(false)}>取消</button>}
-          <button type="button" className={`btn btn--sm ${confirmClear ? "pa-clear__confirm" : "btn--secondary"}`} disabled={busy} onClick={() => void clearAll()}><IconTrash width={14} height={14} aria-hidden="true" />{confirmClear ? "确认清空全部动图？" : "一键清空"}</button>
+          <button type="button" className={`btn btn--sm ${confirmClear ? "pa-clear__confirm" : "btn--secondary"}`} disabled={anyBusy} onClick={() => void clearAll()}><IconTrash width={14} height={14} aria-hidden="true" />{confirmClear ? "确认清空全部动图？" : "一键清空"}</button>
         </div>}
       </div>
       {cleared && <p className="pa-saved pa-saved--block" role="status"><IconCheck width={14} height={14} aria-hidden="true" />{cleared}</p>}
       {workspace.results.length ? <div className="pa-grid">{workspace.results.map((result) => <article key={result.id} className={`pa-card${current?.id === result.id ? " is-current" : ""}`}>
-        <button type="button" className="pa-card__media pa-card__open" disabled={busy} onClick={() => workspace.setCurrent(result)} aria-label="在预览区查看"><img loading="lazy" decoding="async" src={animationFileUrl(result.path)} alt="本机动图" /></button>
+        <button type="button" className="pa-card__media pa-card__open" disabled={anyBusy} onClick={() => workspace.setCurrent(result)} aria-label="在预览区查看"><img loading="lazy" decoding="async" src={animationFileUrl(result.path)} alt="本机动图" /></button>
         <div className="pa-card__body">
-          <strong>{ANIMATION_STYLES.find((entry) => entry.id === result.style)?.title || "动图"}</strong>
+          <strong>{styleTitle(result.style)}</strong>
           <small>{result.media.width}×{result.media.height} · {result.media.format.toUpperCase()} · {(result.media.bytes / 1_000_000).toFixed(2)}MB</small>
           <button className="btn btn--primary btn--sm" type="button" disabled={saving} onClick={() => void download(result)}><IconDownload width={14} height={14} aria-hidden="true" />下载 {result.media.format.toUpperCase()}</button>
         </div>

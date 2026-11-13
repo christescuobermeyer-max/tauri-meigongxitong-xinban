@@ -209,6 +209,40 @@ fn ffmpeg(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(PathBuf::from("ffmpeg"))
 }
 
+/// One compression attempt: frame rate, GIF palette size, WebP quality, and optional denoise.
+struct EncoderTier {
+    rate: u32,
+    colors: u32,
+    quality: u32,
+    denoise: bool,
+}
+const IMAGE_TIERS: [EncoderTier; 3] = [
+    EncoderTier { rate: 20, colors: 256, quality: 82, denoise: false },
+    EncoderTier { rate: 15, colors: 128, quality: 65, denoise: false },
+    EncoderTier { rate: 10, colors: 64, quality: 45, denoise: false },
+];
+// Real footage changes every pixel when the camera moves, so video needs a deeper ladder to fit 5MB.
+// Rates divide 100 evenly in GIF centiseconds (or round back to the exact total), keeping 2–5 s exact.
+const VIDEO_TIERS: [EncoderTier; 4] = [
+    EncoderTier { rate: 20, colors: 256, quality: 75, denoise: false },
+    EncoderTier { rate: 15, colors: 128, quality: 60, denoise: false },
+    EncoderTier { rate: 10, colors: 64, quality: 50, denoise: true },
+    EncoderTier { rate: 6, colors: 32, quality: 40, denoise: true },
+];
+fn encoder_tiers(spec: &AnimationSpec) -> &'static [EncoderTier] {
+    if spec.style == VIDEO_STYLE { &VIDEO_TIERS } else { &IMAGE_TIERS }
+}
+
+fn hide_window(command: &mut Command) {
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000);
+    }
+    #[cfg(not(target_os = "windows"))]
+    let _ = command;
+}
+
 fn run_encoder(
     binary: &Path,
     directory: &Path,
@@ -229,20 +263,23 @@ fn run_encoder(
         "%04d.png",
         "-an",
     ]);
-    let rate = [20, 15, 10][attempt];
+    let tier = encoder_tiers(spec).get(attempt).ok_or("压缩档位无效")?;
+    let rate = tier.rate;
+    let denoise = if tier.denoise { "hqdn3d=4:3:6:4," } else { "" };
     if spec.format == "gif" {
-        let colors = [256, 128, 64][attempt];
-        command.args(["-filter_complex", &format!("fps={rate},split[a][b];[a]palettegen=max_colors={colors}:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=3:diff_mode=rectangle"), "-loop", "0"]);
+        let colors = tier.colors;
+        let bayer = if tier.denoise { 5 } else { 3 };
+        command.args(["-filter_complex", &format!("{denoise}fps={rate},split[a][b];[a]palettegen=max_colors={colors}:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale={bayer}:diff_mode=rectangle"), "-loop", "0"]);
     } else {
         command.args([
             "-vf",
-            &format!("fps={rate}"),
+            &format!("{denoise}fps={rate}"),
             "-c:v",
             "libwebp_anim",
             "-lossless",
             "0",
             "-quality",
-            &[82, 65, 45][attempt].to_string(),
+            &tier.quality.to_string(),
             "-loop",
             "0",
         ]);
@@ -319,7 +356,7 @@ pub async fn finish_product_animation(
     let result = tauri::async_runtime::spawn_blocking(move || {
         let binary = ffmpeg(&app)?;
         let mut last_error = "无法在选定尺寸下压缩到5M，请尝试WebP或缩短时长".to_string();
-        for attempt in 0..3 {
+        for attempt in 0..encoder_tiers(&spec).len() {
             let output = run_encoder(&binary, &directory, &spec, attempt, &cancelled)?;
             if cancelled.load(Ordering::Relaxed) {
                 return Err("已取消动图制作".into());
@@ -372,6 +409,182 @@ pub async fn finish_product_animation(
     }
     let _ = fs::remove_dir_all(cleanup_directory);
     result
+}
+
+/// Video files the user may pick; anything else is refused before FFmpeg sees it.
+const VIDEO_EXTENSIONS: [&str; 6] = ["mp4", "mov", "m4v", "mkv", "webm", "avi"];
+
+fn checked_video_path(input: &str) -> Result<PathBuf, String> {
+    let path = PathBuf::from(input);
+    let extension = path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .map(|extension| extension.to_ascii_lowercase())
+        .unwrap_or_default();
+    if !path.is_absolute() || !path.is_file() || !VIDEO_EXTENSIONS.contains(&extension.as_str()) {
+        return Err("请选择本机的 MP4 / MOV / MKV / WebM / AVI 视频文件".into());
+    }
+    Ok(path)
+}
+
+/// Lets the preview <video> read the picked file through the asset protocol.
+#[tauri::command]
+pub async fn allow_animation_video(app: AppHandle, path: String) -> Result<String, String> {
+    let checked = checked_video_path(&path)?;
+    app.asset_protocol_scope()
+        .allow_file(&checked)
+        .map_err(|error| format!("授权视频预览失败：{error}"))?;
+    Ok(path)
+}
+
+#[derive(Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VideoClip {
+    pub input_path: String,
+    pub start_ms: u32,
+    pub x: u32,
+    pub y: u32,
+    pub width: u32,
+    pub height: u32,
+}
+
+/// Makes sure frames 0..expected exist. A clip that ends a few frames early (rounding at the
+/// end of the file) repeats its last frame; a clip that is mostly missing is an error.
+fn complete_frame_sequence(directory: &Path, expected: u32) -> Result<u32, String> {
+    let frame = |index: u32| directory.join(format!("{index:04}.png"));
+    let found = (0..expected).take_while(|index| frame(*index).is_file()).count() as u32;
+    if found == 0 {
+        return Err("没有从所选片段读到画面，请换一个起点或换一个视频".into());
+    }
+    if found * 10 < expected * 9 {
+        return Err("所选片段超出了视频结尾，请把片段往前移".into());
+    }
+    for index in found..expected {
+        fs::copy(frame(found - 1), frame(index)).map_err(|error| error.to_string())?;
+    }
+    Ok(expected)
+}
+
+fn extract_video_frames(
+    binary: &Path,
+    directory: &Path,
+    spec: &AnimationSpec,
+    clip: &VideoClip,
+    cancelled: &AtomicBool,
+) -> Result<u32, String> {
+    let input = checked_video_path(&clip.input_path)?;
+    if clip.width < 64 || clip.height < 64 {
+        return Err("取景框太小，请放大后再生成".into());
+    }
+    // The crop must already have the output ratio (within 2%), otherwise the dish would be stretched.
+    let (wide, tall) = (clip.width as u64 * spec.height as u64, clip.height as u64 * spec.width as u64);
+    if wide.abs_diff(tall) * 50 > tall {
+        return Err("取景框比例与输出比例不一致".into());
+    }
+    let expected = spec.frame_count();
+    let mut command = Command::new(binary);
+    command.current_dir(directory).args([
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-ss",
+        &format!("{:.3}", clip.start_ms as f64 / 1000.0),
+        "-i",
+    ]);
+    command.arg(&input).args([
+        "-an",
+        "-sn",
+        "-dn",
+        "-frames:v",
+        &expected.to_string(),
+        "-vf",
+        &format!(
+            "fps=20,crop={}:{}:{}:{},scale={}:{}:flags=lanczos,setsar=1,format=rgb24",
+            clip.width, clip.height, clip.x, clip.y, spec.width, spec.height
+        ),
+        "-start_number",
+        "0",
+        "%04d.png",
+    ]);
+    let log = fs::File::create(directory.join("extract.log")).map_err(|error| error.to_string())?;
+    command.stdin(Stdio::null()).stdout(Stdio::null()).stderr(log);
+    hide_window(&mut command);
+    let mut child = command
+        .spawn()
+        .map_err(|_| "无法启动FFmpeg，请使用包含媒体工具的桌面安装包")?;
+    let started = Instant::now();
+    loop {
+        if cancelled.load(Ordering::Relaxed) || started.elapsed() > Duration::from_secs(180) {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err("视频截取已取消或超时".into());
+        }
+        match child.try_wait() {
+            Ok(Some(status)) if status.success() => break,
+            Ok(Some(_)) => {
+                let detail = fs::read_to_string(directory.join("extract.log")).unwrap_or_default();
+                let tail: String = detail.trim().chars().rev().take(200).collect::<Vec<_>>().into_iter().rev().collect();
+                return Err(format!("读取视频画面失败：{tail}"));
+            }
+            Ok(None) => std::thread::sleep(Duration::from_millis(100)),
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(error.to_string());
+            }
+        }
+    }
+    let _ = fs::remove_file(directory.join("extract.log"));
+    let count = complete_frame_sequence(directory, expected)?;
+    let dimensions = image::image_dimensions(directory.join("0000.png")).map_err(|_| "视频画面损坏")?;
+    if dimensions != (spec.width, spec.height) {
+        return Err("视频画面尺寸与输出不一致".into());
+    }
+    Ok(count)
+}
+
+/// Fills a "video" session with frames cut from the picked clip; finish_product_animation encodes them.
+#[tauri::command]
+pub async fn extract_product_animation_video(
+    app: AppHandle,
+    id: String,
+    clip: VideoClip,
+) -> Result<(), String> {
+    let (directory, spec, cancelled) = {
+        let mut registry = sessions().lock().map_err(|_| "任务锁不可用")?;
+        let session = registry.get_mut(&id).ok_or("动图任务不存在")?;
+        if session.spec.style != VIDEO_STYLE || session.encoding || session.received != 0 {
+            return Err("视频动图任务状态无效".into());
+        }
+        // Reuses the encoding flag so cancel only signals while FFmpeg runs.
+        session.encoding = true;
+        (session.directory.clone(), session.spec.clone(), session.cancelled.clone())
+    };
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        let binary = ffmpeg(&app)?;
+        extract_video_frames(&binary, &directory, &spec, &clip, &cancelled)
+    })
+    .await
+    .map_err(|error| error.to_string())
+    .and_then(|result| result);
+    let mut registry = sessions().lock().map_err(|_| "任务锁不可用")?;
+    if let Some(session) = registry.get_mut(&id) {
+        session.encoding = false;
+        let stopped = session.cancelled.load(Ordering::Relaxed);
+        match (&result, stopped) {
+            (Ok(count), false) => session.received = *count,
+            _ => {
+                let _ = fs::remove_dir_all(&session.directory);
+                registry.remove(&id);
+            }
+        }
+    }
+    match result {
+        Ok(_) if registry.contains_key(&id) => Ok(()),
+        Ok(_) => Err("已取消视频动图制作".into()),
+        Err(error) => Err(error),
+    }
 }
 
 #[tauri::command]
@@ -599,6 +812,78 @@ mod tests {
         assert!(!first.exists() && !second.exists());
         assert!(root.join("keep-me").exists() && root.join("notes.txt").exists());
         assert_eq!(remove_animation_directories(&root.join("missing")).unwrap(), AnimationCleanup::default());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn frame_sequence_pads_a_short_tail_and_rejects_missing_clips() {
+        let folder = std::env::temp_dir().join(format!("csgh-video-frames-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&folder).unwrap();
+        assert!(complete_frame_sequence(&folder, 60).unwrap_err().contains("没有"));
+        for index in 0..30 {
+            fs::write(folder.join(format!("{index:04}.png")), [index as u8]).unwrap();
+        }
+        assert!(complete_frame_sequence(&folder, 60).unwrap_err().contains("结尾"));
+        for index in 30..57 {
+            fs::write(folder.join(format!("{index:04}.png")), [index as u8]).unwrap();
+        }
+        assert_eq!(complete_frame_sequence(&folder, 60).unwrap(), 60);
+        assert_eq!(fs::read(folder.join("0059.png")).unwrap(), [56u8]);
+        fs::remove_dir_all(folder).unwrap();
+    }
+
+    #[test]
+    fn video_paths_must_be_local_video_files() {
+        assert!(checked_video_path("relative.mp4").is_err());
+        assert!(checked_video_path("-i.mp4").is_err());
+        let folder = std::env::temp_dir().join(format!("csgh-video-path-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&folder).unwrap();
+        fs::write(folder.join("clip.MOV"), b"x").unwrap();
+        fs::write(folder.join("notes.txt"), b"x").unwrap();
+        assert!(checked_video_path(folder.join("clip.MOV").to_str().unwrap()).is_ok());
+        assert!(checked_video_path(folder.join("notes.txt").to_str().unwrap()).is_err());
+        assert!(checked_video_path(folder.join("missing.mp4").to_str().unwrap()).is_err());
+        fs::remove_dir_all(folder).unwrap();
+    }
+
+    /// Cuts a moving, grainy 1080p clip and checks the video ladder still fits the platform limits.
+    #[test]
+    fn real_video_clip_is_cut_and_compressed_within_limits() {
+        let Some(binary) = std::env::var_os("CSGH_TEST_FFMPEG").map(PathBuf::from) else {
+            return;
+        };
+        let root = std::env::temp_dir().join(format!("csgh-video-clip-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        let source = root.join("source.mp4");
+        let status = Command::new(&binary)
+            .args(["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i",
+                "testsrc2=size=1920x1080:rate=30:duration=7,noise=alls=4:allf=t", "-pix_fmt", "yuv420p"])
+            .arg(&source)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        let cancelled = AtomicBool::new(false);
+        for (format, ratio) in [("gif", (768, 576, 1440, 1080)), ("webp", (768, 432, 1920, 1080))] {
+            let frames = root.join(format!("frames-{format}"));
+            fs::create_dir(&frames).unwrap();
+            let spec = AnimationSpec { width: ratio.0, height: ratio.1, duration_ms: 5000, format: format.into(), style: VIDEO_STYLE.into() };
+            let clip = VideoClip { input_path: source.to_string_lossy().into(), start_ms: 1500, x: 1920 - ratio.2, y: 0, width: ratio.2, height: ratio.3 };
+            assert_eq!(extract_video_frames(&binary, &frames, &spec, &clip, &cancelled).unwrap(), 100);
+            let delivered = (0..encoder_tiers(&spec).len()).find_map(|attempt| {
+                let path = run_encoder(&binary, &frames, &spec, attempt, &cancelled).unwrap();
+                inspect_animation(&fs::read(path).unwrap(), &spec).ok()
+            });
+            let media = delivered.unwrap_or_else(|| panic!("{format} video clip cannot fit 5MB"));
+            assert_eq!(media.duration_ms, 5000);
+            // A clip starting too close to the end is refused instead of padding most of it.
+            let late = root.join(format!("late-{format}"));
+            fs::create_dir(&late).unwrap();
+            let tail = VideoClip { start_ms: 6000, ..clip.clone() };
+            assert!(extract_video_frames(&binary, &late, &spec, &tail, &cancelled).unwrap_err().contains("结尾"));
+            // A crop that does not match the output ratio would stretch the dish.
+            let skewed = VideoClip { width: 1000, ..clip };
+            assert!(extract_video_frames(&binary, &late, &spec, &skewed, &cancelled).unwrap_err().contains("比例"));
+        }
         fs::remove_dir_all(root).unwrap();
     }
 

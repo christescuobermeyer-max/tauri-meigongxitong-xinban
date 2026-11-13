@@ -40,6 +40,9 @@ pub fn normalize_webp_duration(bytes: &mut [u8], duration_ms: u32) -> Result<(),
     Ok(())
 }
 
+/// Style id of animations cut from a video clip rather than drawn over a still image.
+pub const VIDEO_STYLE: &str = "video";
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnimationSpec {
@@ -75,7 +78,7 @@ impl AnimationSpec {
             // Retired styles stay valid so previously saved animations can still be exported.
             "gilded" | "wok" | "crush" | "signature" | "sparkle" | "heart" | "burst" | "swing"
                 | "blaze" | "beat" | "stamp" | "flip" | "steam" | "smoke" | "aroma" | "flame"
-                | "recommend"
+                | "recommend" | VIDEO_STYLE
         ) {
             return Err("未知动图风格".into());
         }
@@ -174,6 +177,7 @@ mod tests {
     #[test]
     fn platform_limits_are_strict() {
         assert!(spec().validate().is_ok());
+        assert!(AnimationSpec { style: VIDEO_STYLE.into(), ..spec() }.validate().is_ok());
         assert!(AnimationSpec {
             height: 771,
             ..spec()

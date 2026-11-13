@@ -97,7 +97,11 @@ const productAnimationPageSource = readFileSync(
   "utf8"
 );
 equal(productAnimationPageSource.includes("MerchantCopyCard"), true);
+const productAnimationPartsSource = readFileSync(
+  new URL("../src/components/workspace/product-animation-parts.tsx", import.meta.url),
+  "utf8"
+);
 equal(
-  productAnimationPageSource.includes("会动的菜品比静态图更容易让人停下来多看一眼"),
+  productAnimationPartsSource.includes("会动的菜品比静态图更容易让人停下来多看一眼"),
   true
 );

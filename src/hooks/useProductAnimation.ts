@@ -6,8 +6,10 @@ import { createAnimationRenderer } from "../lib/product-animation/render";
 import { loadAnimationFonts } from "../lib/product-animation/fonts";
 import { ANIMATION_SOURCE_EVENT, type AnimationSourceRequest } from "../lib/product-animation/source";
 import { clearAnimations, hasAnimationDesktop, listAnimations, saveAllAnimations, type AnimationResult } from "../lib/product-animation/desktop";
+import useVideoAnimation from "./useVideoAnimation";
 
 export const MAX_ANIMATION_ITEMS = 5;
+export type AnimationMode = "image" | "video";
 export type AnimationItemStatus = "idle" | "running" | "done" | "failed";
 export interface AnimationItem { key: string; image: HTMLImageElement; name: string; style: AnimationStyle | null; status: AnimationItemStatus; result?: AnimationResult; error?: string }
 
@@ -35,6 +37,12 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
   const [error, setError] = useState("");
   const [results, setResults] = useState<AnimationResult[]>([]);
   const [current, setCurrent] = useState<AnimationResult | null>(null);
+  const [mode, setModeState] = useState<AnimationMode>("image");
+  // Video clips share the record list and the preview result with the image flow.
+  const video = useVideoAnimation(userId, (result) => {
+    setResults((previous) => [result, ...previous.filter((entry) => entry.id !== result.id)].slice(0, 50));
+    setCurrent(result);
+  });
   const working = useRef(false);
   const cancelled = useRef(false);
   const session = useRef<string | null>(null);
@@ -133,6 +141,11 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
     }
   }
 
+  function setMode(next: AnimationMode) {
+    if (working.current || video.busy || next === mode) return;
+    setModeState(next);setCurrent(null);
+  }
+
   function cancel() {
     cancelled.current = true;
     if (session.current) void ensureTauriInvoke()("cancel_product_animation", { id: session.current }).catch(() => undefined);
@@ -140,7 +153,7 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
 
   /** Deletes every locally stored animation; returns null when it could not run. */
   async function clearAll() {
-    if (working.current) return null;
+    if (working.current || video.busy) return null;
     try {
       const cleanup = await clearAnimations(userId);
       if (!live()) return null;
@@ -220,13 +233,13 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
   useEffect(() => {
     const handler = (event: Event) => {
       if (working.current) return;
-      onOpen();void loadSource((event as CustomEvent<AnimationSourceRequest>).detail);
+      onOpen();setModeState("image");void loadSource((event as CustomEvent<AnimationSourceRequest>).detail);
     };
     window.addEventListener(ANIMATION_SOURCE_EVENT, handler);
     return () => window.removeEventListener(ANIMATION_SOURCE_EVENT, handler);
   }, [loadSource, onOpen]);
 
-  return { userId, source, style, setStyle, sharedStyle, styleScope, setStyleScope, ratio, setRatio, format, setFormat, duration, setDuration, busy, loadingSource, progress, queueStatus, error, setError,
+  return { mode, setMode, video, userId, source, style, setStyle, sharedStyle, styleScope, setStyleScope, ratio, setRatio, format, setFormat, duration, setDuration, busy, loadingSource, progress, queueStatus, error, setError,
     results, current, setCurrent, size, loadSource, generate, cancel, items, selectedKey: selected?.key ?? null, selectItem, removeItem, downloadAll, clearAll };
 }
 export type ProductAnimationWorkspace = ReturnType<typeof useProductAnimation>;
