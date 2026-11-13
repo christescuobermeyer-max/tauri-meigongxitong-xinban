@@ -227,7 +227,7 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
       {workspace.results.length ? <div className="pa-grid">{workspace.results.map((result) => <article key={result.id} className={`pa-card${current?.id === result.id ? " is-current" : ""}`}>
         <button type="button" className="pa-card__media pa-card__open" disabled={anyBusy} onClick={() => workspace.setCurrent(result)} aria-label="在预览区查看"><img loading="lazy" decoding="async" src={animationFileUrl(result.path)} alt="本机动图" /></button>
         <div className="pa-card__body">
-          <strong>{styleTitle(result.style)}</strong>
+          <strong>{styleTitle(result.style)}{result.sequence ? ` ${String(result.sequence).padStart(3, "0")}` : ""}</strong>
           {result.title && <span className="pa-card__title" title={result.title}>{result.title}</span>}
           <small>{result.media.width}×{result.media.height} · {result.media.format.toUpperCase()} · {(result.media.bytes / 1_000_000).toFixed(2)}MB</small>
           <UploadStatus result={result} state={workspace.uploads[result.id]} onUpload={workspace.uploadResult} />

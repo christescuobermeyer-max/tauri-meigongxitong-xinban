@@ -34,7 +34,7 @@ const sessions=new Map();
 export const ensureTauriInvoke=()=>async(cmd,args)=>{
  if(cmd==='begin_product_animation'){const id=crypto.randomUUID();sessions.set(id,args.spec);window.spec=args.spec;return id;}
  if(cmd==='extract_product_animation_video'){window.clip=args.clip;await new Promise(r=>{window.release=r;});return null;}
- if(cmd==='finish_product_animation'){const spec=sessions.get(args.id);sessions.delete(args.id);window.finishTitle=args.title;const result={id:crypto.randomUUID(),style:spec.style,title:args.title,path:'/fixture.gif',posterPath:'/fixture.gif',createdAt:new Date().toISOString(),media:{width:spec.width,height:spec.height,durationMs:spec.durationMs,frames:spec.durationMs/50,bytes:2400000,format:spec.format}};(window.saved||=new Map()).set(result.id,result);return result;}
+ if(cmd==='finish_product_animation'){const spec=sessions.get(args.id);sessions.delete(args.id);window.finishTitle=args.title;const result={id:crypto.randomUUID(),style:spec.style,title:args.title,sequence:spec.style==='video'?1:null,path:'/fixture.gif',posterPath:'/fixture.gif',createdAt:new Date().toISOString(),media:{width:spec.width,height:spec.height,durationMs:spec.durationMs,frames:spec.durationMs/50,bytes:2400000,format:spec.format}};(window.saved||=new Map()).set(result.id,result);return result;}
  if(cmd==='read_animation_upload')return {data:'R0lGODlh',poster:'/9j/4AAQ'};
  if(cmd==='mark_animation_uploaded'){const result={...window.saved.get(args.id),uploadedAt:new Date().toISOString()};window.saved.set(args.id,result);return result;}
  if(cmd==='cancel_product_animation'){sessions.delete(args.id);return null;}
@@ -142,6 +142,7 @@ await page.getByRole('button',{name:'返回编辑'}).waitFor();
 await page.getByText('已通过平台规格校验').waitFor();
 assert.equal(await page.locator('.pa-card').filter({hasText:'视频动图'}).count(),1,'Result joins the shared records');
 assert.equal(await page.evaluate(()=>window.finishTitle),'招牌牛肉面','The video name is saved as the title');
+assert.equal(await page.locator('.pa-card strong').first().textContent(),'视频动图 001','Video records show their file number');
 
 // Upload runs automatically; a failure offers a retry, and the retry marks it uploaded.
 await page.getByRole('button',{name:'上传失败，点击重试'}).first().waitFor({timeout:10000});

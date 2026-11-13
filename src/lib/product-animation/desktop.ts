@@ -2,7 +2,8 @@ import { convertFileSrc, isTauri } from "@tauri-apps/api/core";
 import { ensureTauriInvoke } from "../desktop/invoke";
 import { join } from "@tauri-apps/api/path";
 import { pickDirectoryPath, pickSavePath } from "../desktop/files";
-import { animationStyleTitle, validateAnimation, type AnimationFormat, type AnimationResultStyle } from "./policy";
+import { validateAnimation, type AnimationFormat, type AnimationResultStyle } from "./policy";
+import { animationFileName, uniqueFileNames } from "./file-names";
 
 export interface AnimationResult {
   id: string;
@@ -15,6 +16,8 @@ export interface AnimationResult {
   title?: string | null;
   /** Set once the animation is stored in OSS through the gateway. */
   uploadedAt?: string | null;
+  /** Running number of video animations for this account (视频动图_001). */
+  sequence?: number | null;
 }
 export const animationFileUrl = (path: string) => convertFileSrc(path);
 export const hasAnimationDesktop = () => isTauri();
@@ -24,9 +27,8 @@ export async function listAnimations(userId: string) {
 export async function saveAnimation(userId: string, result: AnimationResult) {
   const errors = validateAnimation(result.media);
   if (errors.length) throw new Error(errors.join("；"));
-  const name = animationStyleTitle(result.style);
   const extension = result.media.format;
-  const path = await pickSavePath(`菜品_${name}_${result.media.width}x${result.media.height}.${extension}`, [{ name: extension.toUpperCase(), extensions: [extension] }]);
+  const path = await pickSavePath(animationFileName(result), [{ name: extension.toUpperCase(), extensions: [extension] }]);
   if (path) await ensureTauriInvoke()("save_product_animation", { userId, id: result.id, destination: path });
 }
 
@@ -38,11 +40,10 @@ export async function saveAllAnimations(userId: string, results: AnimationResult
   }
   const directory = await pickDirectoryPath("选择动图保存文件夹");
   if (!directory) return 0;
-  const stamp = new Date().toTimeString().slice(0, 8).replace(/:/g, "");
+  const names = uniqueFileNames(results.map(animationFileName));
   for (const [index, result] of results.entries()) {
-    const name = animationStyleTitle(result.style);
-    const file = `菜品动图_${String(index + 1).padStart(2, "0")}_${name}_${result.media.width}x${result.media.height}_${stamp}.${result.media.format}`;
-    await ensureTauriInvoke()("save_product_animation", { userId, id: result.id, destination: await join(directory, file) });
+    // keepExisting: files already in the folder get " (2)" instead of being overwritten.
+    await ensureTauriInvoke()("save_product_animation", { userId, id: result.id, destination: await join(directory, names[index]), keepExisting: true });
   }
   return results.length;
 }

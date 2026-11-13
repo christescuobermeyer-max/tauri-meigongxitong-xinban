@@ -42,6 +42,33 @@ pub struct AnimationResult {
     /// Set once the gateway has stored this animation in OSS.
     #[serde(default)]
     pub uploaded_at: Option<String>,
+    /// Per-account running number of video animations, used for file names (视频动图_001).
+    #[serde(default)]
+    pub sequence: Option<u32>,
+}
+
+/// Next video animation number for this account. The counter file is not a UUID directory,
+/// so clearing animations keeps it and numbers never repeat into a folder of earlier saves.
+fn next_video_sequence(user_root: &Path) -> Result<u32, String> {
+    fs::create_dir_all(user_root).map_err(|error| error.to_string())?;
+    let file = user_root.join("video-sequence.txt");
+    let last = fs::read_to_string(&file).ok().and_then(|text| text.trim().parse::<u32>().ok()).unwrap_or(0);
+    let next = last.checked_add(1).ok_or("视频动图编号已用尽")?;
+    fs::write(&file, next.to_string()).map_err(|_| "无法保存视频动图编号")?;
+    Ok(next)
+}
+
+/// `name.ext`, or `name (2).ext`, `name (3).ext`… when the file already exists.
+fn unused_path(path: PathBuf) -> PathBuf {
+    if !path.exists() {
+        return path;
+    }
+    let stem = path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+    let extension = path.extension().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+    (2..10_000)
+        .map(|n| path.with_file_name(format!("{stem} ({n}).{extension}")))
+        .find(|candidate| !candidate.exists())
+        .unwrap_or(path)
 }
 
 fn clean_title(title: Option<String>) -> Option<String> {
@@ -80,7 +107,7 @@ pub async fn import_model_animation(app: AppHandle, user_id: String, id: String,
         }.ok_or("动图缺少首帧")?.map_err(|_| "动图首帧损坏")?;
         image::DynamicImage::ImageRgba8(first.into_buffer()).to_rgb8().save(&poster).map_err(|_| "无法保存动图封面")?;
         fs::write(&path, &bytes).map_err(|_| "无法保存动图")?;
-        let result = AnimationResult { id, style: "steam".into(), path: path.to_string_lossy().into(), poster_path: poster.to_string_lossy().into(), created_at: chrono::Utc::now().to_rfc3339(), media, title: None, uploaded_at: None };
+        let result = AnimationResult { id, style: "steam".into(), path: path.to_string_lossy().into(), poster_path: poster.to_string_lossy().into(), created_at: chrono::Utc::now().to_rfc3339(), media, title: None, uploaded_at: None, sequence: None };
         fs::write(directory.join("result.json"), serde_json::to_vec(&result).map_err(|_| "动图记录编码失败")?).map_err(|_| "无法保存动图记录")?;
         Ok(result)
     }).await.map_err(|_| "保存模型动图失败")?
@@ -385,7 +412,9 @@ pub async fn finish_product_animation(
             if cancelled.load(Ordering::Relaxed) {
                 return Err("已取消动图制作".into());
             }
-            let folder = user_directory(&app, &user_id)?.join(&id);
+            let user_root = user_directory(&app, &user_id)?;
+            let sequence = if spec.style == VIDEO_STYLE { Some(next_video_sequence(&user_root)?) } else { None };
+            let folder = user_root.join(&id);
             fs::create_dir_all(&folder).map_err(|error| error.to_string())?;
             let path = folder.join(format!("result.{}", spec.format));
             let poster = folder.join("poster.jpg");
@@ -404,6 +433,7 @@ pub async fn finish_product_animation(
                 media,
                 title: title.clone(),
                 uploaded_at: None,
+                sequence,
             };
             fs::write(
                 folder.join("result.json"),
@@ -766,7 +796,8 @@ pub async fn save_product_animation(
     user_id: String,
     id: String,
     destination: String,
-) -> Result<(), String> {
+    keep_existing: Option<bool>,
+) -> Result<String, String> {
     let id = uuid::Uuid::parse_str(&id).map_err(|_| "结果标识无效")?;
     let directory = user_directory(&app, &user_id)?.join(id.to_string());
     tauri::async_runtime::spawn_blocking(move || {
@@ -793,7 +824,11 @@ pub async fn save_product_animation(
         {
             return Err("文件扩展名必须与动图格式一致".into());
         }
-        fs::write(path, bytes).map_err(|error| error.to_string())
+        // Saving many into one folder must never overwrite earlier files; the single
+        // "save as" dialog already asks the user before replacing.
+        let path = if keep_existing == Some(true) { unused_path(path) } else { path };
+        fs::write(&path, bytes).map_err(|error| error.to_string())?;
+        Ok(path.to_string_lossy().into_owned())
     })
     .await
     .map_err(|error| error.to_string())?
@@ -876,6 +911,24 @@ mod tests {
     }
 
     #[test]
+    fn video_numbers_continue_and_folder_saves_never_overwrite() {
+        let root = std::env::temp_dir().join(format!("csgh-animation-names-{}", uuid::Uuid::new_v4()));
+        assert_eq!(next_video_sequence(&root).unwrap(), 1);
+        assert_eq!(next_video_sequence(&root).unwrap(), 2);
+        // Clearing removes only UUID directories, so numbering carries on.
+        fs::create_dir_all(root.join(uuid::Uuid::new_v4().to_string())).unwrap();
+        remove_animation_directories(&root).unwrap();
+        assert_eq!(next_video_sequence(&root).unwrap(), 3);
+        let target = root.join("招牌牛肉面.gif");
+        assert_eq!(unused_path(target.clone()), target);
+        fs::write(&target, b"1").unwrap();
+        assert_eq!(unused_path(target.clone()), root.join("招牌牛肉面 (2).gif"));
+        fs::write(root.join("招牌牛肉面 (2).gif"), b"2").unwrap();
+        assert_eq!(unused_path(target), root.join("招牌牛肉面 (3).gif"));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn titles_are_cleaned_and_old_records_still_load() {
         assert_eq!(clean_title(Some("  抖音 · 招牌牛肉面\n".into())).as_deref(), Some("抖音 · 招牌牛肉面"));
         assert_eq!(clean_title(Some("   ".into())), None);
@@ -883,7 +936,7 @@ mod tests {
         // result.json written before titles and upload state existed.
         let old = r#"{"id":"a","style":"burst","path":"p","posterPath":"q","createdAt":"t","media":{"width":768,"height":576,"durationMs":3000,"frames":60,"bytes":1,"format":"gif"}}"#;
         let parsed: AnimationResult = serde_json::from_str(old).unwrap();
-        assert_eq!((parsed.title, parsed.uploaded_at), (None, None));
+        assert_eq!((parsed.title, parsed.uploaded_at, parsed.sequence), (None, None, None));
     }
 
     #[test]
