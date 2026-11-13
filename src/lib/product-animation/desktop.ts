@@ -11,6 +11,10 @@ export interface AnimationResult {
   posterPath: string;
   createdAt: string;
   media: { width: number; height: number; durationMs: number; frames: number; bytes: number; format: AnimationFormat };
+  /** Video or source image name. */
+  title?: string | null;
+  /** Set once the animation is stored in OSS through the gateway. */
+  uploadedAt?: string | null;
 }
 export const animationFileUrl = (path: string) => convertFileSrc(path);
 export const hasAnimationDesktop = () => isTauri();

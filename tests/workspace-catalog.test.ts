@@ -26,9 +26,10 @@ deepEqual(listWorkspaceNavigation(false).map((item) => item.key), [
   "history",
   "gatewayMonitor",
   "imagePlaza",
+  "animationShowcase",
 ]);
 
 const adminNavigation = listWorkspaceNavigation(true);
-equal(adminNavigation.length, 17);
+equal(adminNavigation.length, 18);
 equal(adminNavigation.at(-1)?.key, "admin");
 equal(adminNavigation.some((item) => item.key === "pSignboard"), false);

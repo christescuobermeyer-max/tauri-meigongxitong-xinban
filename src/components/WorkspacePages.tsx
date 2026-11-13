@@ -3,6 +3,7 @@ import ProductAnimationWorkspacePage from "./workspace/ProductAnimationWorkspace
 import MenuDesignPage from "./MenuDesignPage";
 import HistoryPanel from "./HistoryPanel";
 import ImagePlazaPage from "./ImagePlazaPage";
+import AnimationShowcasePage from "./AnimationShowcasePage";
 import ImageResizePage from "./ImageResizePage";
 import AdminGatewayMonitor from "./admin/AdminGatewayMonitor";
 import BrandStoryWorkspacePage from "./workspace/BrandStoryWorkspacePage";
@@ -212,6 +213,14 @@ export default function WorkspacePages({ workspace }: Props) {
     return (
       <div className="page page--single">
         <ImagePlazaPage />
+      </div>
+    );
+  }
+
+  if (workspace.tab === "animationShowcase") {
+    return (
+      <div className="page page--single">
+        <AnimationShowcasePage />
       </div>
     );
   }

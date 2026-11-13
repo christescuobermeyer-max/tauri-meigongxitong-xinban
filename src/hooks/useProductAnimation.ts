@@ -6,10 +6,12 @@ import { createAnimationRenderer } from "../lib/product-animation/render";
 import { loadAnimationFonts } from "../lib/product-animation/fonts";
 import { ANIMATION_SOURCE_EVENT, type AnimationSourceRequest } from "../lib/product-animation/source";
 import { clearAnimations, hasAnimationDesktop, listAnimations, saveAllAnimations, type AnimationResult } from "../lib/product-animation/desktop";
+import { animationTitle, uploadAnimation } from "../lib/product-animation/upload";
 import useVideoAnimation from "./useVideoAnimation";
 
 export const MAX_ANIMATION_ITEMS = 5;
 export type AnimationMode = "image" | "video";
+export type AnimationUploadState = "uploading" | "failed";
 export type AnimationItemStatus = "idle" | "running" | "done" | "failed";
 export interface AnimationItem { key: string; image: HTMLImageElement; name: string; style: AnimationStyle | null; status: AnimationItemStatus; result?: AnimationResult; error?: string }
 
@@ -42,7 +44,11 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
   const video = useVideoAnimation(userId, (result) => {
     setResults((previous) => [result, ...previous.filter((entry) => entry.id !== result.id)].slice(0, 50));
     setCurrent(result);
+    queueUpload(result);
   });
+  const [uploads, setUploads] = useState<Record<string, AnimationUploadState>>({});
+  // One upload at a time, so a batch of five does not compete for the employee's bandwidth.
+  const uploadChain = useRef<Promise<void>>(Promise.resolve());
   const working = useRef(false);
   const cancelled = useRef(false);
   const session = useRef<string | null>(null);
@@ -96,7 +102,7 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
       }
       if (cancelled.current) throw new StopQueue("已取消制作");
       if (mounted.current) setQueueStatus(`${label}正在压缩并检查比例、时长和体积…`);
-      const result = await ensureTauriInvoke()<AnimationResult>("finish_product_animation", { id });
+      const result = await ensureTauriInvoke()<AnimationResult>("finish_product_animation", { id, title: animationTitle(item.name) });
       const errors = validateAnimation(result.media);
       if (errors.length) throw new Error(errors.join("；"));
       if (mounted.current) setProgress(100);
@@ -127,6 +133,7 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
           updateItem(item.key, { status: "done", result });
           setResults((previous) => [result, ...previous.filter((entry) => entry.id !== result.id)].slice(0, 50));
           setCurrent(result);
+          queueUpload(result);
         } catch (reason) {
           if (!live()) return;
           updateItem(item.key, { status: "failed", error: message(reason) });
@@ -139,6 +146,27 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
       working.current = false;
       if (mounted.current) { setBusy(false);setQueueStatus(""); }
     }
+  }
+
+  /** Uploads a finished animation to OSS in the background; failures only mark the record for retry. */
+  function queueUpload(result: AnimationResult) {
+    if (!hasAnimationDesktop() || result.uploadedAt) return;
+    const owner = userId;
+    const stillHere = () => mounted.current && activeUser.current === owner;
+    setUploads((previous) => ({ ...previous, [result.id]: "uploading" }));
+    uploadChain.current = uploadChain.current.then(async () => {
+      try {
+        const next = await uploadAnimation(owner, result);
+        if (!stillHere()) return;
+        setResults((previous) => previous.map((entry) => entry.id === next.id ? next : entry));
+        setCurrent((value) => value?.id === next.id ? next : value);
+        setItems((previous) => previous.map((item) => item.result?.id === next.id ? { ...item, result: next } : item));
+        setUploads(({ [next.id]: _done, ...rest }) => rest);
+      } catch (reason) {
+        console.warn("动图上传失败", reason);
+        if (stillHere()) setUploads((previous) => ({ ...previous, [result.id]: "failed" }));
+      }
+    });
   }
 
   function setMode(next: AnimationMode) {
@@ -157,7 +185,7 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
     try {
       const cleanup = await clearAnimations(userId);
       if (!live()) return null;
-      setResults([]);setCurrent(null);
+      setResults([]);setCurrent(null);setUploads({});
       setItems((previous) => previous.map((item) => item.status === "done" ? { ...item, status: "idle", result: undefined } : item));
       return cleanup;
     } catch (reason) { if (live()) setError(message(reason));return null; }
@@ -172,7 +200,7 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
 
   useEffect(() => {
     mounted.current = true;
-    setResults([]);setCurrent(null);setItems([]);setSelectedKey(null);setBusy(false);
+    setResults([]);setCurrent(null);setItems([]);setSelectedKey(null);setBusy(false);setUploads({});
     if (hasAnimationDesktop()) listAnimations(userId).then((entries) => { if (mounted.current && activeUser.current === userId) setResults(entries); }).catch((reason) => { if (mounted.current && activeUser.current === userId) setError(String(reason)); });
     return () => {
       mounted.current = false;cancelled.current = true;sourceSequence.current++;
@@ -239,7 +267,7 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
     return () => window.removeEventListener(ANIMATION_SOURCE_EVENT, handler);
   }, [loadSource, onOpen]);
 
-  return { mode, setMode, video, userId, source, style, setStyle, sharedStyle, styleScope, setStyleScope, ratio, setRatio, format, setFormat, duration, setDuration, busy, loadingSource, progress, queueStatus, error, setError,
+  return { uploads, uploadResult: queueUpload, mode, setMode, video, userId, source, style, setStyle, sharedStyle, styleScope, setStyleScope, ratio, setRatio, format, setFormat, duration, setDuration, busy, loadingSource, progress, queueStatus, error, setError,
     results, current, setCurrent, size, loadSource, generate, cancel, items, selectedKey: selected?.key ?? null, selectItem, removeItem, downloadAll, clearAll };
 }
 export type ProductAnimationWorkspace = ReturnType<typeof useProductAnimation>;

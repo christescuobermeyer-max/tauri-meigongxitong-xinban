@@ -56,6 +56,11 @@ try {
   sql(animationMigration);
   sql(animationMigration);
   verify("模型动图增量迁移重复执行");
+  const uploadsMigration = readFileSync(path.join(root, "supabase/migrations/20261113_animation_uploads.sql"), "utf8");
+  sql("drop table public.animation_uploads;");
+  sql(uploadsMigration);
+  sql(uploadsMigration);
+  verify("动图上传增量迁移重复执行");
   sql("alter table public.generation_logs drop column elapsed_ms;");
   sql(readFileSync(path.join(root, "supabase/migrations/20260518_add_generation_elapsed_ms.sql"), "utf8"));
   verify("旧库耗时字段迁移");

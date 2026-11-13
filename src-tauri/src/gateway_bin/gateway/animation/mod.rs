@@ -4,6 +4,8 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 use sha2::{Digest, Sha256};
 mod provider;
 mod store;
+mod uploads;
+pub(crate) use uploads::{animation_showcase, upload_animation};
 #[cfg(test)]
 mod tests;
 mod worker;

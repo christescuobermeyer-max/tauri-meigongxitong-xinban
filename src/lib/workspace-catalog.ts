@@ -25,6 +25,7 @@ export const WORKSPACE_CATALOG = {
   history: { title: "历史记录", label: "历史记录", description: "最近生成的 OSS 图片", icon: "history" },
   gatewayMonitor: { title: "实时监控", label: "实时监控", description: "网关并发 / 线路健康 / 排队情况", icon: "monitor" },
   imagePlaza: { title: "图片广场", label: "图片广场", description: "所有账号最新生图只读预览", icon: "batchImages" },
+  animationShowcase: { title: "动图展示", label: "动图展示", description: "视频制作的动图自动播放预览", icon: "video" },
   admin: { title: "后台管理", label: "后台管理", description: "账号 / 生图统计 / OSS 历史", icon: "shield", adminOnly: true },
 } as const satisfies Record<string, WorkspaceDefinition>;
 

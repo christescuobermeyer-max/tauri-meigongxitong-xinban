@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import type { AnimationVideo, VideoAnimationWorkspace, VideoSourceKind } from "../../hooks/useVideoAnimation";
 import { animationFileUrl, type AnimationResult } from "../../lib/product-animation/desktop";
 import type { AnimationFormat, AnimationRatio } from "../../lib/product-animation/policy";
@@ -106,9 +106,9 @@ function VideoCropStage({ video, crop, ratio, startMs, clipMs, playing, disabled
   </div>;
 }
 
-interface Props { workspace: VideoAnimationWorkspace; current: AnimationResult | null; saving: boolean; onDownload: (result: AnimationResult) => void; onReset: () => void }
+interface Props { workspace: VideoAnimationWorkspace; current: AnimationResult | null; saving: boolean; onDownload: (result: AnimationResult) => void; onReset: () => void; upload?: ReactNode }
 
-export default function VideoAnimationPanel({ workspace, current, saving, onDownload, onReset }: Props) {
+export default function VideoAnimationPanel({ workspace, current, saving, onDownload, onReset, upload }: Props) {
   const { video, busy, ready, clipMs } = workspace;
   const [playing, setPlaying] = useState(true);
   const [currentMs, setCurrentMs] = useState(0);
@@ -195,6 +195,7 @@ export default function VideoAnimationPanel({ workspace, current, saving, onDown
           </div>}
       </div>
       {current && <ResultMetrics result={current} />}
+      {upload}
       <MerchantCopyCard text={ANIMATION_COPY_TEXT} successMessage="动图沟通文案已复制到剪贴板" />
     </section>
   </div>;

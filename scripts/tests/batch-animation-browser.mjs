@@ -24,11 +24,17 @@ const sessions=new Map();window.order=[];window.maxActive=0;let active=0;
 export const ensureTauriInvoke=()=>async(cmd,args)=>{
  if(cmd==='begin_product_animation'){active++;window.maxActive=Math.max(window.maxActive,active);const id=crypto.randomUUID();sessions.set(id,args.spec);window.order.push(args.spec.style);return id;}
  if(cmd==='append_product_animation_frame')return null;
- if(cmd==='finish_product_animation'){const spec=sessions.get(args.id);sessions.delete(args.id);active--;return {id:crypto.randomUUID(),style:spec.style,path:'/fixture.gif',posterPath:'/poster.jpg',createdAt:new Date().toISOString(),media:{width:spec.width,height:spec.height,durationMs:3000,frames:60,bytes:3000000,format:'gif'}};}
+ if(cmd==='finish_product_animation'){const spec=sessions.get(args.id);sessions.delete(args.id);active--;const result={id:crypto.randomUUID(),style:spec.style,title:args.title,path:'/fixture.gif',posterPath:'/poster.jpg',createdAt:new Date().toISOString(),media:{width:spec.width,height:spec.height,durationMs:3000,frames:60,bytes:3000000,format:'gif'}};(window.saved||=new Map()).set(result.id,result);return result;}
+ if(cmd==='read_animation_upload')return {data:'R0lGODlh',poster:'/9j/4AAQ'};
+ if(cmd==='mark_animation_uploaded')return {...window.saved.get(args.id),uploadedAt:new Date().toISOString()};
  if(cmd==='cancel_product_animation'){if(sessions.delete(args.id))active--;return null;}
  throw Error('Unexpected command '+cmd);};`}));
 await page.route('**/fixture.gif',route=>route.fulfill({contentType:'image/png',body:png}));
 await page.route('**/poster.jpg',route=>route.fulfill({contentType:'image/png',body:png}));
+// Gateway upload endpoint: records order and concurrency of background uploads.
+const uploads=[];let uploading=0,maxUploading=0;
+await page.route('**/api/animation-uploads',async route=>{uploading++;maxUploading=Math.max(maxUploading,uploading);uploads.push(route.request().postDataJSON());
+  await new Promise(r=>setTimeout(r,150));uploading--;await route.fulfill({contentType:'application/json',body:'{"uploaded":true}'});});
 // Simulate Windows with animations turned off; the preview must still autoplay.
 await page.emulateMedia({reducedMotion:'reduce'});
 await page.goto('http://127.0.0.1:1420/');
@@ -56,6 +62,10 @@ await page.waitForFunction(()=>window.workspace.items.every(i=>i.status==='done'
 assert.deepEqual(await page.evaluate(()=>window.order),['burst','flip','gilded','burst'],'Items must be generated in order');
 assert.equal(await page.evaluate(()=>window.maxActive),1,'Only one local encode may run at a time');
 
+// Every finished animation is uploaded once, one at a time, titled after its source image.
+await page.waitForFunction(()=>document.querySelectorAll('.pa-upload.is-done').length>=4,null,{polling:300,timeout:30000});
+assert.deepEqual(uploads.map(u=>[u.style,u.title]),[['burst','菜品1'],['flip','菜品2'],['gilded','菜品3'],['burst','菜品4']]);
+assert.equal(maxUploading,1,'Uploads run one at a time');
 await page.getByRole('button',{name:'全部下载（4）'}).click();
 await page.getByText('已保存 4 张到所选文件夹').waitFor();
 assert.deepEqual(await page.evaluate(()=>window.savedAll),['burst','flip','gilded','burst']);
@@ -75,5 +85,5 @@ assert.match(await page.evaluate(()=>navigator.clipboard.readText()),/^老板好
 if(process.env.BATCH_SCREENSHOT)await page.screenshot({path:process.env.BATCH_SCREENSHOT,fullPage:true});
 assert.deepEqual(errors,[]);
 assert.equal(await page.getByRole('radio',{name:/热气腾腾/}).count(),0,'AI style removed');
-console.log('预览自动播放、批量上传上限、统一/单张风格、移除、逐张生成、全部下载、一键清空、复制沟通文案全部通过');
+console.log('自动上传（逐个、带标题）、预览自动播放、批量上传上限、统一/单张风格、移除、逐张生成、全部下载、一键清空、复制沟通文案全部通过');
 await browser.close();

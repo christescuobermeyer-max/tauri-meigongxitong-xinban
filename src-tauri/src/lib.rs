@@ -75,6 +75,8 @@ pub fn run() {
             product_animation::commands::import_model_animation,
             product_animation::commands::allow_animation_video,
             product_animation::commands::extract_product_animation_video,
+            product_animation::commands::read_animation_upload,
+            product_animation::commands::mark_animation_uploaded,
             api::generate_image,
             image_proc::resize_and_save_image,
             image_proc::save_base64_image,

@@ -4,6 +4,7 @@ import { hasAnimationDesktop, type AnimationResult } from "../lib/product-animat
 import { chooseVideoAnimationSize, validateAnimation, VIDEO_ANIMATION_STYLE, type AnimationFormat, type AnimationRatio } from "../lib/product-animation/policy";
 import { availableClipLengths, clampClipStart, initialCrop, MIN_VIDEO_SECONDS, type VideoCrop } from "../lib/product-animation/video";
 import { animationVideoUrl, fetchShareVideo, pickAnimationVideo, transcodeAnimationVideo } from "../lib/product-animation/video-desktop";
+import { animationTitle } from "../lib/product-animation/upload";
 
 export type VideoSourceKind = "link" | "file";
 export interface AnimationVideo { path: string; name: string; url: string; transcoded: boolean; width: number; height: number; durationMs: number }
@@ -121,7 +122,7 @@ export default function useVideoAnimation(userId: string, onResult: (result: Ani
       await ensureTauriInvoke()("extract_product_animation_video", { id, clip: { inputPath: video.path, startMs, ...crop } });
       if (cancelled.current) throw new Error("已取消制作");
       if (mounted.current) { setProgress(60);setStatus("正在压缩并检查比例、时长和体积…"); }
-      const result = await ensureTauriInvoke()<AnimationResult>("finish_product_animation", { id });
+      const result = await ensureTauriInvoke()<AnimationResult>("finish_product_animation", { id, title: animationTitle(video.name) });
       const errors = validateAnimation(result.media);
       if (errors.length) throw new Error(errors.join("；"));
       if (!mounted.current) return;

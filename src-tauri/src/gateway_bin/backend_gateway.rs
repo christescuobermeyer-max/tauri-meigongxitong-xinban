@@ -132,6 +132,8 @@ fn build_router(state: AppState) -> Result<Router, String> {
         .route("/api/gateway-stats", get(gateway_stats))
         .route("/api/admin/gateway-stats", get(admin_gateway_stats))
         .route("/api/image-plaza", get(image_plaza))
+        .route("/api/animation-uploads", post(upload_animation).layer(axum::extract::DefaultBodyLimit::max(10_000_000)))
+        .route("/api/animation-showcase", get(animation_showcase))
         .route("/api/admin/balance", post(admin_balance_fetch))
         .route(
             "/api/admin/account-generation-summary",

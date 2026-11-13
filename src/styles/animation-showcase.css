@@ -1,0 +1,5 @@
+/* 动图展示：沿用图片广场卡片；缩略区统一 4:3 深色底，动图完整显示，并标注格式与时长。 */
+.animation-showcase .animation-showcase__grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.animation-showcase .animation-showcase__thumb { position: relative; aspect-ratio: 4 / 3; padding: 0; overflow: hidden; background: #1d1511; }
+.animation-showcase .animation-showcase__thumb img { border-radius: 0; object-fit: contain; }
+.animation-showcase__tag { position: absolute; left: 8px; bottom: 8px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; color: #fff; background: rgba(0, 0, 0, 0.55); pointer-events: none; }

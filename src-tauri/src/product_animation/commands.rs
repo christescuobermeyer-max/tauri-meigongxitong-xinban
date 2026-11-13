@@ -36,6 +36,17 @@ pub struct AnimationResult {
     pub poster_path: String,
     pub created_at: String,
     pub media: AnimationMedia,
+    /// Video name or source image name, shown in records and the showcase.
+    #[serde(default)]
+    pub title: Option<String>,
+    /// Set once the gateway has stored this animation in OSS.
+    #[serde(default)]
+    pub uploaded_at: Option<String>,
+}
+
+fn clean_title(title: Option<String>) -> Option<String> {
+    let title: String = title?.chars().filter(|c| !c.is_control()).collect::<String>().trim().chars().take(60).collect();
+    (!title.is_empty()).then_some(title)
 }
 
 fn user_directory(app: &AppHandle, user_id: &str) -> Result<PathBuf, String> {
@@ -69,7 +80,7 @@ pub async fn import_model_animation(app: AppHandle, user_id: String, id: String,
         }.ok_or("动图缺少首帧")?.map_err(|_| "动图首帧损坏")?;
         image::DynamicImage::ImageRgba8(first.into_buffer()).to_rgb8().save(&poster).map_err(|_| "无法保存动图封面")?;
         fs::write(&path, &bytes).map_err(|_| "无法保存动图")?;
-        let result = AnimationResult { id, style: "steam".into(), path: path.to_string_lossy().into(), poster_path: poster.to_string_lossy().into(), created_at: chrono::Utc::now().to_rfc3339(), media };
+        let result = AnimationResult { id, style: "steam".into(), path: path.to_string_lossy().into(), poster_path: poster.to_string_lossy().into(), created_at: chrono::Utc::now().to_rfc3339(), media, title: None, uploaded_at: None };
         fs::write(directory.join("result.json"), serde_json::to_vec(&result).map_err(|_| "动图记录编码失败")?).map_err(|_| "无法保存动图记录")?;
         Ok(result)
     }).await.map_err(|_| "保存模型动图失败")?
@@ -336,7 +347,9 @@ fn run_encoder(
 pub async fn finish_product_animation(
     app: AppHandle,
     id: String,
+    title: Option<String>,
 ) -> Result<AnimationResult, String> {
+    let title = clean_title(title);
     let (directory, user_id, spec, cancelled) = {
         let mut registry = sessions().lock().map_err(|_| "任务锁不可用")?;
         let session = registry.get_mut(&id).ok_or("动图任务不存在")?;
@@ -389,6 +402,8 @@ pub async fn finish_product_animation(
                 poster_path: poster.to_string_lossy().into(),
                 created_at: chrono::Utc::now().to_rfc3339(),
                 media,
+                title: title.clone(),
+                uploaded_at: None,
             };
             fs::write(
                 folder.join("result.json"),
@@ -634,6 +649,51 @@ pub async fn list_product_animations(
     Ok(results)
 }
 
+fn saved_result(app: &AppHandle, user_id: &str, id: &str) -> Result<(PathBuf, AnimationResult), String> {
+    let id = uuid::Uuid::parse_str(id).map_err(|_| "结果标识无效")?;
+    let directory = user_directory(app, user_id)?.join(id.to_string());
+    let result: AnimationResult = serde_json::from_slice(&fs::read(directory.join("result.json")).map_err(|_| "本机找不到这个动图")?)
+        .map_err(|_| "动图记录损坏")?;
+    if !matches!(result.media.format.as_str(), "gif" | "webp") {
+        return Err("动图格式无效".into());
+    }
+    Ok((directory, result))
+}
+
+#[derive(Serialize)]
+pub struct AnimationUploadPayload {
+    data: String,
+    poster: String,
+}
+
+/// Base64 animation and first-frame poster for the gateway upload.
+#[tauri::command]
+pub async fn read_animation_upload(app: AppHandle, user_id: String, id: String) -> Result<AnimationUploadPayload, String> {
+    let (directory, result) = saved_result(&app, &user_id, &id)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let bytes = fs::read(directory.join(format!("result.{}", result.media.format))).map_err(|_| "本机动图文件缺失")?;
+        if bytes.len() > MAX_BYTES {
+            return Err("动图超过5M，不能上传".into());
+        }
+        let poster = fs::read(directory.join("poster.jpg")).map_err(|_| "本机动图封面缺失")?;
+        Ok(AnimationUploadPayload { data: STANDARD.encode(bytes), poster: STANDARD.encode(poster) })
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+/// Records that the gateway accepted this animation, so records show it as uploaded after restarts.
+#[tauri::command]
+pub async fn mark_animation_uploaded(app: AppHandle, user_id: String, id: String) -> Result<AnimationResult, String> {
+    let (directory, mut result) = saved_result(&app, &user_id, &id)?;
+    result.uploaded_at.get_or_insert_with(|| chrono::Utc::now().to_rfc3339());
+    fs::write(directory.join("result.json"), serde_json::to_vec(&result).map_err(|error| error.to_string())?)
+        .map_err(|_| "无法保存上传状态")?;
+    result.path = directory.join(format!("result.{}", result.media.format)).to_string_lossy().into();
+    result.poster_path = directory.join("poster.jpg").to_string_lossy().into();
+    Ok(result)
+}
+
 #[derive(Debug, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnimationCleanup {
@@ -813,6 +873,17 @@ mod tests {
         assert!(root.join("keep-me").exists() && root.join("notes.txt").exists());
         assert_eq!(remove_animation_directories(&root.join("missing")).unwrap(), AnimationCleanup::default());
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn titles_are_cleaned_and_old_records_still_load() {
+        assert_eq!(clean_title(Some("  抖音 · 招牌牛肉面\n".into())).as_deref(), Some("抖音 · 招牌牛肉面"));
+        assert_eq!(clean_title(Some("   ".into())), None);
+        assert_eq!(clean_title(Some("菜".repeat(80))).unwrap().chars().count(), 60);
+        // result.json written before titles and upload state existed.
+        let old = r#"{"id":"a","style":"burst","path":"p","posterPath":"q","createdAt":"t","media":{"width":768,"height":576,"durationMs":3000,"frames":60,"bytes":1,"format":"gif"}}"#;
+        let parsed: AnimationResult = serde_json::from_str(old).unwrap();
+        assert_eq!((parsed.title, parsed.uploaded_at), (None, None));
     }
 
     #[test]

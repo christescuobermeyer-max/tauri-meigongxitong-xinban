@@ -24,12 +24,19 @@ await page.addInitScript(()=>{window.__TAURI_INTERNALS__={
   invoke:async(cmd)=>{if(cmd==='plugin:dialog|open')return 'C:\\视频\\招牌牛肉面.mov';throw Error('Unexpected runtime command '+cmd);}};});
 await page.route('**/api/video/parse-douyin',async route=>{window_douyin=route.request().postDataJSON();await route.fulfill({contentType:'application/json',body:JSON.stringify({videoUrl:'https://cdn.example/douyin.mp4',title:'招牌牛肉面 汤底熬足8小时',author:'张记',platform:'douyin'})});});
 let window_douyin=null;
+// Cloud upload: the first attempt fails so the retry path is exercised.
+const uploads=[];
+await page.route('**/api/animation-uploads',async route=>{uploads.push(route.request().postDataJSON());
+  if(uploads.length===1)return route.fulfill({status:502,contentType:'application/json',body:JSON.stringify({error:'动图云端存储暂不可用'})});
+  return route.fulfill({contentType:'application/json',body:JSON.stringify({id:uploads.at(-1).id,uploaded:true})});});
 await page.route(/src\/lib\/desktop\/invoke\.ts(?:\?.*)?$/,route=>route.fulfill({contentType:'text/javascript',body:`
 const sessions=new Map();
 export const ensureTauriInvoke=()=>async(cmd,args)=>{
  if(cmd==='begin_product_animation'){const id=crypto.randomUUID();sessions.set(id,args.spec);window.spec=args.spec;return id;}
  if(cmd==='extract_product_animation_video'){window.clip=args.clip;await new Promise(r=>{window.release=r;});return null;}
- if(cmd==='finish_product_animation'){const spec=sessions.get(args.id);sessions.delete(args.id);return {id:crypto.randomUUID(),style:spec.style,path:'/fixture.gif',posterPath:'/fixture.gif',createdAt:new Date().toISOString(),media:{width:spec.width,height:spec.height,durationMs:spec.durationMs,frames:spec.durationMs/50,bytes:2400000,format:spec.format}};}
+ if(cmd==='finish_product_animation'){const spec=sessions.get(args.id);sessions.delete(args.id);window.finishTitle=args.title;const result={id:crypto.randomUUID(),style:spec.style,title:args.title,path:'/fixture.gif',posterPath:'/fixture.gif',createdAt:new Date().toISOString(),media:{width:spec.width,height:spec.height,durationMs:spec.durationMs,frames:spec.durationMs/50,bytes:2400000,format:spec.format}};(window.saved||=new Map()).set(result.id,result);return result;}
+ if(cmd==='read_animation_upload')return {data:'R0lGODlh',poster:'/9j/4AAQ'};
+ if(cmd==='mark_animation_uploaded'){const result={...window.saved.get(args.id),uploadedAt:new Date().toISOString()};window.saved.set(args.id,result);return result;}
  if(cmd==='cancel_product_animation'){sessions.delete(args.id);return null;}
  if(cmd==='allow_animation_video')return args.path;
  if(cmd==='prepare_local_video_preview'){window.transcoded=args.inputPath;return 'C:\\\\cache\\\\local_preview.mp4';}
@@ -134,6 +141,17 @@ await page.evaluate(()=>window.release());
 await page.getByRole('button',{name:'返回编辑'}).waitFor();
 await page.getByText('已通过平台规格校验').waitFor();
 assert.equal(await page.locator('.pa-card').filter({hasText:'视频动图'}).count(),1,'Result joins the shared records');
+assert.equal(await page.evaluate(()=>window.finishTitle),'招牌牛肉面','The video name is saved as the title');
+
+// Upload runs automatically; a failure offers a retry, and the retry marks it uploaded.
+await page.getByRole('button',{name:'上传失败，点击重试'}).first().waitFor({timeout:10000});
+await page.getByRole('button',{name:'上传失败，点击重试'}).first().click();
+await page.getByText('已上传云端').first().waitFor({timeout:10000});
+assert.equal(await page.getByText('已上传云端').count(),2,'Preview and record card both show the upload');
+assert.equal(uploads.length,2);
+const resultId=await page.evaluate(()=>window.workspace.current.id);
+assert.deepEqual(uploads[1],{id:resultId,style:'video',title:'招牌牛肉面',data:'R0lGODlh',poster:'/9j/4AAQ'});
+assert.equal(await page.locator('.pa-card').filter({hasText:'招牌牛肉面'}).count(),1,'Record card shows the title');
 
 // Editing returns to the cropper; switching to image mode keeps the shared records.
 await page.getByRole('button',{name:'返回编辑'}).click();
@@ -145,5 +163,5 @@ await tabs.getByRole('tab',{name:/视频转动图/}).click();
 assert.equal((await v()).start,1700,'Video settings survive switching tabs');
 if(process.env.VIDEO_SCREENSHOT){await page.getByRole('button',{name:/返回编辑/}).count();await page.screenshot({path:process.env.VIDEO_SCREENSHOT,fullPage:true});}
 assert.deepEqual(errors,[]);
-console.log('页内切换、链接校验、抖音与小红书提取、上传与转码回退、片段时长与位置、自动播放、取景框拖动缩放、生成参数、共用记录全部通过');
+console.log('自动上传与失败重试、页内切换、链接校验、抖音与小红书提取、上传与转码回退、片段时长与位置、自动播放、取景框拖动缩放、生成参数、共用记录全部通过');
 await browser.close();

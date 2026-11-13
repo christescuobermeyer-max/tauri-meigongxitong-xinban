@@ -6,7 +6,7 @@ import { loadAnimationFonts } from "../../lib/product-animation/fonts";
 import { animationFileUrl, saveAnimation, type AnimationResult } from "../../lib/product-animation/desktop";
 import { IconAlert, IconCheck, IconClose, IconDownload, IconHistory, IconHourglass, IconImage, IconPause, IconPlay, IconSparkles, IconTrash, IconUpload, IconVideo } from "../Icons";
 import MerchantCopyCard from "../MerchantCopyCard";
-import { ANIMATION_COPY_TEXT, ResultMetrics, Segmented, Step } from "./product-animation-parts";
+import { ANIMATION_COPY_TEXT, ResultMetrics, Segmented, Step, UploadStatus } from "./product-animation-parts";
 import VideoAnimationPanel from "./VideoAnimationPanel";
 import "../../styles/product-animation.css";
 
@@ -125,7 +125,8 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
       </button>))}
     </div>
 
-    {workspace.mode === "video" ? <VideoAnimationPanel workspace={workspace.video} current={current} saving={saving} onDownload={(result) => void download(result)} onReset={reset} /> : <div className="pa-layout">
+    {workspace.mode === "video" ? <VideoAnimationPanel workspace={workspace.video} current={current} saving={saving} onDownload={(result) => void download(result)} onReset={reset}
+      upload={current && <UploadStatus result={current} state={workspace.uploads[current.id]} onUpload={workspace.uploadResult} />} /> : <div className="pa-layout">
       <section className="pa-panel">
         <Step index={1} title={items.length ? `选择菜品图（${items.length}/${MAX_ANIMATION_ITEMS}）` : "选择菜品图"}>
           {items.length > 0 && <div className="pa-items">{items.map((item, index) => {
@@ -210,6 +211,7 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
           <strong>还没有菜品图</strong><p>在左侧上传一张菜品图，这里会实时预览动图效果</p>
         </div>}</div>
         {current && <ResultMetrics result={current} />}
+        {current && <UploadStatus result={current} state={workspace.uploads[current.id]} onUpload={workspace.uploadResult} />}
         <MerchantCopyCard text={ANIMATION_COPY_TEXT} successMessage="动图沟通文案已复制到剪贴板" />
       </section>
     </div>}
@@ -226,7 +228,9 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
         <button type="button" className="pa-card__media pa-card__open" disabled={anyBusy} onClick={() => workspace.setCurrent(result)} aria-label="在预览区查看"><img loading="lazy" decoding="async" src={animationFileUrl(result.path)} alt="本机动图" /></button>
         <div className="pa-card__body">
           <strong>{styleTitle(result.style)}</strong>
+          {result.title && <span className="pa-card__title" title={result.title}>{result.title}</span>}
           <small>{result.media.width}×{result.media.height} · {result.media.format.toUpperCase()} · {(result.media.bytes / 1_000_000).toFixed(2)}MB</small>
+          <UploadStatus result={result} state={workspace.uploads[result.id]} onUpload={workspace.uploadResult} />
           <button className="btn btn--primary btn--sm" type="button" disabled={saving} onClick={() => void download(result)}><IconDownload width={14} height={14} aria-hidden="true" />下载 {result.media.format.toUpperCase()}</button>
         </div>
       </article>)}</div> : <p className="pa-section__empty">生成的动图会出现在这里</p>}
