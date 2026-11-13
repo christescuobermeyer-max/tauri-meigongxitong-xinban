@@ -9,13 +9,13 @@ const root=fileURLToPath(new URL('../../',import.meta.url));
 const sourcePath=process.argv[2];
 if(!sourcePath)throw new Error('用法: PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node scripts/tests/batch-animation-browser.mjs 原图.png');
 const png=await readFile(path.resolve(sourcePath));
-const browser=await chromium.launch();const page=await browser.newPage({viewport:{width:1440,height:1400}});
+const browser=await chromium.launch();const context=await browser.newContext({viewport:{width:1440,height:1400}});await context.grantPermissions(['clipboard-read','clipboard-write'],{origin:'http://127.0.0.1:1420'});const page=await context.newPage();
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
 await page.route(/src\/main\.tsx(?:\?.*)?$/,route=>route.fulfill({contentType:'text/javascript',body:`
 import React from '/node_modules/.vite/deps/react.js';import ReactDOM from '/node_modules/.vite/deps/react-dom_client.js';
-import Page from '/src/components/workspace/ProductAnimationWorkspacePage.tsx';import useWorkspace from '/src/hooks/useProductAnimation.ts';import '/src/styles/global.css';
+import Page from '/src/components/workspace/ProductAnimationWorkspacePage.tsx';import useWorkspace from '/src/hooks/useProductAnimation.ts';import {ToastProvider} from '/src/components/Toast.tsx';import '/src/styles/global.css';
 function Harness(){const workspace=useWorkspace('55555555-5555-4555-8555-555555555555',()=>{});window.workspace=workspace;return React.createElement(Page,{workspace});}
-ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(Harness));`}));
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(ToastProvider,null,React.createElement(Harness)));`}));
 await page.route(/src\/lib\/supabase\.ts(?:\?.*)?$/,route=>route.fulfill({contentType:'text/javascript',body:`export const supabase={auth:{getSession:async()=>({data:{session:{access_token:'test-token'}}})}};`}));
 await page.route(/src\/lib\/product-animation\/desktop\.ts(?:\?.*)?$/,route=>route.fulfill({contentType:'text/javascript',body:`export const hasAnimationDesktop=()=>true;export const listAnimations=async()=>[];export const animationFileUrl=path=>path;export const saveAnimation=async()=>{};export const saveAllAnimations=async(userId,results)=>{window.savedAll=results.map(r=>r.style);return results.length;};export const clearAnimations=async()=>{window.clearCalls=(window.clearCalls||0)+1;return {removed:4,bytes:12*1024*1024};};`}));
 // Local pipeline mock: records every command and the maximum number of concurrent encodes.
@@ -68,8 +68,12 @@ assert.equal(await page.evaluate(()=>window.clearCalls),1);
 assert.equal(await page.evaluate(()=>window.workspace.results.length),0);
 assert.deepEqual(await page.evaluate(()=>window.workspace.items.map(i=>i.status)),['idle','idle','idle','idle']);
 assert.equal(await page.getByRole('button',{name:'一键清空'}).count(),0);
+// Merchant copy: one click puts the delivery message on the clipboard.
+await page.getByRole('button',{name:/商家沟通文案/}).click();
+await page.getByText('动图沟通文案已复制到剪贴板').waitFor();
+assert.match(await page.evaluate(()=>navigator.clipboard.readText()),/^老板好，店铺动图已经做好了.*效果最明显！$/);
 if(process.env.BATCH_SCREENSHOT)await page.screenshot({path:process.env.BATCH_SCREENSHOT,fullPage:true});
 assert.deepEqual(errors,[]);
 assert.equal(await page.getByRole('radio',{name:/热气腾腾/}).count(),0,'AI style removed');
-console.log('预览自动播放、批量上传上限、统一/单张风格、移除、逐张生成、全部下载、一键清空全部通过');
+console.log('预览自动播放、批量上传上限、统一/单张风格、移除、逐张生成、全部下载、一键清空、复制沟通文案全部通过');
 await browser.close();

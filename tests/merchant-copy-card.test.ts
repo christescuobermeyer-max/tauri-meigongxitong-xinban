@@ -91,3 +91,13 @@ equal(
   true
 );
 equal(detailPageResultSource.includes("MerchantCopyCard"), true);
+
+const productAnimationPageSource = readFileSync(
+  new URL("../src/components/workspace/ProductAnimationWorkspacePage.tsx", import.meta.url),
+  "utf8"
+);
+equal(productAnimationPageSource.includes("MerchantCopyCard"), true);
+equal(
+  productAnimationPageSource.includes("会动的菜品比静态图更容易让人停下来多看一眼"),
+  true
+);

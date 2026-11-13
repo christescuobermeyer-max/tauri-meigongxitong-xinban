@@ -5,7 +5,11 @@ import { createAnimationRenderer } from "../../lib/product-animation/render";
 import { loadAnimationFonts } from "../../lib/product-animation/fonts";
 import { animationFileUrl, saveAnimation, type AnimationResult } from "../../lib/product-animation/desktop";
 import { IconAlert, IconCheck, IconClose, IconDownload, IconHistory, IconHourglass, IconImage, IconPause, IconPlay, IconSparkles, IconTrash, IconUpload } from "../Icons";
+import MerchantCopyCard from "../MerchantCopyCard";
 import "../../styles/product-animation.css";
+
+const ANIMATION_COPY_TEXT =
+  "老板好，店铺动图已经做好了～顾客刷外卖时，会动的菜品比静态图更容易让人停下来多看一眼，看得越久越有食欲，进店和下单的机会就更大。建议换到店铺招牌菜和主图位置，效果最明显！";
 
 function Segmented<T extends string | number>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; text: string }[]; onChange: (value: T) => void }) {
   return <div className="pa-field"><span className="pa-field__label">{label}</span>
@@ -210,6 +214,7 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
             <div><dt>大小</dt><dd>{(current.media.bytes / 1_000_000).toFixed(2)} MB</dd></div>
           </dl>
         </div>}
+        <MerchantCopyCard text={ANIMATION_COPY_TEXT} successMessage="动图沟通文案已复制到剪贴板" />
       </section>
     </div>
 
