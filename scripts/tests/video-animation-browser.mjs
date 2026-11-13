@@ -1,4 +1,4 @@
-// 视频转动图：页内切换、选视频（含转码回退）、片段时长与位置、取景框、生成参数、共用记录。
+// 视频转动图：页内切换、抖音/小红书链接提取、上传视频（含转码回退）、片段时长与位置、取景框、生成参数、共用记录。
 // 用法: PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node scripts/tests/video-animation-browser.mjs 测试视频.webm
 import {pathToFileURL} from 'node:url';
 import path from 'node:path';
@@ -17,12 +17,13 @@ function Harness(){const workspace=useWorkspace('55555555-5555-4555-8555-5555555
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(ToastProvider,null,React.createElement(Harness)));`}));
 await page.route(/src\/lib\/supabase\.ts(?:\?.*)?$/,route=>route.fulfill({contentType:'text/javascript',body:`export const supabase={auth:{getSession:async()=>({data:{session:{access_token:'test-token'}}})}};`}));
 await page.route(/src\/lib\/product-animation\/desktop\.ts(?:\?.*)?$/,route=>route.fulfill({contentType:'text/javascript',body:`export const hasAnimationDesktop=()=>true;export const listAnimations=async()=>[];export const animationFileUrl=path=>path;export const saveAnimation=async()=>{};export const saveAllAnimations=async()=>0;export const clearAnimations=async()=>({removed:0,bytes:0});`}));
-// The original file is "unplayable" so the H.264 transcode fallback is exercised.
-await page.route(/src\/lib\/product-animation\/video-desktop\.ts(?:\?.*)?$/,route=>route.fulfill({contentType:'text/javascript',body:`
-export const VIDEO_FILE_EXTENSIONS=['mp4'];
-export const pickAnimationVideo=async()=>'C:\\\\视频\\\\招牌牛肉面.mov';
-export const animationVideoUrl=async()=>'/__original.mov';
-export const transcodeAnimationVideo=async(path)=>{window.transcoded=path;return '/__preview.webm';};`}));
+// Real video-desktop.ts runs against a fake Tauri runtime: the picked .mov is "unplayable" so the
+// H.264 transcode fallback is exercised, while downloaded share videos play directly.
+await page.addInitScript(()=>{window.__TAURI_INTERNALS__={
+  convertFileSrc:(path)=>path.endsWith('.mov')?'/__original.mov':'/__preview.webm?'+encodeURIComponent(path),
+  invoke:async(cmd)=>{if(cmd==='plugin:dialog|open')return 'C:\\视频\\招牌牛肉面.mov';throw Error('Unexpected runtime command '+cmd);}};});
+await page.route('**/api/video/parse-douyin',async route=>{window_douyin=route.request().postDataJSON();await route.fulfill({contentType:'application/json',body:JSON.stringify({videoUrl:'https://cdn.example/douyin.mp4',title:'招牌牛肉面 汤底熬足8小时',author:'张记',platform:'douyin'})});});
+let window_douyin=null;
 await page.route(/src\/lib\/desktop\/invoke\.ts(?:\?.*)?$/,route=>route.fulfill({contentType:'text/javascript',body:`
 const sessions=new Map();
 export const ensureTauriInvoke=()=>async(cmd,args)=>{
@@ -30,10 +31,14 @@ export const ensureTauriInvoke=()=>async(cmd,args)=>{
  if(cmd==='extract_product_animation_video'){window.clip=args.clip;await new Promise(r=>{window.release=r;});return null;}
  if(cmd==='finish_product_animation'){const spec=sessions.get(args.id);sessions.delete(args.id);return {id:crypto.randomUUID(),style:spec.style,path:'/fixture.gif',posterPath:'/fixture.gif',createdAt:new Date().toISOString(),media:{width:spec.width,height:spec.height,durationMs:spec.durationMs,frames:spec.durationMs/50,bytes:2400000,format:spec.format}};}
  if(cmd==='cancel_product_animation'){sessions.delete(args.id);return null;}
+ if(cmd==='allow_animation_video')return args.path;
+ if(cmd==='prepare_local_video_preview'){window.transcoded=args.inputPath;return 'C:\\\\cache\\\\local_preview.mp4';}
+ if(cmd==='parse_xiaohongshu'){window.xhsShare=args.shareText;return {videoUrl:'https://cdn.example/xhs.mp4',title:'',author:'李姐',platform:'xiaohongshu',headers:{Referer:'https://www.xiaohongshu.com/'}};}
+ if(cmd==='download_video'){(window.downloads||=[]).push(args);return 'C:\\\\cache\\\\preview_'+args.platform+'.mp4';}
  throw Error('Unexpected command '+cmd);};`}));
 await page.route('**/__original.mov',route=>route.fulfill({status:200,contentType:'video/quicktime',body:Buffer.from('not a video')}));
 // Byte-range responses like the desktop asset protocol, so the preview can seek into the clip.
-await page.route('**/__preview.webm',route=>{
+await page.route('**/__preview.webm*',route=>{
   const match=/bytes=(\d+)-(\d*)/.exec(route.request().headers().range||'');
   if(!match)return route.fulfill({contentType:'video/webm',headers:{'accept-ranges':'bytes'},body:clip});
   const start=Number(match[1]),end=match[2]?Number(match[2]):clip.length-1;
@@ -49,10 +54,42 @@ await tabs.getByRole('tab',{name:/视频转动图/}).click();
 assert.equal(await tabs.getByRole('tab',{name:/视频转动图/}).getAttribute('aria-selected'),'true');
 assert.equal(await page.getByRole('button',{name:'生成视频动图'}).isDisabled(),true,'Nothing to generate before a video');
 
-// Pick: original fails to play, transcoded preview loads and metadata drives defaults.
+// Source defaults to pasting a link; only Douyin / Xiaohongshu share text is accepted.
+const sources=page.getByRole('radiogroup',{name:'视频来源'});
+assert.equal(await sources.getByRole('radio',{name:'粘贴链接'}).getAttribute('aria-checked'),'true','Link is the default source');
+const linkBox=page.getByLabel('视频分享链接');const parse=page.getByRole('button',{name:'解析链接'});
+assert.equal(await parse.isDisabled(),true,'Parse needs text');
+await linkBox.fill('看看这个 https://example.com/v/1');await parse.click();
+await page.getByRole('alert').filter({hasText:'仅支持小红书或抖音分享链接'}).waitFor();
+if(process.env.LINK_SCREENSHOT)await page.screenshot({path:process.env.LINK_SCREENSHOT,clip:{x:0,y:0,width:1440,height:820}});
+
+// Douyin share text goes through the gateway, then download_video; the MP4 plays without transcoding.
+const douyin='7.99 复制打开抖音，看看【张记的作品】招牌牛肉面 汤底熬足8小时 https://v.douyin.com/iABCdef/ ';
+await linkBox.fill(douyin);await parse.click();
+await page.getByText('1280×720 · 0:06.0',{exact:true}).waitFor({timeout:30000});
+assert.equal(await page.getByText('抖音 · 招牌牛肉面 汤底熬足8小时').count(),1);
+assert.deepEqual(window_douyin,{share_text:douyin.trim()},"Share text is sent trimmed");
+assert.deepEqual(await page.evaluate(()=>window.downloads),[{url:'https://cdn.example/douyin.mp4',platform:'douyin'}]);
+assert.equal(await page.evaluate(()=>window.workspace.video.video.path),'C:\\cache\\preview_douyin.mp4');
+assert.equal(await page.evaluate(()=>window.transcoded),undefined,'Playable downloads are not transcoded');
+
+// Xiaohongshu: parsed on the desktop side, download keeps the Referer header; title falls back to the share text.
+await page.getByRole('button',{name:'更换视频'}).click();
+assert.equal(await sources.getByRole('radio',{name:'粘贴链接'}).getAttribute('aria-checked'),'true');
+const xhs='红烧肉做法 http://xhslink.com/a/Zx9 复制本条信息，打开【小红书】App查看精彩内容！';
+await linkBox.fill(xhs);await parse.click();
+await page.getByText('1280×720 · 0:06.0',{exact:true}).waitFor({timeout:30000});
+assert.equal(await page.evaluate(()=>window.xhsShare),xhs);
+assert.deepEqual((await page.evaluate(()=>window.downloads))[1],{url:'https://cdn.example/xhs.mp4',platform:'xiaohongshu',headers:{Referer:'https://www.xiaohongshu.com/'}});
+assert.equal(await page.getByText('小红书 · 红烧肉做法').count(),1);
+
+// Upload: the original fails to play, the transcoded preview loads and metadata drives defaults.
+await page.getByRole('button',{name:'更换视频'}).click();
+await sources.getByRole('radio',{name:'上传视频'}).click();
 await page.getByRole('button',{name:/点击选择菜品视频/}).click();
 await page.getByText('1280×720 · 0:06.0 · 已转码预览').waitFor({timeout:30000});
 assert.equal(await page.evaluate(()=>window.transcoded),'C:\\视频\\招牌牛肉面.mov');
+assert.equal(await page.evaluate(()=>window.workspace.video.video.path),'C:\\视频\\招牌牛肉面.mov','Extraction keeps the original path');
 assert.equal(await page.getByText('招牌牛肉面.mov').count(),1);
 const v=()=>page.evaluate(()=>{const w=window.workspace.video;return {ratio:w.ratio,crop:w.crop,start:w.startMs,clip:w.clipMs};});
 assert.deepEqual(await v(),{ratio:'16:9',crop:{x:0,y:0,width:1280,height:720},start:0,clip:3000},'Wide video defaults to 16:9 full frame');
@@ -108,5 +145,5 @@ await tabs.getByRole('tab',{name:/视频转动图/}).click();
 assert.equal((await v()).start,1700,'Video settings survive switching tabs');
 if(process.env.VIDEO_SCREENSHOT){await page.getByRole('button',{name:/返回编辑/}).count();await page.screenshot({path:process.env.VIDEO_SCREENSHOT,fullPage:true});}
 assert.deepEqual(errors,[]);
-console.log('页内切换、转码回退、片段时长与位置、自动播放、取景框拖动缩放、生成参数、共用记录全部通过');
+console.log('页内切换、链接校验、抖音与小红书提取、上传与转码回退、片段时长与位置、自动播放、取景框拖动缩放、生成参数、共用记录全部通过');
 await browser.close();

@@ -1,6 +1,6 @@
 import { deepEqual, equal } from "node:assert/strict";
 import { animationStyleTitle, chooseVideoAnimationSize, validateAnimation } from "../src/lib/product-animation/policy";
-import { availableClipLengths, clampClipStart, formatClipTime, initialCrop, moveCrop, resizeCrop } from "../src/lib/product-animation/video";
+import { availableClipLengths, clampClipStart, formatClipTime, initialCrop, moveCrop, resizeCrop, shareTitle } from "../src/lib/product-animation/video";
 
 // Output sizes are the smallest platform-valid canvases.
 for (const ratio of ["4:3", "16:9"] as const) {
@@ -33,3 +33,8 @@ deepEqual(small, { x: 100, y: 100, width: 360, height: 270 });
 const capped = resizeCrop({ x: 600, y: 300, width: 400, height: 300 }, 5000, 1920, 1080, "4:3");
 equal(capped.y + capped.height <= 1080 && capped.x + capped.width <= 1920, true);
 equal(capped.width, 1040);
+
+// Share-text names: title before the link, without platform boilerplate.
+equal(shareTitle("红烧肉做法 http://xhslink.com/a/Zx9 复制本条信息，打开【小红书】App查看精彩内容！"), "红烧肉做法");
+equal(shareTitle("7.99 复制打开抖音，看看【张记的作品】招牌牛肉面  汤底熬足8小时 https://v.douyin.com/iABC/ "), "招牌牛肉面 汤底熬足8小时");
+equal(shareTitle("https://v.douyin.com/iABC/"), "分享视频");

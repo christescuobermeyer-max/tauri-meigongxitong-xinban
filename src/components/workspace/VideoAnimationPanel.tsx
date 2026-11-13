@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
-import type { AnimationVideo, VideoAnimationWorkspace } from "../../hooks/useVideoAnimation";
+import type { AnimationVideo, VideoAnimationWorkspace, VideoSourceKind } from "../../hooks/useVideoAnimation";
 import { animationFileUrl, type AnimationResult } from "../../lib/product-animation/desktop";
 import type { AnimationFormat, AnimationRatio } from "../../lib/product-animation/policy";
 import { availableClipLengths, formatClipTime, moveCrop, resizeCrop, type VideoCrop } from "../../lib/product-animation/video";
@@ -125,12 +125,24 @@ export default function VideoAnimationPanel({ workspace, current, saving, onDown
           <span className="pa-drop__icon" aria-hidden="true"><IconVideo width={18} height={18} /></span>
           <div className="pa-drop__meta"><strong title={video.name}>{video.name}</strong>
             <small>{video.width ? `${video.width}×${video.height} · ${formatClipTime(video.durationMs)}${video.transcoded ? " · 已转码预览" : ""}` : workspace.status || "正在读取…"}</small></div>
-          <button type="button" className="btn btn--secondary btn--sm" disabled={locked} onClick={() => { onReset();void workspace.pick(); }}>更换视频</button>
-        </div> : <button type="button" className={`pa-drop${locked ? " is-locked" : ""}`} disabled={locked} onClick={() => void workspace.pick()}>
-          <span className="pa-drop__icon" aria-hidden="true">{workspace.loading ? <IconHourglass width={22} height={22} /> : <IconVideo width={22} height={22} />}</span>
-          <strong>{workspace.loading ? workspace.status || "正在载入视频…" : "点击选择菜品视频"}</strong>
-          <small>支持 MP4 / MOV / MKV / WebM / AVI，手机拍的视频也可以</small>
-        </button>}
+          <button type="button" className="btn btn--secondary btn--sm" disabled={locked} onClick={() => { onReset();workspace.clearVideo(); }}>更换视频</button>
+        </div> : <>
+          <div className="pa-scope"><Segmented<VideoSourceKind> label="视频来源" value={workspace.sourceKind} options={[{ value: "link", text: "粘贴链接" }, { value: "file", text: "上传视频" }]} onChange={(value) => { if (!workspace.loading) { workspace.setSourceKind(value);workspace.setError(""); } }} /></div>
+          {workspace.sourceKind === "link" ? <form className="pa-link" onSubmit={(event) => { event.preventDefault();void workspace.parseLink(); }}>
+            <textarea className="textarea pa-link__input" aria-label="视频分享链接" value={workspace.link} disabled={workspace.loading} rows={3}
+              placeholder="粘贴小红书或抖音分享链接，整段分享文字也可以" onChange={(event) => workspace.setLink(event.target.value)} />
+            <button type="submit" className="btn btn--primary btn--block" disabled={workspace.loading || !workspace.link.trim()}>
+              {workspace.loading ? <IconHourglass width={15} height={15} aria-hidden="true" /> : <IconVideo width={15} height={15} aria-hidden="true" />}
+              {workspace.loading ? workspace.status || "正在解析…" : "解析链接"}
+            </button>
+          </form> : <button type="button" className={`pa-drop${locked ? " is-locked" : ""}`} disabled={locked} onClick={() => void workspace.pick()}>
+            <span className="pa-drop__icon" aria-hidden="true">{workspace.loading ? <IconHourglass width={22} height={22} /> : <IconVideo width={22} height={22} />}</span>
+            <strong>{workspace.loading ? workspace.status || "正在载入视频…" : "点击选择菜品视频"}</strong>
+            <small>支持 MP4 / MOV / MKV / WebM / AVI，手机拍的视频也可以</small>
+          </button>}
+          {/* Source errors sit next to the input that caused them. */}
+          {workspace.error && <p role="alert" className="pa-error pa-error--source"><IconAlert width={16} height={16} aria-hidden="true" /><span>{workspace.error}</span></p>}
+        </>}
       </Step>
 
       <Step index={2} title="选择片段">
@@ -160,7 +172,7 @@ export default function VideoAnimationPanel({ workspace, current, saving, onDown
         <div className="pa-progress__bar"><span style={{ width: `${workspace.progress}%` }} /></div>
         <p><span className="pa-spinner" aria-hidden="true" />{workspace.status || "正在处理…"}</p>
       </div>}
-      {workspace.error && <p role="alert" className="pa-error"><IconAlert width={16} height={16} aria-hidden="true" /><span>{workspace.error}</span></p>}
+      {workspace.error && video && <p role="alert" className="pa-error"><IconAlert width={16} height={16} aria-hidden="true" /><span>{workspace.error}</span></p>}
     </section>
 
     <section className="pa-preview">
@@ -179,7 +191,7 @@ export default function VideoAnimationPanel({ workspace, current, saving, onDown
             onCrop={edit(workspace.setCrop)} onMetadata={workspace.onMetadata} onError={() => void workspace.onPlaybackError()} onTime={setCurrentMs} />
           : <div className="pa-empty">
             <span className="pa-empty__icon" aria-hidden="true"><IconVideo width={30} height={30} /></span>
-            <strong>还没有视频</strong><p>在左侧选择一段菜品视频，这里会循环播放所选片段</p>
+            <strong>还没有视频</strong><p>在左侧粘贴小红书或抖音链接，或上传本机视频，这里会循环播放所选片段</p>
           </div>}
       </div>
       {current && <ResultMetrics result={current} />}

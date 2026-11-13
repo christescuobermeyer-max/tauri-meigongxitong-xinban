@@ -178,6 +178,9 @@
 /* 视频转动图 */
 button.pa-drop { width: 100%; font: inherit; color: inherit; }
 .pa-fields + .pa-note { margin-top: 10px; }
+.pa-link { display: flex; flex-direction: column; gap: 10px; }
+.pa-error.pa-error--source { margin-top: 10px; }
+.pa-link__input { width: 100%; min-height: 84px; resize: vertical; font: inherit; font-size: 13px; line-height: 1.6; }
 button.pa-drop:disabled { cursor: not-allowed; }
 .pa-video-file { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-subtle); }
 .pa-video-file .pa-drop__icon { width: 36px; height: 36px; margin: 0; }

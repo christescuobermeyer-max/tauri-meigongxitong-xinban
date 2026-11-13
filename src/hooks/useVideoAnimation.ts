@@ -3,8 +3,9 @@ import { ensureTauriInvoke } from "../lib/desktop/invoke";
 import { hasAnimationDesktop, type AnimationResult } from "../lib/product-animation/desktop";
 import { chooseVideoAnimationSize, validateAnimation, VIDEO_ANIMATION_STYLE, type AnimationFormat, type AnimationRatio } from "../lib/product-animation/policy";
 import { availableClipLengths, clampClipStart, initialCrop, MIN_VIDEO_SECONDS, type VideoCrop } from "../lib/product-animation/video";
-import { animationVideoUrl, pickAnimationVideo, transcodeAnimationVideo } from "../lib/product-animation/video-desktop";
+import { animationVideoUrl, fetchShareVideo, pickAnimationVideo, transcodeAnimationVideo } from "../lib/product-animation/video-desktop";
 
+export type VideoSourceKind = "link" | "file";
 export interface AnimationVideo { path: string; name: string; url: string; transcoded: boolean; width: number; height: number; durationMs: number }
 
 const message = (reason: unknown) => reason instanceof Error ? reason.message : String(reason);
@@ -14,6 +15,8 @@ const fileName = (path: string) => path.split(/[\\/]/).pop() || "视频";
 export default function useVideoAnimation(userId: string, onResult: (result: AnimationResult) => void) {
   const [video, setVideo] = useState<AnimationVideo | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sourceKind, setSourceKind] = useState<VideoSourceKind>("link");
+  const [link, setLink] = useState("");
   const [ratio, setRatioState] = useState<AnimationRatio>("4:3");
   const [format, setFormat] = useState<AnimationFormat>("gif");
   const [clipMs, setClipState] = useState(3000);
@@ -30,21 +33,39 @@ export default function useVideoAnimation(userId: string, onResult: (result: Ani
   const size = chooseVideoAnimationSize(ratio);
   const ready = Boolean(video && video.width && crop);
 
-  async function pick() {
+  /** Resolves a local path (picked or downloaded) and hands it to the preview; metadata finishes loading. */
+  async function load(resolve: () => Promise<{ path: string; name: string } | null>) {
     if (busy || loading) return;
     if (!hasAnimationDesktop()) { setError("请在桌面应用内选择视频");return; }
     const run = ++sequence.current;
+    setError("");
     try {
-      const path = await pickAnimationVideo();
-      if (!path || run !== sequence.current) return;
-      setLoading(true);setError("");setStatus("正在载入视频…");
-      const url = await animationVideoUrl(path);
+      const picked = await resolve();
       if (run !== sequence.current || !mounted.current) return;
-      setVideo({ path, name: fileName(path), url, transcoded: false, width: 0, height: 0, durationMs: 0 });
+      if (!picked) { setLoading(false);setStatus("");return; }
+      setLoading(true);setStatus("正在载入视频…");
+      const url = await animationVideoUrl(picked.path);
+      if (run !== sequence.current || !mounted.current) return;
+      setVideo({ path: picked.path, name: picked.name, url, transcoded: false, width: 0, height: 0, durationMs: 0 });
       setCrop(null);setStartState(0);
     } catch (reason) {
       if (run === sequence.current && mounted.current) { setError(message(reason));setLoading(false);setStatus(""); }
     }
+  }
+  const pick = () => load(async () => { const path = await pickAnimationVideo();return path ? { path, name: fileName(path) } : null; });
+  function parseLink() {
+    const text = link.trim();
+    if (!text) { setError("请先粘贴小红书或抖音分享链接");return Promise.resolve(); }
+    return load(async () => {
+      setLoading(true);setStatus("正在解析链接并下载视频…");
+      const shared = await fetchShareVideo(text);
+      return { path: shared.path, name: `${shared.platform === "douyin" ? "抖音" : "小红书"} · ${shared.title.slice(0, 30)}` };
+    });
+  }
+  /** Back to the source chooser to pick a different video. */
+  function clearVideo() {
+    if (busy) return;
+    sequence.current++;setVideo(null);setCrop(null);setLoading(false);setStatus("");setError("");
   }
 
   /** Called by the preview <video> once dimensions and duration are known. */
@@ -128,7 +149,7 @@ export default function useVideoAnimation(userId: string, onResult: (result: Ani
     };
   }, [userId]);
 
-  return { video, loading, ready, ratio, setRatio, format, setFormat, clipMs, setClip, startMs, setStart, crop, setCrop, size,
+  return { sourceKind, setSourceKind, link, setLink, parseLink, clearVideo, video, loading, ready, ratio, setRatio, format, setFormat, clipMs, setClip, startMs, setStart, crop, setCrop, size,
     busy, progress, status, error, setError, pick, onMetadata, onPlaybackError, generate, cancel };
 }
 export type VideoAnimationWorkspace = ReturnType<typeof useVideoAnimation>;

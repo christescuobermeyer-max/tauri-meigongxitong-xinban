@@ -1,5 +1,9 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { ensureTauriInvoke } from "../desktop/invoke";
+import { parseDouyinVideo, type VideoInfo } from "../desktop/video";
+import { detectPlatform } from "../../components/video-signboard/helpers";
+import { shareTitle } from "./video";
+import type { VideoPlatform } from "../../components/video-signboard/types";
 
 export const VIDEO_FILE_EXTENSIONS = ["mp4", "mov", "m4v", "mkv", "webm", "avi"];
 
@@ -18,4 +22,15 @@ export async function animationVideoUrl(path: string) {
 /** H.264 copy for codecs the webview cannot play (e.g. some HEVC phone clips). */
 export async function transcodeAnimationVideo(path: string) {
   return convertFileSrc(await ensureTauriInvoke()<string>("prepare_local_video_preview", { inputPath: path }));
+}
+
+/** Same parsing and download as the video signboard: share text → local MP4 path. */
+export async function fetchShareVideo(shareText: string): Promise<{ path: string; title: string; platform: VideoPlatform }> {
+  const platform = detectPlatform(shareText);
+  if (!platform) throw new Error("仅支持小红书或抖音分享链接");
+  const info = platform === "douyin" ? await parseDouyinVideo(shareText) : await ensureTauriInvoke()<VideoInfo>("parse_xiaohongshu", { shareText });
+  const args: { url: string; platform: VideoPlatform; headers?: Record<string, string> } = { url: info.videoUrl, platform: info.platform };
+  if (info.headers) args.headers = info.headers;
+  const path = await ensureTauriInvoke()<string>("download_video", args);
+  return { path, title: info.title?.trim() || shareTitle(shareText), platform };
 }
