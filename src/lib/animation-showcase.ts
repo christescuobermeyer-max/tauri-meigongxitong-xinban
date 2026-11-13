@@ -1,5 +1,7 @@
 import { supabase } from "./supabase";
-import { getBackendGatewayUrl } from "./tauri";
+import { getBackendGatewayUrl, pickSavePath, saveBase64Image } from "./tauri";
+import { downloadOssImageAsBase64 } from "./oss-image-download";
+import { safeName } from "./product-animation/file-names";
 
 const REQUEST_TIMEOUT_MS = 15_000;
 export const ANIMATION_SHOWCASE_MAX_PAGES = 10;
@@ -68,4 +70,17 @@ export async function fetchAnimationShowcase(page = 1): Promise<AnimationShowcas
   } finally {
     window.clearTimeout(timer);
   }
+}
+
+/** Save name for a showcase animation: its title, or 视频动图 when it has none. */
+export const showcaseFileName = (item: Pick<AnimationShowcaseItem, "title" | "format">) => `${safeName(item.title) || "视频动图"}.${item.format}`;
+
+/** Asks where to save, then writes the original GIF/WebP bytes. Returns false when cancelled. */
+export async function downloadShowcaseItem(item: AnimationShowcaseItem): Promise<boolean> {
+  const path = await pickSavePath(showcaseFileName(item), [{ name: item.format.toUpperCase(), extensions: [item.format] }]);
+  if (!path) return false;
+  const file = await downloadOssImageAsBase64(item.url);
+  if (file.mimeType !== `image/${item.format}`) throw new Error("下载的文件不是动图，请刷新后重试");
+  await saveBase64Image({ base64_data: file.base64, output_path: path });
+  return true;
 }

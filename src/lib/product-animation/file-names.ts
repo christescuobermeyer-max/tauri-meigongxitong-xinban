@@ -10,7 +10,7 @@ const stamp = (iso: string) => {
 };
 
 /** Characters Windows does not allow in file names become "_"; trailing dots and spaces are dropped. */
-const safeName = (name: string) => name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").trim().replace(/[. ]+$/, "").slice(0, 60);
+export const safeName = (name: string) => name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").trim().replace(/[. ]+$/, "").slice(0, 60);
 
 /**
  * File name for saving an animation:

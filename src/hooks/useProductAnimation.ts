@@ -39,7 +39,8 @@ export default function useProductAnimation(userId: string, onOpen: () => void) 
   const [error, setError] = useState("");
   const [results, setResults] = useState<AnimationResult[]>([]);
   const [current, setCurrent] = useState<AnimationResult | null>(null);
-  const [mode, setModeState] = useState<AnimationMode>("image");
+  // Video clips are the default: they suit quality and paying stores, the main audience.
+  const [mode, setModeState] = useState<AnimationMode>("video");
   // Video clips share the record list and the preview result with the image flow.
   const video = useVideoAnimation(userId, (result) => {
     setResults((previous) => [result, ...previous.filter((entry) => entry.id !== result.id)].slice(0, 50));

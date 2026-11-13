@@ -4,15 +4,15 @@ import { ANIMATION_STYLES, ANIMATION_STYLE_GROUPS, animationStyleTitle, type Ani
 import { createAnimationRenderer } from "../../lib/product-animation/render";
 import { loadAnimationFonts } from "../../lib/product-animation/fonts";
 import { animationFileUrl, saveAnimation, type AnimationResult } from "../../lib/product-animation/desktop";
-import { IconAlert, IconCheck, IconClose, IconDownload, IconHistory, IconHourglass, IconImage, IconPause, IconPlay, IconSparkles, IconTrash, IconUpload, IconVideo } from "../Icons";
+import { IconAlert, IconCheck, IconClose, IconDownload, IconHistory, IconHourglass, IconImage, IconPause, IconPlay, IconSparkles, IconStore, IconTrash, IconUpload, IconVideo } from "../Icons";
 import MerchantCopyCard from "../MerchantCopyCard";
 import { ANIMATION_COPY_TEXT, ResultMetrics, Segmented, Step, UploadStatus } from "./product-animation-parts";
 import VideoAnimationPanel from "./VideoAnimationPanel";
 import "../../styles/product-animation.css";
 
-const MODES: { id: AnimationMode; title: string; hint: string; icon: typeof IconSparkles }[] = [
-  { id: "image", title: "图片做动效", hint: "给菜品图加贴纸动效", icon: IconSparkles },
-  { id: "video", title: "视频转动图", hint: "截取视频片段导出", icon: IconVideo },
+const MODES: { id: AnimationMode; title: string; hint: string; icon: typeof IconSparkles; stores: string }[] = [
+  { id: "video", title: "视频转动图", hint: "截取视频片段导出", icon: IconVideo, stores: "优质店铺、交钱的店铺" },
+  { id: "image", title: "图片做动效", hint: "给菜品图加贴纸动效", icon: IconSparkles, stores: "抽不到钱的店铺" },
 ];
 
 // The source <img> URL may already be revoked, so draw the decoded image instead of reusing its src.
@@ -124,6 +124,14 @@ export default function ProductAnimationWorkspacePage({ workspace }: { workspace
         <span className="pa-mode__text"><strong>{title}</strong><small>{hint}</small></span>
       </button>))}
     </div>
+    {(() => {
+      const here = MODES.find((entry) => entry.id === workspace.mode)!;
+      const other = MODES.find((entry) => entry.id !== workspace.mode)!;
+      return <p className="pa-mode-tip" role="note">
+        <IconStore width={14} height={14} aria-hidden="true" />
+        <span>适用：<strong>{here.stores}</strong>。{other.stores}请用<button type="button" disabled={anyBusy} onClick={() => workspace.setMode(other.id)}>「{other.title}」</button></span>
+      </p>;
+    })()}
 
     {workspace.mode === "video" ? <VideoAnimationPanel workspace={workspace.video} current={current} saving={saving} onDownload={(result) => void download(result)} onReset={reset}
       upload={current && <UploadStatus result={current} state={workspace.uploads[current.id]} onUpload={workspace.uploadResult} />} /> : <div className="pa-layout">

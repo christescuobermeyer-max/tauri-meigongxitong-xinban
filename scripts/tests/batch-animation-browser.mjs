@@ -39,6 +39,13 @@ await page.route('**/api/animation-uploads',async route=>{uploading++;maxUploadi
 await page.emulateMedia({reducedMotion:'reduce'});
 await page.goto('http://127.0.0.1:1420/');
 
+// The page opens on video clips; image effects are the second tab, for stores without commission.
+const modeTabs=page.getByRole('tablist',{name:'制作方式'}).getByRole('tab');
+assert.deepEqual(await modeTabs.allTextContents().then(t=>t.map(x=>x.slice(0,5))),['视频转动图','图片做动效']);
+assert.equal(await modeTabs.first().getAttribute('aria-selected'),'true');
+await modeTabs.nth(1).click();
+await page.getByRole('note').filter({hasText:'适用：抽不到钱的店铺。优质店铺、交钱的店铺请用「视频转动图」'}).waitFor();
+
 // Six files: only five are accepted.
 await page.getByLabel('选择菜品图片').setInputFiles(Array.from({length:6},(_,i)=>({name:`菜品${i+1}.png`,mimeType:'image/png',buffer:png})));
 await page.waitForFunction(()=>window.workspace?.items.length===5,null,{polling:300,timeout:60000});

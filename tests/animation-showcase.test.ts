@@ -1,6 +1,6 @@
 import { deepEqual, equal, ok } from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { normalizeAnimationShowcase } from "../src/lib/animation-showcase";
+import { normalizeAnimationShowcase, showcaseFileName } from "../src/lib/animation-showcase";
 import { animationTitle } from "../src/lib/product-animation/upload";
 import { listWorkspaceNavigation, WORKSPACE_CATALOG } from "../src/lib/workspace-catalog";
 
@@ -28,3 +28,8 @@ deepEqual(page.items[0], { id: "a", displayName: "未知账号", title: "视频�
 equal(animationTitle("IMG_2041.MOV"), "IMG_2041");
 equal(animationTitle("招牌牛肉面.png"), "招牌牛肉面");
 equal(animationTitle("抖音 · 价格12.99"), "抖音 · 价格12.99");
+
+// Download names: the title, made safe for Windows; untitled clips fall back to 视频动图.
+equal(showcaseFileName({ title: "抖音 · 招牌牛肉面", format: "gif" }), "抖音 · 招牌牛肉面.gif");
+equal(showcaseFileName({ title: "a/b:c", format: "webp" }), "a_b_c.webp");
+equal(showcaseFileName({ title: "", format: "gif" }), "视频动图.gif");

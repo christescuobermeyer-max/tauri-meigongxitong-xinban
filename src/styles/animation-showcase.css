@@ -3,3 +3,7 @@
 .animation-showcase .animation-showcase__thumb { position: relative; aspect-ratio: 4 / 3; padding: 0; overflow: hidden; background: #1d1511; }
 .animation-showcase .animation-showcase__thumb img { border-radius: 0; object-fit: contain; }
 .animation-showcase__tag { position: absolute; left: 8px; bottom: 8px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; color: #fff; background: rgba(0, 0, 0, 0.55); pointer-events: none; }
+.animation-showcase .animation-showcase__download { align-self: stretch; justify-content: center; }
+.animation-showcase__notice { margin: 0; padding: 8px 12px; border-radius: var(--radius-md); font-size: 12px; font-weight: 600; }
+.animation-showcase__notice.is-ok { color: var(--success); background: color-mix(in srgb, var(--success) 10%, transparent); }
+.animation-showcase__notice.is-error { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }

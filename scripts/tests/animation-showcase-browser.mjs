@@ -1,4 +1,4 @@
-// 动图展示：读取网关列表、可见卡片自动播放、屏幕外显示封面、放大查看、翻页。
+// 动图展示：读取网关列表、可见卡片自动播放、屏幕外显示封面、放大查看、下载、翻页。
 // 用法: PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node scripts/tests/animation-showcase-browser.mjs 动图.gif 封面.jpg
 import {pathToFileURL} from 'node:url';
 import path from 'node:path';
@@ -10,6 +10,12 @@ if(!gifPath||!posterPath)throw new Error('用法: PLAYWRIGHT_MODULE=... node scr
 const gif=await readFile(path.resolve(gifPath)),poster=await readFile(path.resolve(posterPath));
 const browser=await chromium.launch();const page=await browser.newPage({viewport:{width:1280,height:520}});
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
+// Fake desktop runtime: the save dialog is cancelled once, then returns a path; writes are recorded.
+await page.addInitScript(()=>{window.dialogs=[];window.__TAURI_INTERNALS__={convertFileSrc:p=>p,invoke:async(cmd,args)=>{
+  if(cmd!=='plugin:dialog|save')throw Error('Unexpected runtime command '+cmd);
+  window.dialogs.push(args.options);return window.dialogs.length===1?null:'D:\\动图\\'+args.options.defaultPath;}};});
+await page.route(/src\/lib\/desktop\/invoke\.ts(?:\?.*)?$/,route=>route.fulfill({contentType:'text/javascript',body:`
+export const ensureTauriInvoke=()=>async(cmd,args)=>{if(cmd==='save_base64_image'){(window.saved||=[]).push(args.req);return args.req.output_path;}throw Error('Unexpected command '+cmd);};`}));
 await page.route(/src\/main\.tsx(?:\?.*)?$/,route=>route.fulfill({contentType:'text/javascript',body:`
 import React from '/node_modules/.vite/deps/react.js';import ReactDOM from '/node_modules/.vite/deps/react-dom_client.js';
 import Page from '/src/components/AnimationShowcasePage.tsx';import '/src/styles/global.css';
@@ -57,6 +63,26 @@ await dialog.getByText('员工11 · 768×432 · 3.0 秒').waitFor();
 await page.keyboard.press('Escape');
 assert.equal(await dialog.count(),0);
 
+// Download: cancelling the dialog saves nothing; confirming writes the original GIF under its title.
+await page.getByRole('button',{name:'下载：招牌菜 0'}).click();
+await page.waitForFunction(()=>window.dialogs.length===1);
+assert.equal(await page.evaluate(()=>window.saved),undefined,'Cancelled dialog saves nothing');
+await page.getByRole('button',{name:'下载：招牌菜 0'}).click();
+await page.getByText('已保存：招牌菜 0').waitFor();
+const dialogs=await page.evaluate(()=>window.dialogs);
+assert.equal(dialogs[1].defaultPath,'招牌菜 0.gif');
+assert.deepEqual(dialogs[1].filters,[{name:'GIF',extensions:['gif']}]);
+const saved=await page.evaluate(()=>window.saved);
+assert.equal(saved[0].output_path,'D:\\动图\\招牌菜 0.gif');
+assert.equal(saved[0].base64_data,gif.toString('base64'),'Saved bytes are the original animation');
+// The lightbox has its own download button; clicking it keeps the lightbox open.
+await cards.nth(2).getByRole('button',{name:'放大查看：招牌菜 2'}).click();
+await page.getByRole('dialog',{name:'动图大图'}).getByRole('button',{name:'下载 GIF'}).click();
+await page.getByText('已保存：招牌菜 2').waitFor();
+assert.equal(await page.getByRole('dialog',{name:'动图大图'}).count(),1);
+assert.equal((await page.evaluate(()=>window.saved))[1].output_path,'D:\\动图\\招牌菜 2.gif');
+await page.keyboard.press('Escape');
+
 // Next page.
 await page.getByRole('button',{name:'下一页 ›'}).click();
 await page.getByText('可查看 14 个动图 · 第 2 / 2 页').waitFor();
@@ -66,5 +92,5 @@ await page.getByRole('button',{name:'‹ 上一页'}).click();
 await page.getByText('第 1 / 2 页').first().waitFor();
 if(process.env.SHOWCASE_SCREENSHOT){await page.evaluate(()=>window.scrollTo(0,0));await page.waitForTimeout(600);await page.screenshot({path:process.env.SHOWCASE_SCREENSHOT});}
 assert.deepEqual(errors,[]);
-console.log('动图展示：接口鉴权、可见自动播放、屏幕外封面、滚动切换、统一卡片、放大查看、翻页全部通过');
+console.log('动图展示：接口鉴权、可见自动播放、屏幕外封面、滚动切换、统一卡片、放大查看、下载（取消/卡片/大图）、翻页全部通过');
 await browser.close();

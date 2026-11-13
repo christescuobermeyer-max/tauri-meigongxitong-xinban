@@ -54,10 +54,15 @@ await page.route('**/__preview.webm*',route=>{
 await page.route('**/fixture.gif',route=>route.fulfill({contentType:'image/gif',body:Buffer.from('R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs=','base64')}));
 await page.goto('http://127.0.0.1:1420/');
 
-// Tabs: image mode first, switch to video.
+// Tabs: video clips come first and are open by default; the tip says which stores each suits.
 const tabs=page.getByRole('tablist',{name:'制作方式'});
-assert.equal(await tabs.getByRole('tab',{name:/图片做动效/}).getAttribute('aria-selected'),'true');
-await tabs.getByRole('tab',{name:/视频转动图/}).click();
+assert.match(await tabs.getByRole('tab').first().textContent(),/^视频转动图/);
+assert.equal(await tabs.getByRole('tab',{name:/视频转动图/}).getAttribute('aria-selected'),'true');
+const tip=page.getByRole('note');
+assert.equal(await tip.textContent(),'适用：优质店铺、交钱的店铺。抽不到钱的店铺请用「图片做动效」');
+await tip.getByRole('button',{name:'「图片做动效」'}).click();
+assert.equal(await tabs.getByRole('tab',{name:/图片做动效/}).getAttribute('aria-selected'),'true','The tip link switches mode');
+await page.getByRole('note').getByRole('button',{name:'「视频转动图」'}).click();
 assert.equal(await tabs.getByRole('tab',{name:/视频转动图/}).getAttribute('aria-selected'),'true');
 assert.equal(await page.getByRole('button',{name:'生成视频动图'}).isDisabled(),true,'Nothing to generate before a video');
 
