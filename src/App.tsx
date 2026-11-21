@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AppErrorBoundary from "./components/AppErrorBoundary";
+import CloseConfirmation from "./components/CloseConfirmation";
 import LoginPage from "./components/LoginPage";
 import MandatoryUpdateGate from "./components/MandatoryUpdateGate";
 import WorkspaceShell from "./components/WorkspaceShell";
@@ -10,12 +11,15 @@ export default function App() {
   const [workspaceBusy, setWorkspaceBusy] = useState(false);
 
   return (
-    <AppErrorBoundary>
-      <ToastProvider>
-        <AppRouter onWorkspaceBusyChange={setWorkspaceBusy} />
-        <MandatoryUpdateGate suspend={workspaceBusy} />
-      </ToastProvider>
-    </AppErrorBoundary>
+    <>
+      <AppErrorBoundary>
+        <ToastProvider>
+          <AppRouter onWorkspaceBusyChange={setWorkspaceBusy} />
+          <MandatoryUpdateGate suspend={workspaceBusy} />
+        </ToastProvider>
+      </AppErrorBoundary>
+      <CloseConfirmation />
+    </>
   );
 }
 
