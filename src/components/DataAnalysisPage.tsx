@@ -70,10 +70,10 @@ export default function DataAnalysisPage({
                 onChange={(next) => setImages(next.slice(0, 1))}
                 maxCount={1}
                 dropzoneTitle="点击、拖拽或 Ctrl+V 粘贴店铺30天流量数据截图"
-                compressedLabel="生图参考"
+                compressedLabel="数据读取"
               />
               <span className="field__hint">
-                仅使用这张截图作为参考图，不携带旧项目模板图
+                截图只用于读取数据，系统会重新设计并生成全新的分析图
               </span>
             </div>
 

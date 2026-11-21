@@ -34,6 +34,9 @@ ok(prompt.includes("下单人数"));
 ok(prompt.includes("只提取数字后面紧跟“人”的数据"));
 ok(prompt.includes("数字后面紧跟“次”的数据是次数"));
 ok(prompt.includes("不要虚构截图中不存在的具体数值"));
+ok(prompt.includes("截图只作为读取和核实数据的资料"));
+ok(prompt.includes("禁止原样输出、复刻、描摹、嵌入或拼贴整张截图"));
+ok(prompt.includes("不得退回展示原截图"));
 ok(!prompt.includes("图2"));
 ok(!prompt.includes("模板参考图"));
 
@@ -73,6 +76,7 @@ const dataAnalysisPageSource = read("src/components/DataAnalysisPage.tsx");
 ok(dataAnalysisPageSource.includes("data-analysis-result-hero"));
 ok(dataAnalysisPageSource.includes("data-analysis-result-hero__kicker"));
 ok(dataAnalysisPageSource.includes("专业分析交付区"));
+ok(dataAnalysisPageSource.includes("截图只用于读取数据，系统会重新设计并生成全新的分析图"));
 ok(dataAnalysisPageSource.includes("data-analysis-result-hero__metric"));
 ok(dataAnalysisPageSource.includes("OSS归档"));
 ok(dataAnalysisPageSource.includes("云端记录"));
@@ -125,3 +129,11 @@ ok(schemaSource.includes("data_analysis_count"));
 const migrationSource = read("supabase/migrations/20260514_add_data_analysis_asset_kind.sql");
 ok(migrationSource.includes("'data_analysis'"));
 ok(migrationSource.includes("data_analysis_count"));
+
+const generationPrompts = JSON.parse(read("prompt-templates/generation-prompts.json")) as {
+  templates: Record<string, string>;
+};
+const cloudDataAnalysisPrompt = generationPrompts.templates.data_analysis;
+ok(cloudDataAnalysisPrompt.includes("截图只作为读取和核实数据的资料"));
+ok(cloudDataAnalysisPrompt.includes("禁止原样输出、复刻、描摹、嵌入或拼贴整张截图"));
+ok(cloudDataAnalysisPrompt.includes("不得退回展示原截图"));
