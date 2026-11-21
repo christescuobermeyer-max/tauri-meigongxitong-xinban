@@ -92,6 +92,8 @@ ok(hookSource.includes("onRecordHistory"));
 ok(hookSource.includes("remoteUrl"));
 ok(hookSource.includes("data-analysis"));
 ok(hookSource.includes("DATA_ANALYSIS_PLATFORM"));
+ok(hookSource.includes("prompt: buildDataAnalysisPrompt(snapshot.storeName)"));
+ok(!hookSource.includes("prompt_config"));
 
 const typesSource = read("src/types.ts");
 ok(typesSource.includes('"data_analysis"'));
