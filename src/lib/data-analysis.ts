@@ -1,35 +1,50 @@
-import type { GenerationLine } from "../types";
-
 export const DATA_ANALYSIS_EXPORT_SIZE = { w: 1536, h: 1024 } as const;
 export const DATA_ANALYSIS_ASSET_KIND = "data_analysis" as const;
 export const DATA_ANALYSIS_PLATFORM = "meituan" as const;
-
 export const DATA_ANALYSIS_COPY_TEXT =
-  "老板，我们看了您店铺这30天的数据，整体走势是符合预期的。现在这个阶段其实是在给店铺打地基，平台算法需要一段时间来重新识别您店铺的品类定位和用户画像，这个过程中权重在慢慢积累。从数据曲线上看，虽然现在单量和曝光还没有明显爆发，但基础指标已经在往好的方向走了，店铺的搜索权重和推荐权重都在稳步提升。外卖运营就是这样，前期要把地基打牢，后面才能稳定增长。根据我们的经验和您店铺目前的数据表现，接下来会开始进入一个阶梯式递增的阶段，单量和曝光都会逐步往上走。我们会继续盯着数据，配合这个上升趋势做好优化调整。";
+  "老板，这张图整理了店铺近30天的流量数据，可以一起看看曝光、进店和下单三个阶段的表现。图中的转化率按已核对的人数计算，缺少数据的地方用横线标注。";
 
-export function buildDataAnalysisPrompt(storeName: string): string {
-  const trimmed = storeName.trim();
-  return `请仔细读取用户上传的外卖店铺30天流量数据截图，店铺名称是「${trimmed}」。
+export const TRAFFIC_FIELDS = [
+  { key: "exposure", label: "曝光人数", color: "#245DCC" },
+  { key: "visits", label: "进店人数", color: "#158071" },
+  { key: "orders", label: "下单人数", color: "#B2551C" },
+] as const;
 
-请生成一张专业的数据分析可视化图片，横版 3:2 或 16:9 构图，画面适合发送给外卖商家沟通运营效果。
+export type TrafficMetrics = Record<(typeof TRAFFIC_FIELDS)[number]["key"], string>;
+export const EMPTY_TRAFFIC_METRICS: TrafficMetrics = { exposure: "", visits: "", orders: "" };
 
-关键任务约束：上传截图只作为读取和核实数据的资料，不是成品画布、底图或待美化的原图。必须先提取可辨认的数据，再在全新空白画布上重新设计、重新排版并绘制一张独立的数据分析可视化图。最终图必须明显区别于源截图。禁止原样输出、复刻、描摹、嵌入或拼贴整张截图，禁止保留截图中的 App 页面、导航栏、按钮、表格布局、卡片布局和其他界面控件，也禁止把缩小后的原截图作为主视觉或背景。即使个别数据无法识别，也应继续用已核实的数据设计全新的图表，不得退回展示原截图。
-
-内容要求：
-1. 标题必须使用店铺名称「${trimmed}」和“30天流量数据分析”。
-2. 根据截图中能识别到的真实数据，整理曝光人数、进店人数、下单人数、转化率、趋势变化等核心指标。
-3. 提取曝光人数、进店人数、下单人数等“人数”指标时，必须只提取数字后面紧跟“人”的数据；数字后面紧跟“次”的数据是次数，不是人数，不能当作人数写入图中。
-4. 如果同一指标附近同时出现“人”和“次”，优先使用带“人”的数值；带“次”的数值最多可作为访问/浏览次数描述，不能替代真实人数。
-5. 用专业商务图表表达数据，包括漏斗图、趋势折线、关键指标卡片和简短结论。
-6. 如果截图里某个数字无法清晰识别，或无法判断数字单位是“人”还是“次”，请用趋势性描述替代，不要虚构截图中不存在的具体数值。
-7. 结论要偏运营沟通场景，强调权重积累、流量基础、后续增长空间。
-
-视觉要求：
-- 高级数据看板风格，白色或浅色背景，蓝色、橙色、绿色作为辅助色。
-- 信息层级清楚，文字必须可读，不要堆叠过多小字。
-- 图片整体要像一张可直接发给商家的专业数据分析图。`;
+export function parseTrafficCount(input: string): number | null {
+  const value = input.normalize("NFKC").trim();
+  if (!/^(?:\d+|\d{1,3}(?:,\d{3})+)$/.test(value)) return null;
+  const count = Number(value.replace(/,/g, ""));
+  return Number.isSafeInteger(count) ? count : null;
 }
 
-export function resolveDataAnalysisSize(line: GenerationLine): string {
-  return line === "line5" ? "16:9" : "1536x1024";
+export function extractTrafficMetrics(text: string): TrafficMetrics {
+  const lines = text.normalize("NFKC").split(/\r?\n/).map((line) => line.replace(/\s/g, ""));
+  const source = lines.join("\n");
+  const headings = [...source.matchAll(/曝光\s*人数|(?:进店|访问)\s*人数|(?:下单|成交)\s*人数/g)];
+  const values = { exposure: new Set<number>(), visits: new Set<number>(), orders: new Set<number>() };
+  headings.forEach((heading, index) => {
+    const start = heading.index + heading[0].length;
+    const segment = source.slice(start, headings[index + 1]?.index);
+    // 只读取同一行或紧接的数值行，排除小数、万位缩写、次数及歧义值。
+    const [sameLine, nextLine] = segment.split("\n");
+    const row = /^[：:]*$/.test(sameLine) && /^\d/.test(nextLine ?? "") ? nextLine : sameLine;
+    const key = heading[0].startsWith("曝光") ? "exposure" : /进店|访问/.test(heading[0]) ? "visits" : "orders";
+    for (const match of row.matchAll(/(?<![\d.,+-])([\d,]+)\s*人(?!数)/g)) {
+      const count = parseTrafficCount(match[1]);
+      if (count !== null) values[key].add(count);
+    }
+  });
+  const result = { ...EMPTY_TRAFFIC_METRICS };
+  for (const { key } of TRAFFIC_FIELDS) {
+    if (values[key].size === 1) result[key] = String([...values[key]][0]);
+  }
+  return result;
+}
+
+export function formatTrafficRate(value: number | null, base: number | null): string {
+  return value === null || base === null || base === 0 || value > base
+    ? "—" : `${(100 * value / base).toFixed(1)}%`;
 }

@@ -44,7 +44,7 @@ export function useWorkspaceHistoryRecorder({ userId, tab, generationLine, onToa
       return;
     }
     if (!markGenerationLogRecorded(recordedGenerationLogs.current, kind, remoteUrl)) return;
-    const recordedLine = normalizeRecordableGenerationLine(item.generationLine) ?? generationLine;
+    const recordedLine = kind === "data_analysis" ? null : normalizeRecordableGenerationLine(item.generationLine) ?? generationLine;
     const trimmedShopName = shopNameSnapshot.trim() || "未命名店铺";
     const productNameForHistory = kind === "product" ? item.productName?.trim() || undefined : undefined;
     const previewUrl = remoteUrl;

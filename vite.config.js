@@ -12,6 +12,17 @@ export default defineConfig({
     clearScreen: false,
     build: {
         emptyOutDir: true,
+        rollupOptions: {
+            output: {
+                // OCR 按语言代码定位本地语言包，文件名必须与语言代码匹配。
+                assetFileNames: function (_a) {
+                    var names = _a.names;
+                    return names.includes("chi_sim.traineddata.gz")
+                        ? "assets/chi_sim.traineddata.gz"
+                        : "assets/[name]-[hash][extname]";
+                },
+            },
+        },
     },
     server: {
         port: 1420,

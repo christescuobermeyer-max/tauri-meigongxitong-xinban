@@ -1,7 +1,7 @@
 {
   "name": "csgh-image-studio",
   "private": true,
-  "version": "3.0.73",
+  "version": "3.0.74",
   "type": "module",
   "description": "呈尚策划 · 美工生图系统PRO — 基于 GPT-Image-2 的外卖店招/头像生成桌面应用",
   "scripts": {
@@ -30,8 +30,10 @@
     "@tauri-apps/plugin-dialog": "^2.0.1",
     "@tauri-apps/plugin-fs": "^2.0.3",
     "@tauri-apps/plugin-shell": "^2.0.1",
+    "@tesseract.js-data/chi_sim": "1.0.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "tesseract.js": "6.0.1"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.1.0",
