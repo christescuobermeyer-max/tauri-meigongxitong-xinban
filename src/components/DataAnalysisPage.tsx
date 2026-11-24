@@ -2,7 +2,7 @@ import GenerationResultTile from "./GenerationResultTile";
 import ImageUpload from "./ImageUpload";
 import MerchantCopyCard from "./MerchantCopyCard";
 import { IconCheck, IconImage, IconSparkles, IconStore } from "./Icons";
-import { DATA_ANALYSIS_COPY_TEXT, DATA_ANALYSIS_EXPORT_SIZE, TRAFFIC_FIELDS, type TrafficMetrics } from "../lib/data-analysis";
+import { DATA_ANALYSIS_COPY_TEXT, DATA_ANALYSIS_EXPORT_SIZE } from "../lib/data-analysis";
 import type { GenerationItem, UploadedImage } from "../types";
 
 interface Props {
@@ -10,10 +10,6 @@ interface Props {
   setStoreName: (value: string) => void;
   images: UploadedImage[];
   setImages: (images: UploadedImage[]) => void;
-  metrics: TrafficMetrics;
-  setMetrics: (metrics: TrafficMetrics) => void;
-  recognizing: boolean;
-  onRecognize: () => void;
   item: GenerationItem;
   busy: boolean;
   submitDisabled?: boolean;
@@ -27,10 +23,6 @@ export default function DataAnalysisPage({
   setStoreName,
   images,
   setImages,
-  metrics,
-  setMetrics,
-  recognizing,
-  onRecognize,
   item,
   busy,
   submitDisabled = busy,
@@ -38,7 +30,7 @@ export default function DataAnalysisPage({
   onRetry,
   onDownload,
 }: Props) {
-  const canGenerate = Boolean(storeName.trim()) && images.length === 1 && Object.values(metrics).some((value) => value.trim()) && !submitDisabled;
+  const canGenerate = Boolean(storeName.trim()) && images.length === 1 && !submitDisabled;
 
   return (
     <>
@@ -79,32 +71,10 @@ export default function DataAnalysisPage({
                 maxCount={1}
                 dropzoneTitle="点击、拖拽或 Ctrl+V 粘贴店铺30天流量数据截图"
                 compressedLabel="数据读取"
-                referenceMaxDimension={2600}
-                referenceQuality={0.95}
-                disabled={busy}
               />
               <span className="field__hint">
-                截图在本机识别。请对照截图核对人数，无法确认的字段可留空。
+                截图只用于读取数据，系统会重新设计并生成全新的分析图
               </span>
-            </div>
-
-            <div className="field">
-              <button className="btn" type="button" disabled={!images.length || submitDisabled} onClick={onRecognize}>
-                {recognizing ? "正在识别…" : "识别截图数据"}
-              </button>
-              {TRAFFIC_FIELDS.map(({ key, label }) => (
-                <label key={key} className="field">
-                  <span className="field__label">{label}（人）</span>
-                  <input
-                    className="input"
-                    inputMode="numeric"
-                    placeholder="可识别或手动填写"
-                    value={metrics[key]}
-                    disabled={busy}
-                    onChange={(event) => setMetrics({ ...metrics, [key]: event.target.value })}
-                  />
-                </label>
-              ))}
             </div>
 
             <div className="picture-wall-actions">
@@ -115,7 +85,7 @@ export default function DataAnalysisPage({
                 type="button"
               >
                 <IconSparkles style={{ width: 14, height: 14 }} />
-                {item.status === "running" ? "正在生成分析图…" : "生成数据分析图"}
+                {busy ? "正在生成分析图…" : "生成数据分析图"}
               </button>
             </div>
           </div>
@@ -156,7 +126,7 @@ export default function DataAnalysisPage({
           sub="30天流量截图分析"
           item={item}
           exportSize={`${DATA_ANALYSIS_EXPORT_SIZE.w}×${DATA_ANALYSIS_EXPORT_SIZE.h}`}
-          idleMessage="核对截图人数后点击生成，分析图会显示在这里"
+          idleMessage="上传截图并点击生成后，分析图会显示在这里"
           onRetry={onRetry}
           onDownload={onDownload}
         />

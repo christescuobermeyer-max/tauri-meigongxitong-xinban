@@ -129,16 +129,16 @@ export function useWorkspaceSlots({ generationLine, setGenerationLine, toast, re
     useBrandStoryWorkspace({ generationLine, setGenerationLine, onToast: toast.show, onRecordHistory: recordHistory }),
   ] as const;
   const dataAnalysisSlots = [
-    useDataAnalysisWorkspace({ onToast: toast.show, onRecordHistory: recordHistory }),
-    useDataAnalysisWorkspace({ onToast: toast.show, onRecordHistory: recordHistory }),
-    useDataAnalysisWorkspace({ onToast: toast.show, onRecordHistory: recordHistory }),
-    useDataAnalysisWorkspace({ onToast: toast.show, onRecordHistory: recordHistory }),
-    useDataAnalysisWorkspace({ onToast: toast.show, onRecordHistory: recordHistory }),
-    useDataAnalysisWorkspace({ onToast: toast.show, onRecordHistory: recordHistory }),
-    useDataAnalysisWorkspace({ onToast: toast.show, onRecordHistory: recordHistory }),
-    useDataAnalysisWorkspace({ onToast: toast.show, onRecordHistory: recordHistory }),
-    useDataAnalysisWorkspace({ onToast: toast.show, onRecordHistory: recordHistory }),
-    useDataAnalysisWorkspace({ onToast: toast.show, onRecordHistory: recordHistory }),
+    useDataAnalysisWorkspace({ generationLine, onToast: toast.show, onRecordHistory: recordHistory }),
+    useDataAnalysisWorkspace({ generationLine, onToast: toast.show, onRecordHistory: recordHistory }),
+    useDataAnalysisWorkspace({ generationLine, onToast: toast.show, onRecordHistory: recordHistory }),
+    useDataAnalysisWorkspace({ generationLine, onToast: toast.show, onRecordHistory: recordHistory }),
+    useDataAnalysisWorkspace({ generationLine, onToast: toast.show, onRecordHistory: recordHistory }),
+    useDataAnalysisWorkspace({ generationLine, onToast: toast.show, onRecordHistory: recordHistory }),
+    useDataAnalysisWorkspace({ generationLine, onToast: toast.show, onRecordHistory: recordHistory }),
+    useDataAnalysisWorkspace({ generationLine, onToast: toast.show, onRecordHistory: recordHistory }),
+    useDataAnalysisWorkspace({ generationLine, onToast: toast.show, onRecordHistory: recordHistory }),
+    useDataAnalysisWorkspace({ generationLine, onToast: toast.show, onRecordHistory: recordHistory }),
   ] as const;
   const menuDesign = useMenuDesignWorkspace({ onToast: toast.show, onRecordHistory: recordHistory });
   return { threePieceSlots, productImageSlots, productBatchSlots, packageImageSlots, pictureWallSlots, pSignboardSlots, imageEditSlots, detailPageSlots, brandStorySlots, dataAnalysisSlots, menuDesign };

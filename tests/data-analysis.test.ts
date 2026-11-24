@@ -1,10 +1,9 @@
 import { WORKSPACE_CATALOG, listWorkspaceNavigation } from "../src/lib/workspace-catalog.js";
-import { deepEqual, equal, ok } from "node:assert/strict";
+import { equal, ok } from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { readProjectFile as readFileSync } from "./helpers/source-tree.mjs";
 import { fileURLToPath } from "node:url";
-import * as module from "../src/lib/data-analysis.js";
-import { EMPTY_TRAFFIC_METRICS, extractTrafficMetrics, formatTrafficRate, parseTrafficCount } from "../src/lib/data-analysis.js";
+import ts from "typescript";
 
 function read(path: string) {
   return readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -14,20 +13,39 @@ equal(existsSync(fileURLToPath(new URL("../src/lib/data-analysis.ts", import.met
 equal(existsSync(fileURLToPath(new URL("../src/hooks/useDataAnalysisWorkspace.ts", import.meta.url))), true);
 equal(existsSync(fileURLToPath(new URL("../src/components/DataAnalysisPage.tsx", import.meta.url))), true);
 
-deepEqual(extractTrafficMetrics(`曝光人数 １２，３４５ 人 30,000 次
-进店人数
-2,345人
-下单人数 98 次 67 人`), { exposure: "12345", visits: "2345", orders: "67" });
-deepEqual(extractTrafficMetrics("曝光人数 999次\n下单人数 88次"), EMPTY_TRAFFIC_METRICS);
-deepEqual(extractTrafficMetrics("曝光人数\n进店人数 50人"), { ...EMPTY_TRAFFIC_METRICS, visits: "50" });
-deepEqual(extractTrafficMetrics("曝光人数 1.2万人\n下单人数 0人"), { ...EMPTY_TRAFFIC_METRICS, orders: "0" });
-deepEqual(extractTrafficMetrics("曝光人数 15人\n曝光人数 29人"), EMPTY_TRAFFIC_METRICS);
-equal(parseTrafficCount("0"), 0);
-equal(parseTrafficCount(""), null);
-equal(parseTrafficCount("1.2"), null);
-equal(formatTrafficRate(12, 300), "4.0%");
-equal(formatTrafficRate(12, 0), "—");
-equal(formatTrafficRate(13, 12), "—");
+const dataAnalysisSource = read("src/lib/data-analysis.ts").replace(
+  'import type { GenerationLine } from "../types";',
+  ""
+);
+const transpiled = ts.transpileModule(dataAnalysisSource, {
+  compilerOptions: {
+    module: ts.ModuleKind.ESNext,
+    target: ts.ScriptTarget.ES2020,
+  },
+}).outputText;
+const module = await import(`data:text/javascript;base64,${Buffer.from(transpiled).toString("base64")}`);
+
+const prompt = module.buildDataAnalysisPrompt("山饺下");
+ok(prompt.includes("山饺下"));
+ok(prompt.includes("外卖店铺30天流量数据截图"));
+ok(prompt.includes("曝光人数"));
+ok(prompt.includes("进店人数"));
+ok(prompt.includes("下单人数"));
+ok(prompt.includes("只提取数字后面紧跟“人”的数据"));
+ok(prompt.includes("数字后面紧跟“次”的数据是次数"));
+ok(prompt.includes("不要虚构截图中不存在的具体数值"));
+ok(prompt.includes("截图只作为读取和核实数据的资料"));
+ok(prompt.includes("禁止原样输出、复刻、描摹、嵌入或拼贴整张截图"));
+ok(prompt.includes("不得退回展示原截图"));
+ok(!prompt.includes("图2"));
+ok(!prompt.includes("模板参考图"));
+
+equal(module.resolveDataAnalysisSize("line1"), "1536x1024");
+equal(module.resolveDataAnalysisSize("line2"), "1536x1024");
+equal(module.resolveDataAnalysisSize("line3"), "1536x1024");
+equal(module.resolveDataAnalysisSize("line4"), "1536x1024");
+equal(module.resolveDataAnalysisSize("line5"), "16:9");
+ok(module.DATA_ANALYSIS_COPY_TEXT.includes("老板"));
 
 equal(module.DATA_ANALYSIS_ASSET_KIND, "data_analysis");
 equal(module.DATA_ANALYSIS_PLATFORM, "meituan");
@@ -58,7 +76,7 @@ const dataAnalysisPageSource = read("src/components/DataAnalysisPage.tsx");
 ok(dataAnalysisPageSource.includes("data-analysis-result-hero"));
 ok(dataAnalysisPageSource.includes("data-analysis-result-hero__kicker"));
 ok(dataAnalysisPageSource.includes("专业分析交付区"));
-ok(dataAnalysisPageSource.includes("识别截图数据"));
+ok(dataAnalysisPageSource.includes("截图只用于读取数据，系统会重新设计并生成全新的分析图"));
 ok(dataAnalysisPageSource.includes("data-analysis-result-hero__metric"));
 ok(dataAnalysisPageSource.includes("OSS归档"));
 ok(dataAnalysisPageSource.includes("云端记录"));
@@ -68,15 +86,14 @@ ok(globalCssSource.includes(".data-analysis-result-hero"));
 ok(globalCssSource.includes(".data-analysis-result-hero__metrics"));
 
 const hookSource = read("src/hooks/useDataAnalysisWorkspace.ts");
-ok(hookSource.includes("renderDataAnalysisImage(snapshot.storeName, snapshot.metrics)"));
-ok(hookSource.includes("base64_data: output.base64"));
-ok(!hookSource.includes("generateArchivedImageWithLine"));
-ok(!hookSource.includes("product_images"));
+ok(hookSource.includes("resolveGeneratedArchiveUrl"));
 ok(hookSource.includes("DATA_ANALYSIS_ASSET_KIND"));
 ok(hookSource.includes("onRecordHistory"));
 ok(hookSource.includes("remoteUrl"));
 ok(hookSource.includes("data-analysis"));
 ok(hookSource.includes("DATA_ANALYSIS_PLATFORM"));
+ok(hookSource.includes("prompt: buildDataAnalysisPrompt(snapshot.storeName)"));
+ok(!hookSource.includes("prompt_config"));
 
 const typesSource = read("src/types.ts");
 ok(typesSource.includes('"data_analysis"'));
@@ -122,3 +139,21 @@ const cloudDataAnalysisPrompt = generationPrompts.templates.data_analysis;
 ok(cloudDataAnalysisPrompt.includes("截图只作为读取和核实数据的资料"));
 ok(cloudDataAnalysisPrompt.includes("禁止原样输出、复刻、描摹、嵌入或拼贴整张截图"));
 ok(cloudDataAnalysisPrompt.includes("不得退回展示原截图"));
+
+// 防原样返回截图：结构几乎一样判定为复制，全新版式不拦截。
+const guard = await import("../src/lib/data-analysis-copy-guard.ts");
+const size = guard.COPY_SAMPLE_SIZE * guard.COPY_SAMPLE_SIZE;
+const screenshot = Array.from({ length: size }, (_, i) => ((i * 37) % 97) * 2 + (i % 48 < 6 ? 60 : 0));
+const recompressed = screenshot.map((v, i) => v + ((i * 13) % 7) - 3);
+const newChart = Array.from({ length: size }, (_, i) => (Math.floor(i / 48) > 24 ? 200 : 80) + (i % 5));
+const flat = Array.from({ length: size }, () => 245);
+ok(guard.grayCorrelation(screenshot, recompressed) > 0.95);
+equal(guard.grayCorrelation(screenshot, flat), 0);
+equal(guard.looksLikeSourceCopy({ sourceAspect: 0.46, resultAspect: 0.46, source: screenshot, result: recompressed, resultCenter: newChart }), true);
+equal(guard.looksLikeSourceCopy({ sourceAspect: 0.46, resultAspect: 1.5, source: screenshot, result: newChart, resultCenter: recompressed }), true);
+equal(guard.looksLikeSourceCopy({ sourceAspect: 0.46, resultAspect: 1.5, source: screenshot, result: newChart, resultCenter: newChart }), false);
+equal(guard.looksLikeSourceCopy({ sourceAspect: 0.46, resultAspect: 0.46, source: screenshot, result: flat, resultCenter: flat }), false);
+const guardedHookSource = read("src/hooks/useDataAnalysisWorkspace.ts");
+ok(guardedHookSource.includes("isResultCopyOfSource"));
+ok(guardedHookSource.includes("product_images: [snapshot.screenshotOssUrl]"));
+ok(!guardedHookSource.includes("TrafficMetrics"));

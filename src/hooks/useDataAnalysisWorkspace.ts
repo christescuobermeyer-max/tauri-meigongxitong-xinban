@@ -1,22 +1,36 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
   DATA_ANALYSIS_ASSET_KIND,
+  buildDataAnalysisPrompt,
   DATA_ANALYSIS_EXPORT_SIZE,
   DATA_ANALYSIS_PLATFORM,
-  EMPTY_TRAFFIC_METRICS,
-  extractTrafficMetrics,
-  parseTrafficCount,
-  type TrafficMetrics,
+  resolveDataAnalysisSize,
 } from "../lib/data-analysis";
-import { renderDataAnalysisImage } from "../lib/data-analysis-render";
-import { pickSavePath, resizeAndSaveImage, uploadImageToOss } from "../lib/tauri";
+import { isResultCopyOfSource } from "../lib/data-analysis-copy-guard";
+import { getAutoRetryAttempt, runWithAutoRetry } from "../lib/generation-retry";
+import { resolveGeneratedArchiveUrl } from "../lib/oss-assets";
+import {
+  generateArchivedImageWithLine,
+  pickSavePath,
+  resizeAndSaveImage,
+  uploadImageToOss,
+} from "../lib/tauri";
 import { safeFileName } from "../lib/utils";
-import type { AssetKind, GenerationItem, Platform, UploadedImage } from "../types";
+import type { AssetKind, GenerationItem, GenerationLine, Platform, UploadedImage } from "../types";
 
 interface Options {
+  generationLine: GenerationLine;
   onToast: (message: string, tone: "error" | "info" | "success") => void;
-  onRecordHistory: (kind: AssetKind, item: GenerationItem, shopName: string, platform: Platform) => void;
+  onRecordHistory: (
+    kind: AssetKind,
+    item: GenerationItem,
+    shopName: string,
+    platform: Platform
+  ) => void;
 }
+
+// 模型偶尔会把上传的截图原样吐回来：检测到就自动重生成，最多生成这么多次。
+const DATA_ANALYSIS_MAX_ROUNDS = 2;
 
 const INITIAL_ITEM: GenerationItem = {
   kind: DATA_ANALYSIS_ASSET_KIND,
@@ -25,92 +39,176 @@ const INITIAL_ITEM: GenerationItem = {
   status: "idle",
 };
 
-export default function useDataAnalysisWorkspace({ onToast, onRecordHistory }: Options) {
+export default function useDataAnalysisWorkspace({
+  generationLine,
+  onToast,
+  onRecordHistory,
+}: Options) {
   const [storeName, setStoreName] = useState("");
-  const [images, updateImages] = useState<UploadedImage[]>([]);
-  const [metrics, setMetrics] = useState<TrafficMetrics>(EMPTY_TRAFFIC_METRICS);
+  const [images, setImages] = useState<UploadedImage[]>([]);
   const [item, setItem] = useState<GenerationItem>(INITIAL_ITEM);
-  const [recognizing, setRecognizing] = useState(false);
-  const locked = useRef(false);
-  const busy = recognizing || item.status === "running";
 
-  function setImages(next: UploadedImage[]) {
-    if (locked.current) return;
-    if (next[0]?.id !== images[0]?.id) {
-      setMetrics(EMPTY_TRAFFIC_METRICS);
-      setItem(INITIAL_ITEM);
-    }
-    updateImages(next.slice(0, 1));
-  }
+  const busy = item.status === "running" || item.status === "queued";
 
-  async function handleRecognize() {
-    if (locked.current || !images[0]) return;
-    locked.current = true;
-    setRecognizing(true);
-    const source = images[0];
-    try {
-      const { readTrafficScreenshot } = await import("../lib/data-analysis-ocr");
-      const extracted = extractTrafficMetrics(await readTrafficScreenshot(`data:${source.mime};base64,${source.productBase64}`));
-      if (!Object.values(extracted).some(Boolean)) {
-        onToast("未识别到明确的『人』数值，请对照截图手动填写。", "info");
-        return;
-      }
-      setMetrics((current) => ({
-        exposure: extracted.exposure || current.exposure,
-        visits: extracted.visits || current.visits,
-        orders: extracted.orders || current.orders,
-      }));
-      onToast("识别完成，请核对人数后生成。", "success");
-    } catch {
-      onToast("截图识别失败，请对照截图手动填写人数。", "error");
-    } finally {
-      locked.current = false;
-      setRecognizing(false);
+  function validateInputs() {
+    if (!storeName.trim()) {
+      onToast("请输入店铺名称", "error");
+      return false;
     }
+    if (images.length !== 1) {
+      onToast("请上传 1 张店铺数据截图", "error");
+      return false;
+    }
+    return true;
   }
 
   async function handleGenerate() {
-    if (locked.current || !storeName.trim() || !images[0]) return;
-    const values = Object.values(metrics).filter((value) => value.trim());
-    if (!values.length || values.some((value) => parseTrafficCount(value) === null)) {
-      onToast("请至少填写一项有效人数。只填写整数，可留空无法核对的字段。", "error");
-      return;
-    }
-    locked.current = true;
-    const started = Date.now();
-    const snapshot = { storeName: storeName.trim(), metrics };
-    setItem({ ...INITIAL_ITEM, status: "running" });
+    if (!validateInputs()) return;
+    const screenshotOssUrl = await prepareScreenshotOssUrl();
+    if (!screenshotOssUrl) return;
+    await runGeneration({
+      storeName: storeName.trim(),
+      screenshotOssUrl,
+      sourceDataUrl: `data:${images[0].mime};base64,${images[0].base64}`,
+      generationLine,
+    });
+  }
+
+  async function handleRetry() {
+    if (!validateInputs()) return;
+    const screenshotOssUrl = await prepareScreenshotOssUrl();
+    if (!screenshotOssUrl) return;
+    await runGeneration({
+      storeName: storeName.trim(),
+      screenshotOssUrl,
+      sourceDataUrl: `data:${images[0].mime};base64,${images[0].base64}`,
+      generationLine,
+    });
+  }
+
+  // 先把截图传到 OSS uploads/，再把 OSS URL 传给生图网关：
+  // 避免 6 个客户端同 IP 并发 POST 数 MB base64 把公司出口带宽挤爆。
+  // 复用 UploadedImage.productOssUrl 缓存，重生成不重复上传。
+  async function prepareScreenshotOssUrl(): Promise<string | null> {
+    const source = images[0];
+    if (source.productOssUrl) return source.productOssUrl;
     try {
-      const output = renderDataAnalysisImage(snapshot.storeName, snapshot.metrics);
-      let remoteUrl: string | undefined;
-      try {
-        const archive = await uploadImageToOss({
-          base64_data: output.base64,
-          mime_type: "image/png",
-          folder: "generated",
-          file_name: `${safeFileName(snapshot.storeName)}-data-analysis.png`,
-        });
-        remoteUrl = archive.url;
-      } catch (error) {
-        console.warn("数据分析图归档失败", error);
-      }
-      const result: GenerationItem = {
+      const uploaded = await uploadImageToOss({
+        base64_data: source.productBase64 || source.base64,
+        mime_type: source.mime,
+        folder: "uploads",
+        file_name: `${safeFileName(storeName.trim() || "store")}-data-analysis-source-${source.id}.jpg`,
+      });
+      setImages((prev) =>
+        prev.map((image) =>
+          image.id === source.id ? { ...image, productOssUrl: uploaded.url } : image
+        )
+      );
+      return uploaded.url;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      onToast(`截图上传 OSS 失败：${message}`, "error");
+      return null;
+    }
+  }
+
+  async function runGeneration(snapshot: {
+    storeName: string;
+    screenshotOssUrl: string;
+    sourceDataUrl: string;
+    generationLine: GenerationLine;
+  }) {
+    const started = Date.now();
+    setItem({
+      ...INITIAL_ITEM,
+      status: "running",
+      generationLine: snapshot.generationLine,
+    });
+    onToast("正在读取截图并生成数据分析图…", "info");
+
+    try {
+      const result = await runWithAutoRetry({
+        onAttempt: (attempt) =>
+          setItem((current) => ({
+            ...current,
+            status: "running",
+            errorMessage: undefined,
+            attempt,
+          })),
+        run: async () => {
+          for (let round = 1; ; round++) {
+            const response = await generateArchivedImageWithLine(
+              {
+                prompt: buildDataAnalysisPrompt(snapshot.storeName),
+                size: resolveDataAnalysisSize(snapshot.generationLine),
+                product_images: [snapshot.screenshotOssUrl],
+                api_line: "auto",
+              },
+              {
+                asset_kind: DATA_ANALYSIS_ASSET_KIND,
+                file_name_stem: `${safeFileName(snapshot.storeName)}-data-analysis`,
+                shop_name: snapshot.storeName,
+                platform: DATA_ANALYSIS_PLATFORM,
+              }
+            );
+            const resultSrc = response.imageDataUrl ?? `data:image/png;base64,${response.image}`;
+            if (await isResultCopyOfSource(resultSrc, snapshot.sourceDataUrl)) {
+              if (round >= DATA_ANALYSIS_MAX_ROUNDS) {
+                throw new Error("模型连续返回了上传的原截图，没有生成新的分析图，请稍后重试");
+              }
+              onToast("模型返回了原截图，正在自动重新生成…", "info");
+              continue;
+            }
+            return {
+              rawBase64: response.image,
+              rawDataUrl: response.imageDataUrl,
+              generationLine: response.generationLine,
+              archiveUrl: response.archiveUrl,
+              archiveError: response.archiveError,
+              historyRecorded: response.historyRecorded,
+              historyError: response.historyError,
+            };
+          }
+        },
+      });
+      const remoteUrl = await resolveGeneratedArchiveUrl(
+        DATA_ANALYSIS_ASSET_KIND,
+        result.rawBase64,
+        `${safeFileName(snapshot.storeName)}-data-analysis`,
+        result
+      );
+      const itemWithRemoteUrl: GenerationItem = {
         kind: DATA_ANALYSIS_ASSET_KIND,
-        rawBase64: output.base64,
-        rawDataUrl: output.dataUrl,
+        rawBase64: result.rawBase64,
+        rawDataUrl: result.rawDataUrl ?? `data:image/png;base64,${result.rawBase64}`,
         remoteUrl,
         status: "succeeded",
+        generationLine: result.generationLine,
         elapsedMs: Date.now() - started,
+        attempt: result.attempt,
+        historyRecorded: result.historyRecorded,
+        historyError: result.historyError,
       };
-      setItem(result);
-      if (remoteUrl) onToast("数据分析图生成完成", "success");
-      onRecordHistory(DATA_ANALYSIS_ASSET_KIND, result, snapshot.storeName, DATA_ANALYSIS_PLATFORM);
-    } catch (error) {
+      setItem({
+        ...itemWithRemoteUrl,
+      });
+      onRecordHistory(
+        DATA_ANALYSIS_ASSET_KIND,
+        itemWithRemoteUrl,
+        snapshot.storeName,
+        DATA_ANALYSIS_PLATFORM
+      );
+      onToast("数据分析图生成完成", "success");
+    } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      setItem({ ...INITIAL_ITEM, status: "failed", errorMessage: message });
+      const attempt = getAutoRetryAttempt(error);
+      setItem((current) => ({
+        ...current,
+        status: "failed",
+        errorMessage: message,
+        attempt: attempt ?? current.attempt,
+      }));
       onToast(`数据分析图生成失败：${message}`, "error");
-    } finally {
-      locked.current = false;
     }
   }
 
@@ -137,14 +235,10 @@ export default function useDataAnalysisWorkspace({ onToast, onRecordHistory }: O
     setStoreName,
     images,
     setImages,
-    metrics,
-    setMetrics,
     item,
     busy,
-    recognizing,
-    handleRecognize,
     handleGenerate,
-    handleRetry: handleGenerate,
+    handleRetry,
     handleDownload,
   };
 }
