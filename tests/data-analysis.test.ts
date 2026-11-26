@@ -25,18 +25,14 @@ const transpiled = ts.transpileModule(dataAnalysisSource, {
 }).outputText;
 const module = await import(`data:text/javascript;base64,${Buffer.from(transpiled).toString("base64")}`);
 
-const prompt = module.buildDataAnalysisPrompt("山饺下");
-ok(prompt.includes("山饺下"));
-ok(prompt.includes("外卖店铺30天流量数据截图"));
-ok(prompt.includes("曝光人数"));
-ok(prompt.includes("进店人数"));
-ok(prompt.includes("下单人数"));
-ok(prompt.includes("只提取数字后面紧跟“人”的数据"));
-ok(prompt.includes("数字后面紧跟“次”的数据是次数"));
-ok(prompt.includes("不要虚构截图中不存在的具体数值"));
-ok(prompt.includes("截图只作为读取和核实数据的资料"));
-ok(prompt.includes("禁止原样输出、复刻、描摹、嵌入或拼贴整张截图"));
-ok(prompt.includes("不得退回展示原截图"));
+const metrics = "曝光人数：5,644人\n入店人数：568人\n下单人数：22人\n入店转化率：10.06%";
+const prompt = module.buildDataAnalysisPrompt(" 山饺下 ", `\n${metrics}\n`);
+ok(prompt.includes("「山饺下」"));
+ok(prompt.includes(`已核实数据（只能使用这些数字，不得编造其他具体数值）：\n${metrics}\n`));
+ok(prompt.includes("30天流量数据分析"));
+ok(prompt.includes("带“次”的数据是次数"));
+ok(prompt.includes("不得虚构每天的数据"));
+ok(!prompt.includes("截图里"));
 ok(!prompt.includes("图2"));
 ok(!prompt.includes("模板参考图"));
 
@@ -92,7 +88,6 @@ ok(hookSource.includes("onRecordHistory"));
 ok(hookSource.includes("remoteUrl"));
 ok(hookSource.includes("data-analysis"));
 ok(hookSource.includes("DATA_ANALYSIS_PLATFORM"));
-ok(hookSource.includes("prompt: buildDataAnalysisPrompt(snapshot.storeName)"));
 ok(!hookSource.includes("prompt_config"));
 
 const typesSource = read("src/types.ts");
@@ -135,25 +130,19 @@ ok(migrationSource.includes("data_analysis_count"));
 const generationPrompts = JSON.parse(read("prompt-templates/generation-prompts.json")) as {
   templates: Record<string, string>;
 };
-const cloudDataAnalysisPrompt = generationPrompts.templates.data_analysis;
-ok(cloudDataAnalysisPrompt.includes("截图只作为读取和核实数据的资料"));
-ok(cloudDataAnalysisPrompt.includes("禁止原样输出、复刻、描摹、嵌入或拼贴整张截图"));
-ok(cloudDataAnalysisPrompt.includes("不得退回展示原截图"));
+// 云端模板与客户端提示词保持一致：只用识别出的数据，截图不进生图请求。
+equal(
+  generationPrompts.templates.data_analysis
+    .replaceAll("{{storeName}}", "山饺下")
+    .replace("{{metrics}}", metrics),
+  module.buildDataAnalysisPrompt("山饺下", metrics)
+);
+ok(generationPrompts.templates["data_analysis.extract"].includes("人数和次数分开"));
 
-// 防原样返回截图：结构几乎一样判定为复制，全新版式不拦截。
-const guard = await import("../src/lib/data-analysis-copy-guard.ts");
-const size = guard.COPY_SAMPLE_SIZE * guard.COPY_SAMPLE_SIZE;
-const screenshot = Array.from({ length: size }, (_, i) => ((i * 37) % 97) * 2 + (i % 48 < 6 ? 60 : 0));
-const recompressed = screenshot.map((v, i) => v + ((i * 13) % 7) - 3);
-const newChart = Array.from({ length: size }, (_, i) => (Math.floor(i / 48) > 24 ? 200 : 80) + (i % 5));
-const flat = Array.from({ length: size }, () => 245);
-ok(guard.grayCorrelation(screenshot, recompressed) > 0.95);
-equal(guard.grayCorrelation(screenshot, flat), 0);
-equal(guard.looksLikeSourceCopy({ sourceAspect: 0.46, resultAspect: 0.46, source: screenshot, result: recompressed, resultCenter: newChart }), true);
-equal(guard.looksLikeSourceCopy({ sourceAspect: 0.46, resultAspect: 1.5, source: screenshot, result: newChart, resultCenter: recompressed }), true);
-equal(guard.looksLikeSourceCopy({ sourceAspect: 0.46, resultAspect: 1.5, source: screenshot, result: newChart, resultCenter: newChart }), false);
-equal(guard.looksLikeSourceCopy({ sourceAspect: 0.46, resultAspect: 0.46, source: screenshot, result: flat, resultCenter: flat }), false);
-const guardedHookSource = read("src/hooks/useDataAnalysisWorkspace.ts");
-ok(guardedHookSource.includes("isResultCopyOfSource"));
-ok(guardedHookSource.includes("product_images: [snapshot.screenshotOssUrl]"));
-ok(!guardedHookSource.includes("TrafficMetrics"));
+const hookSourceAfterFix = read("src/hooks/useDataAnalysisWorkspace.ts");
+ok(hookSourceAfterFix.includes('"/api/data-analysis-extract"'));
+ok(hookSourceAfterFix.includes("product_images: []"));
+ok(hookSourceAfterFix.includes("buildDataAnalysisPrompt(snapshot.storeName, snapshot.metrics)"));
+ok(!hookSourceAfterFix.includes("uploadImageToOss"));
+ok(!existsSync(fileURLToPath(new URL("../src/lib/data-analysis-copy-guard.ts", import.meta.url))));
+ok(dataAnalysisPageSource.includes("referenceMaxDimension={2400}"));

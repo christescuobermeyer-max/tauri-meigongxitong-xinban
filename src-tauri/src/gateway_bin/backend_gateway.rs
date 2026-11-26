@@ -20,6 +20,8 @@ mod brand_story;
 mod brand_story_clients;
 #[path = "../menu_design.rs"]
 mod menu_design;
+#[path = "../data_analysis.rs"]
+mod data_analysis;
 #[path = "../env_config.rs"]
 mod env_config;
 #[path = "../gateway_limiter.rs"]
@@ -127,6 +129,7 @@ fn build_router(state: AppState) -> Result<Router, String> {
         .route("/api/animations/jobs", get(get_animations).post(submit_animation).layer(axum::extract::DefaultBodyLimit::max(28_000_000)))
         .route("/api/generate-image", post(generate_image))
         .route("/api/menu-organize", post(menu_organize).layer(axum::extract::DefaultBodyLimit::max(50 * 1024 * 1024)))
+        .route("/api/data-analysis-extract", post(data_analysis_extract).layer(axum::extract::DefaultBodyLimit::max(12 * 1024 * 1024)))
         .route("/api/video/parse-douyin", post(parse_douyin_video))
         .route("/api/line-health", get(get_line_health))
         .route("/api/gateway-stats", get(gateway_stats))

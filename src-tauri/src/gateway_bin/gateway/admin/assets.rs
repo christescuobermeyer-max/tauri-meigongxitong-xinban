@@ -61,6 +61,15 @@ pub(crate) async fn menu_organize(
     menu_design::organize(req).await.map(Json).map_err(GatewayError::bad_gateway)
 }
 
+pub(crate) async fn data_analysis_extract(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<data_analysis::DataAnalysisExtractRequest>,
+) -> Result<Json<data_analysis::DataAnalysisExtractResponse>, GatewayError> {
+    let _user_id = verify_access_token(&state, &headers).await?;
+    data_analysis::extract(req).await.map(Json).map_err(GatewayError::bad_gateway)
+}
+
 pub(crate) async fn brand_story_generate_text(
     State(state): State<AppState>,
     headers: HeaderMap,

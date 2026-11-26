@@ -6,14 +6,14 @@ import {
   DATA_ANALYSIS_PLATFORM,
   resolveDataAnalysisSize,
 } from "../lib/data-analysis";
-import { isResultCopyOfSource } from "../lib/data-analysis-copy-guard";
 import { getAutoRetryAttempt, runWithAutoRetry } from "../lib/generation-retry";
 import { resolveGeneratedArchiveUrl } from "../lib/oss-assets";
 import {
+  callBackendGateway,
   generateArchivedImageWithLine,
+  getBackendGatewayUrl,
   pickSavePath,
   resizeAndSaveImage,
-  uploadImageToOss,
 } from "../lib/tauri";
 import { safeFileName } from "../lib/utils";
 import type { AssetKind, GenerationItem, GenerationLine, Platform, UploadedImage } from "../types";
@@ -28,9 +28,6 @@ interface Options {
     platform: Platform
   ) => void;
 }
-
-// 模型偶尔会把上传的截图原样吐回来：检测到就自动重生成，最多生成这么多次。
-const DATA_ANALYSIS_MAX_ROUNDS = 2;
 
 const INITIAL_ITEM: GenerationItem = {
   kind: DATA_ANALYSIS_ASSET_KIND,
@@ -47,6 +44,8 @@ export default function useDataAnalysisWorkspace({
   const [storeName, setStoreName] = useState("");
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [item, setItem] = useState<GenerationItem>(INITIAL_ITEM);
+  // 同一张截图重生成时复用已识别的数据，不重复调用识别接口。
+  const [extracted, setExtracted] = useState<{ imageId: string; metrics: string } | null>(null);
 
   const busy = item.status === "running" || item.status === "queued";
 
@@ -64,58 +63,44 @@ export default function useDataAnalysisWorkspace({
 
   async function handleGenerate() {
     if (!validateInputs()) return;
-    const screenshotOssUrl = await prepareScreenshotOssUrl();
-    if (!screenshotOssUrl) return;
+    if (!getBackendGatewayUrl()) {
+      onToast("数据分析需要连接云端网关", "error");
+      return;
+    }
+    const metrics = await extractMetrics();
+    if (!metrics) return;
     await runGeneration({
       storeName: storeName.trim(),
-      screenshotOssUrl,
-      sourceDataUrl: `data:${images[0].mime};base64,${images[0].base64}`,
+      metrics,
       generationLine,
     });
   }
 
-  async function handleRetry() {
-    if (!validateInputs()) return;
-    const screenshotOssUrl = await prepareScreenshotOssUrl();
-    if (!screenshotOssUrl) return;
-    await runGeneration({
-      storeName: storeName.trim(),
-      screenshotOssUrl,
-      sourceDataUrl: `data:${images[0].mime};base64,${images[0].base64}`,
-      generationLine,
-    });
-  }
-
-  // 先把截图传到 OSS uploads/，再把 OSS URL 传给生图网关：
-  // 避免 6 个客户端同 IP 并发 POST 数 MB base64 把公司出口带宽挤爆。
-  // 复用 UploadedImage.productOssUrl 缓存，重生成不重复上传。
-  async function prepareScreenshotOssUrl(): Promise<string | null> {
+  // 截图只交给网关视觉模型读出指标；生图请求不带截图，避免上游把原截图原样返回。
+  async function extractMetrics(): Promise<string | null> {
     const source = images[0];
-    if (source.productOssUrl) return source.productOssUrl;
+    if (extracted?.imageId === source.id) return extracted.metrics;
+    setItem({ ...INITIAL_ITEM, status: "running", generationLine });
+    onToast("正在读取截图数据…", "info");
     try {
-      const uploaded = await uploadImageToOss({
-        base64_data: source.productBase64 || source.base64,
-        mime_type: source.mime,
-        folder: "uploads",
-        file_name: `${safeFileName(storeName.trim() || "store")}-data-analysis-source-${source.id}.jpg`,
+      const result = await callBackendGateway<{ metrics: string }>("/api/data-analysis-extract", {
+        screenshot: `data:${source.mime};base64,${source.productBase64 || source.base64}`,
       });
-      setImages((prev) =>
-        prev.map((image) =>
-          image.id === source.id ? { ...image, productOssUrl: uploaded.url } : image
-        )
-      );
-      return uploaded.url;
+      const metrics = result.metrics?.trim();
+      if (!metrics) throw new Error("没有从截图中识别到数据，请上传更清晰的店铺数据截图");
+      setExtracted({ imageId: source.id, metrics });
+      return metrics;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      onToast(`截图上传 OSS 失败：${message}`, "error");
+      setItem({ ...INITIAL_ITEM, status: "failed", errorMessage: message });
+      onToast(`读取截图数据失败：${message}`, "error");
       return null;
     }
   }
 
   async function runGeneration(snapshot: {
     storeName: string;
-    screenshotOssUrl: string;
-    sourceDataUrl: string;
+    metrics: string;
     generationLine: GenerationLine;
   }) {
     const started = Date.now();
@@ -124,7 +109,7 @@ export default function useDataAnalysisWorkspace({
       status: "running",
       generationLine: snapshot.generationLine,
     });
-    onToast("正在读取截图并生成数据分析图…", "info");
+    onToast("正在生成数据分析图…", "info");
 
     try {
       const result = await runWithAutoRetry({
@@ -136,39 +121,29 @@ export default function useDataAnalysisWorkspace({
             attempt,
           })),
         run: async () => {
-          for (let round = 1; ; round++) {
-            const response = await generateArchivedImageWithLine(
-              {
-                prompt: buildDataAnalysisPrompt(snapshot.storeName),
-                size: resolveDataAnalysisSize(snapshot.generationLine),
-                product_images: [snapshot.screenshotOssUrl],
-                api_line: "auto",
-              },
-              {
-                asset_kind: DATA_ANALYSIS_ASSET_KIND,
-                file_name_stem: `${safeFileName(snapshot.storeName)}-data-analysis`,
-                shop_name: snapshot.storeName,
-                platform: DATA_ANALYSIS_PLATFORM,
-              }
-            );
-            const resultSrc = response.imageDataUrl ?? `data:image/png;base64,${response.image}`;
-            if (await isResultCopyOfSource(resultSrc, snapshot.sourceDataUrl)) {
-              if (round >= DATA_ANALYSIS_MAX_ROUNDS) {
-                throw new Error("模型连续返回了上传的原截图，没有生成新的分析图，请稍后重试");
-              }
-              onToast("模型返回了原截图，正在自动重新生成…", "info");
-              continue;
+          const response = await generateArchivedImageWithLine(
+            {
+              prompt: buildDataAnalysisPrompt(snapshot.storeName, snapshot.metrics),
+              size: resolveDataAnalysisSize(snapshot.generationLine),
+              product_images: [],
+              api_line: "auto",
+            },
+            {
+              asset_kind: DATA_ANALYSIS_ASSET_KIND,
+              file_name_stem: `${safeFileName(snapshot.storeName)}-data-analysis`,
+              shop_name: snapshot.storeName,
+              platform: DATA_ANALYSIS_PLATFORM,
             }
-            return {
-              rawBase64: response.image,
-              rawDataUrl: response.imageDataUrl,
-              generationLine: response.generationLine,
-              archiveUrl: response.archiveUrl,
-              archiveError: response.archiveError,
-              historyRecorded: response.historyRecorded,
-              historyError: response.historyError,
-            };
-          }
+          );
+          return {
+            rawBase64: response.image,
+            rawDataUrl: response.imageDataUrl,
+            generationLine: response.generationLine,
+            archiveUrl: response.archiveUrl,
+            archiveError: response.archiveError,
+            historyRecorded: response.historyRecorded,
+            historyError: response.historyError,
+          };
         },
       });
       const remoteUrl = await resolveGeneratedArchiveUrl(
@@ -238,7 +213,7 @@ export default function useDataAnalysisWorkspace({
     item,
     busy,
     handleGenerate,
-    handleRetry,
+    handleRetry: handleGenerate,
     handleDownload,
   };
 }

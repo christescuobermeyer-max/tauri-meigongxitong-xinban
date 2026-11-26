@@ -69,6 +69,8 @@ export default function DataAnalysisPage({
                 images={images}
                 onChange={(next) => setImages(next.slice(0, 1))}
                 maxCount={1}
+                referenceMaxDimension={2400}
+                referenceQuality={0.95}
                 dropzoneTitle="点击、拖拽或 Ctrl+V 粘贴店铺30天流量数据截图"
                 compressedLabel="数据读取"
               />
